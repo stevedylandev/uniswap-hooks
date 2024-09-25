@@ -1,66 +1,35 @@
-## Foundry
+# <img src="logo.svg" alt="Uniswap Hooks" height="40px">
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Solidity library for secure and modular Uniswap hooks. 
 
-Foundry consists of:
+## Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Installation
 
-## Documentation
+#### Foundry
 
-https://book.getfoundry.sh/
+> [!WARNING]
+> Foundry installs the latest version initially, but subsequent `forge update` commands will use the `master` branch.
 
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```
+$ forge install OpenZeppelin/uniswap-hooks
 ```
 
-### Test
+Add `@openzeppelin/uniswap-hooks/=lib/uniswap-hooks/src/` in `remappings.txt`.
+#### Hardhat
 
-```shell
-$ forge test
+```
+$ npm install @openzeppelin/uniswap-hooks
 ```
 
-### Format
+## Contribute
 
-```shell
-$ forge fmt
-```
+There are many ways you can participate and help build high quality software. Check out the [contribution guide](CONTRIBUTING.md)!
 
-### Gas Snapshots
+## License
 
-```shell
-$ forge snapshot
-```
+OpenZeppelin Contracts is released under the [MIT License](LICENSE).
 
-### Anvil
+## Legal
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Your use of this Project is governed by the terms found at www.openzeppelin.com/tos (the "Terms").
