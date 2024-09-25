@@ -1,0 +1,15 @@
+{
+  "name": "uniswap-hooks",
+  "version": "0.1.0",
+  "description": "Solidity library for secure and modular Uniswap hooks.",
+  "files": [
+    "src/*.sol",
+    "src/**/*.sol"
+  ],
+  "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
+  "bugs": {
+    "url": "https://github.com/OpenZeppelin/uniswap-hooks/issues"
+  },
+  "author": "OpenZeppelin",
+  "license": "MIT"
+}
