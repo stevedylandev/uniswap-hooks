@@ -42,7 +42,6 @@ abstract contract DynamicAfterFee is BaseHook {
         return (this.afterSwap.selector, feeAmount);
     }
 
-    /// @notice Set the permissions for the hook
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
