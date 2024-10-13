@@ -1,0 +1,245 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {Slot0} from "v4-core/src/types/Slot0.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+
+abstract contract BaseHook is IHooks, SafeCallback {
+    error NotSelf();
+    error InvalidPool();
+    error LockFailure();
+    error HookNotImplemented();
+
+    constructor(IPoolManager _manager) SafeCallback(_manager) {
+        validateHookAddress(this);
+    }
+
+    /// @dev Only this address may call this function
+    modifier selfOnly() {
+        if (msg.sender != address(this)) revert NotSelf();
+        _;
+    }
+
+    /// @dev Only pools with hooks set to this contract may call this function
+    modifier onlyValidPools(IHooks hooks) {
+        if (hooks != this) revert InvalidPool();
+        _;
+    }
+
+    /// @notice Returns a struct of permissions to signal which hook functions are to be implemented
+    /// @dev Used at deployment to validate the address correctly represents the expected permissions
+    function getHookPermissions() public pure virtual returns (Hooks.Permissions memory);
+
+    /// @notice Validates the deployed hook address agrees with the expected permissions of the hook
+    /// @dev this function is virtual so that we can override it during testing,
+    /// which allows us to deploy an implementation to any address
+    /// and then etch the bytecode into the correct address
+    function validateHookAddress(BaseHook _this) internal pure virtual {
+        Hooks.validateHookPermissions(_this, getHookPermissions());
+    }
+
+    function _unlockCallback(bytes calldata data) internal virtual override returns (bytes memory) {
+        (bool success, bytes memory returnData) = address(this).call(data);
+        if (success) return returnData;
+        if (returnData.length == 0) revert LockFailure();
+        // if the call failed, bubble up the reason
+        assembly ("memory-safe") {
+            revert(add(returnData, 32), mload(returnData))
+        }
+    }
+
+    /// @inheritdoc IHooks
+    function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
+        external
+        virtual
+        returns (bytes4)
+    {
+        return _beforeInitialize(sender, key, sqrtPriceX96);
+    }
+
+    function _beforeInitialize(address, PoolKey calldata, uint160) internal virtual returns (bytes4) {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick)
+        external
+        virtual
+        returns (bytes4)
+    {
+        return _afterInitialize(sender, key, sqrtPriceX96, tick);
+    }
+
+    function _afterInitialize(address, PoolKey calldata, uint160, int24) internal virtual returns (bytes4) {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function beforeAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata hookData
+    ) external virtual returns (bytes4) {
+        return _beforeAddLiquidity(sender, key, params, hookData);
+    }
+
+    function _beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
+        internal
+        virtual
+        returns (bytes4)
+    {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function beforeRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata hookData
+    ) external virtual returns (bytes4) {
+        return _beforeRemoveLiquidity(sender, key, params, hookData);
+    }
+
+    function _beforeRemoveLiquidity(
+        address,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) internal virtual returns (bytes4) {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function afterAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta0,
+        BalanceDelta delta1,
+        bytes calldata hookData
+    ) external virtual returns (bytes4, BalanceDelta) {
+        return _afterAddLiquidity(sender, key, params, delta0, delta1, hookData);
+    }
+
+    function _afterAddLiquidity(
+        address,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
+        BalanceDelta,
+        bytes calldata
+    ) internal virtual returns (bytes4, BalanceDelta) {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function afterRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta0,
+        BalanceDelta delta1,
+        bytes calldata hookData
+    ) external virtual returns (bytes4, BalanceDelta) {
+        return _afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData);
+    }
+
+    function _afterRemoveLiquidity(
+        address,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta,
+        BalanceDelta,
+        bytes calldata
+    ) internal virtual returns (bytes4, BalanceDelta) {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function beforeSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) external virtual returns (bytes4, BeforeSwapDelta, uint24) {
+        return _beforeSwap(sender, key, params, hookData);
+    }
+
+    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
+        internal
+        virtual
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external virtual returns (bytes4, int128) {
+        return _afterSwap(sender, key, params, delta, hookData);
+    }
+
+    function _afterSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+        internal
+        virtual
+        returns (bytes4, int128)
+    {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function beforeDonate(
+        address sender,
+        PoolKey calldata key,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata hookData
+    ) external virtual returns (bytes4) {
+        return _beforeDonate(sender, key, amount0, amount1, hookData);
+    }
+
+    function _beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        internal
+        virtual
+        returns (bytes4)
+    {
+        revert HookNotImplemented();
+    }
+
+    /// @inheritdoc IHooks
+    function afterDonate(
+        address sender,
+        PoolKey calldata key,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata hookData
+    ) external virtual returns (bytes4) {
+        return _afterDonate(sender, key, amount0, amount1, hookData);
+    }
+
+    function _afterDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        internal
+        virtual
+        returns (bytes4)
+    {
+        revert HookNotImplemented();
+    }
+}
