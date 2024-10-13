@@ -34,4 +34,42 @@ contract DynamicAfterFeeTest is Test, Deployers {
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
     }
+
+    /// @notice Unit test for a single swap, not zero for one.
+    function test_swap_single_notZeroForOne() public {
+        uint256 balanceBefore0 = currency0.balanceOf(address(this));
+        uint256 balanceBefore1 = currency1.balanceOf(address(this));
+
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(amountToSwap),
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+        swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+
+        assertEq(currency0.balanceOf(address(this)), balanceBefore0 + 999000999000999, "amount 0");
+        assertEq(currency1.balanceOf(address(this)), balanceBefore1 - amountToSwap, "amount 1");
+    }
+
+    /// @notice Unit test for a single swap, zero for one.
+    function test_swap_single_zeroForOne() public {
+        uint256 balanceBefore0 = currency0.balanceOf(address(this));
+        uint256 balanceBefore1 = currency1.balanceOf(address(this));
+
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(amountToSwap),
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+        swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+
+        assertEq(currency0.balanceOf(address(this)), balanceBefore0 - amountToSwap, "amount 0");
+        assertEq(currency1.balanceOf(address(this)), balanceBefore1 + 999000999000999, "amount 1");
+    }
 }
