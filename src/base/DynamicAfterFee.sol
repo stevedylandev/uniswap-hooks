@@ -11,7 +11,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 abstract contract DynamicAfterFee is BaseHook {
-    mapping(PoolId => BalanceDelta) private _targetDeltas;
+    mapping(PoolId => BalanceDelta) internal _targetDeltas;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
