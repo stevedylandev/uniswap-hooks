@@ -16,7 +16,7 @@ abstract contract DynamicBeforeFee is BaseHook {
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
-    ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    ) external virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         (bytes4 selector, BeforeSwapDelta delta, uint24 fee) = _beforeSwap(sender, key, params, hookData);
         return (selector, delta, fee | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }

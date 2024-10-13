@@ -21,6 +21,7 @@ abstract contract BaseCustomCurve is BaseHook {
 
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
+        virtual
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {

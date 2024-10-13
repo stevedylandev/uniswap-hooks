@@ -21,7 +21,7 @@ abstract contract DynamicAfterFee is BaseHook {
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) internal override returns (bytes4, int128) {
+    ) internal virtual override returns (bytes4, int128) {
         PoolId poolId = key.toId();
         BalanceDelta targetDelta = _targetDeltas[poolId];
         int128 feeAmount = 0;
