@@ -48,11 +48,7 @@ contract DynamicBeforeFeeTest is Test, Deployers {
         });
         swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
-        assertEq(
-            currency0.balanceOf(address(this)),
-            57896044618658097711785492504343953926634992332820282019728780989579400361908,
-            "amount 0"
-        );
+        assertEq(currency0.balanceOf(address(this)), balanceBefore0 + 949098356561266, "amount 0");
         assertEq(currency1.balanceOf(address(this)), balanceBefore1 - amountToSwap, "amount 1");
     }
 
@@ -72,10 +68,6 @@ contract DynamicBeforeFeeTest is Test, Deployers {
         swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
         assertEq(currency0.balanceOf(address(this)), balanceBefore0 - amountToSwap, "amount 0");
-        assertEq(
-            currency1.balanceOf(address(this)),
-            57896044618658097711785492504343953926634992332820282019728780989579400361908,
-            "amount 1"
-        );
+        assertEq(currency1.balanceOf(address(this)), balanceBefore1 + 949098356561266, "amount 1");
     }
 }
