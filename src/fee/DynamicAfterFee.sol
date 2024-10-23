@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/DynamicAfterFee.sol)
+
 pragma solidity ^0.8.20;
 
 import {BaseHook} from "src/base/BaseHook.sol";
@@ -10,6 +12,11 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
+/**
+ * @dev Base implementation for dynamic fees applied after swaps.
+ *
+ * _Available since v0.1.0_
+ */
 abstract contract DynamicAfterFee is BaseHook {
     mapping(PoolId => BalanceDelta) internal _targetDeltas;
 

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/DynamicBeforeFee.sol)
+
 pragma solidity ^0.8.20;
 
 import {BaseHook} from "src/base/BaseHook.sol";
@@ -8,6 +10,11 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 
+/**
+ * @dev Base implementation for dynamic fees applied before swaps.
+ *
+ * _Available since v0.1.0_
+ */
 abstract contract DynamicBeforeFee is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 

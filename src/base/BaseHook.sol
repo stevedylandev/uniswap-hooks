@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseHook.sol)
+
 pragma solidity ^0.8.20;
 
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
@@ -15,40 +17,75 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
+/**
+ * @dev Base hook implementation.
+ *
+ * This contract defines all hook entry points, as well as security and permission helpers.
+ * Based on the https://github.com/Uniswap/v4-periphery/blob/main/src/base/hooks/BaseHook.sol[Uniswap v4 periphery implementation].
+ *
+ * _Available since v0.1.0_
+ */
 abstract contract BaseHook is IHooks, SafeCallback {
+    /**
+     * @dev The hook is not the caller.
+     */
     error NotSelf();
+
+    /**
+     * @dev The pool is not authorized to use this hook.
+     */
     error InvalidPool();
+
+    /**
+     * @dev The hook is not unlocked.
+     */
     error LockFailure();
+
+    /**
+     * @dev The hook function is not implemented.
+     */
     error HookNotImplemented();
 
+    /**
+     * @dev Set the pool manager and check that the hook address matches the expected permissions and flags.
+     */
     constructor(IPoolManager _manager) SafeCallback(_manager) {
         validateHookAddress(this);
     }
 
-    /// @dev Only this address may call this function
+    /**
+     * @dev Restrict the function to only be callable by the hook itself.
+     */
     modifier selfOnly() {
         if (msg.sender != address(this)) revert NotSelf();
         _;
     }
 
-    /// @dev Only pools with hooks set to this contract may call this function
+    /**
+     * @dev Restrict the function to only be callable by a valid pool.
+     */
     modifier onlyValidPools(IHooks hooks) {
         if (hooks != this) revert InvalidPool();
         _;
     }
 
-    /// @notice Returns a struct of permissions to signal which hook functions are to be implemented
-    /// @dev Used at deployment to validate the address correctly represents the expected permissions
+    /**
+     * @dev Get the hook permissions to signal which hook functions are to be implemented.
+     *
+     * Used at deployment to validate the address correctly represents the expected permissions.
+     */
     function getHookPermissions() public pure virtual returns (Hooks.Permissions memory);
 
-    /// @notice Validates the deployed hook address agrees with the expected permissions of the hook
-    /// @dev this function is virtual so that we can override it during testing,
-    /// which allows us to deploy an implementation to any address
-    /// and then etch the bytecode into the correct address
+    /**
+     * @dev Validate the hook address against the expected permissions.
+     */
     function validateHookAddress(BaseHook _this) internal pure virtual {
         Hooks.validateHookPermissions(_this, getHookPermissions());
     }
 
+    /**
+     * @dev Call itself for a given data payload and return any data.
+     */
     function _unlockCallback(bytes calldata data) internal virtual override returns (bytes memory) {
         (bool success, bytes memory returnData) = address(this).call(data);
         if (success) return returnData;
@@ -59,7 +96,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         }
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
         external
         virtual
@@ -72,7 +111,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick)
         external
         virtual
@@ -85,7 +126,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function beforeAddLiquidity(
         address sender,
         PoolKey calldata key,
@@ -103,7 +146,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function beforeRemoveLiquidity(
         address sender,
         PoolKey calldata key,
@@ -122,7 +167,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function afterAddLiquidity(
         address sender,
         PoolKey calldata key,
@@ -145,7 +192,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function afterRemoveLiquidity(
         address sender,
         PoolKey calldata key,
@@ -168,7 +217,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -186,7 +237,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function afterSwap(
         address sender,
         PoolKey calldata key,
@@ -205,7 +258,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function beforeDonate(
         address sender,
         PoolKey calldata key,
@@ -224,7 +279,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
         revert HookNotImplemented();
     }
 
-    /// @inheritdoc IHooks
+    /**
+     * @inheritdoc IHooks
+     */
     function afterDonate(
         address sender,
         PoolKey calldata key,

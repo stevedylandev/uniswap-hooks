@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/AntiSandwichHook.sol)
+
 pragma solidity ^0.8.20;
 
 import {DynamicAfterFee} from "src/fee/DynamicAfterFee.sol";
@@ -14,7 +16,13 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
-/// @notice https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol
+/**
+ * @dev Implementation of an anti-sandwich hook.
+ *
+ * Based on the https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[implementation by cairoeth].
+ *
+ * _Available since v0.1.0_
+ */
 contract AntiSandwichHook is DynamicAfterFee {
     using PoolIdLibrary for PoolKey;
     using Pool for *;

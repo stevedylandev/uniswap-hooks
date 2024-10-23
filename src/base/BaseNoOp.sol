@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseNoOp.sol)
+
 pragma solidity ^0.8.20;
 
 import {BaseHook} from "src/base/BaseHook.sol";
@@ -10,11 +12,25 @@ import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
 
+/**
+ * @dev Base implementation for no-op hooks.
+ *
+ * IMPORTANT: Given that this contract overrides default logic of the {PoolManager}, liquidity
+ * must be provided by the hook itself (i.e. the hook must hold the liquidity/tokens).
+ *
+ * _Available since v0.1.0_
+ */
 abstract contract BaseNoOp is BaseHook {
     using SafeCast for uint256;
 
+    /**
+     * @dev Set the pool manager.
+     */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
+    /**
+     * @dev TODO
+     */
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         virtual
@@ -32,6 +48,9 @@ abstract contract BaseNoOp is BaseHook {
         }
     }
 
+    /**
+     * @dev Set the hook permissions, specifically {beforeSwap} and {beforeSwapReturnDelta}.
+     */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
