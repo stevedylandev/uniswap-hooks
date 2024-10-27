@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/DynamicAfterFee.sol)
+
+pragma solidity ^0.8.20;
+
+import {BaseHook} from "src/base/BaseHook.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+
+/**
+ * @dev Base implementation for dynamic fees applied after swaps.
+ *
+ * In order to use this hook, the inheriting contract must define a target delta for a swap before
+ * the {afterSwap} function is called. Refer to the {AntiSandwichHook} contract as an example
+ * implementation of this pattern.
+ *
+ * _Available since v0.1.0_
+ */
+abstract contract DynamicAfterFee is BaseHook {
+    mapping(PoolId => BalanceDelta) internal _targetDeltas;
+
+    /**
+     * @dev Set the pool manager.
+     */
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    /**
+     * @dev Calculate the target delta and apply the fee so that the returned delta matches.
+     */
+    function _afterSwap(
+        address,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata,
+        BalanceDelta delta,
+        bytes calldata
+    ) internal virtual override returns (bytes4, int128) {
+        PoolId poolId = key.toId();
+        BalanceDelta targetDelta = _targetDeltas[poolId];
+        int128 feeAmount = 0;
+        if (BalanceDelta.unwrap(targetDelta) != 0) {
+            if (delta.amount0() == targetDelta.amount0() && delta.amount1() > targetDelta.amount1()) {
+                feeAmount = delta.amount1() - targetDelta.amount1();
+                poolManager.donate(key, 0, uint256(uint128(feeAmount)), "");
+            }
+
+            if (delta.amount1() == targetDelta.amount1() && delta.amount0() > targetDelta.amount0()) {
+                feeAmount = delta.amount0() - targetDelta.amount0();
+                poolManager.donate(key, uint256(uint128(feeAmount)), 0, "");
+            }
+
+            _targetDeltas[poolId] = BalanceDelta.wrap(0);
+        }
+
+        return (this.afterSwap.selector, feeAmount);
+    }
+
+    /**
+     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     */
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: false,
+            beforeAddLiquidity: false,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: false,
+            afterSwap: true,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: true,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
+    }
+}

@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicFee.sol)
+
+pragma solidity ^0.8.20;
+
+import {BaseHook} from "src/base/BaseHook.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
+
+/**
+ * @dev Base implementation to apply a dynamic fee via the PoolManager's {updateDynamicLPFee} function.
+ *
+ * _Available since v0.1.0_
+ */
+abstract contract BaseDynamicFee is BaseHook {
+    /**
+     * @dev Set the pool manager.
+     */
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    /**
+     * @dev Returns a fee, denominated in hundredths of a percent, to be applied to the pool after it is initialized.
+     */
+    function _getFee(PoolKey calldata key) internal virtual returns (uint24);
+
+    /**
+     * @dev Set the fee after the pool is initialized.
+     */
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
+        poolManager.updateDynamicLPFee(key, _getFee(key));
+        return BaseHook.afterInitialize.selector;
+    }
+
+    /**
+     * @dev Set the hook permissions, specifically {afterInitialize}.
+     */
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: true,
+            beforeAddLiquidity: false,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: false,
+            afterSwap: false,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
+    }
+}
