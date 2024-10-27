@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {DynamicBeforeFeeMock} from "test/mocks/DynamicBeforeFeeMock.sol";
+import {BaseDynamicFeeMock} from "test/mocks/BaseDynamicFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -13,16 +13,16 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 
-contract DynamicBeforeFeeTest is Test, Deployers {
-    DynamicBeforeFeeMock hook;
+contract BaseDynamicFeeTest is Test, Deployers {
+    BaseDynamicFeeMock hook;
     PoolKey noHookKey;
 
     function setUp() public {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = DynamicBeforeFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG)));
-        deployCodeTo("test/mocks/DynamicBeforeFeeMock.sol:DynamicBeforeFeeMock", abi.encode(manager), address(hook));
+        hook = BaseDynamicFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG)));
+        deployCodeTo("test/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock", abi.encode(manager), address(hook));
 
         (key,) = initPoolAndAddLiquidity(
             currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1

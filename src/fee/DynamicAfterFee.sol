@@ -15,19 +15,29 @@ import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
  *
+ * In order to use this hook, the inheriting contract must define a target delta for a swap before
+ * the {afterSwap} function is called. Refer to the {AntiSandwichHook} contract as an example
+ * implementation of this pattern.
+ *
  * _Available since v0.1.0_
  */
 abstract contract DynamicAfterFee is BaseHook {
     mapping(PoolId => BalanceDelta) internal _targetDeltas;
 
+    /**
+     * @dev Set the pool manager.
+     */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
+    /**
+     * @dev Calculate the target delta and apply the fee so that the returned delta matches.
+     */
     function _afterSwap(
-        address sender,
+        address,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        IPoolManager.SwapParams calldata,
         BalanceDelta delta,
-        bytes calldata hookData
+        bytes calldata
     ) internal virtual override returns (bytes4, int128) {
         PoolId poolId = key.toId();
         BalanceDelta targetDelta = _targetDeltas[poolId];
@@ -49,6 +59,9 @@ abstract contract DynamicAfterFee is BaseHook {
         return (this.afterSwap.selector, feeAmount);
     }
 
+    /**
+     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
