@@ -8,11 +8,7 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 contract BaseDynamicFeeMock is BaseDynamicFee {
     constructor(IPoolManager _poolManager) BaseDynamicFee(_poolManager) {}
 
-    function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
-        internal
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
-        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 50000);
+    function _getFee(PoolKey calldata) internal pure override returns (uint24) {
+        return 50000;
     }
 }
