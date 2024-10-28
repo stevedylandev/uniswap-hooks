@@ -4,7 +4,6 @@
 pragma solidity ^0.8.20;
 
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
@@ -25,7 +24,9 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseHook is IHooks, SafeCallback {
+abstract contract BaseHook is IHooks {
+    IPoolManager public immutable poolManager;
+
     /**
      * @dev The hook is not the caller.
      */
@@ -47,10 +48,24 @@ abstract contract BaseHook is IHooks, SafeCallback {
     error HookNotImplemented();
 
     /**
+     * @notice Thrown when calling unlockCallback where the caller is not PoolManager
+     */
+    error NotPoolManager();
+
+    /**
      * @dev Set the pool manager and check that the hook address matches the expected permissions and flags.
      */
-    constructor(IPoolManager _manager) SafeCallback(_manager) {
+    constructor(IPoolManager _poolManager) {
+        poolManager = _poolManager;
         validateHookAddress(this);
+    }
+
+    /**
+     * @notice Only allow calls from the PoolManager contract
+     */
+    modifier onlyPoolManager() {
+        if (msg.sender != address(poolManager)) revert NotPoolManager();
+        _;
     }
 
     /**
@@ -84,9 +99,9 @@ abstract contract BaseHook is IHooks, SafeCallback {
     }
 
     /**
-     * @dev Call itself for a given data payload and return any data.
+     * @dev Force the onlyPoolManager modifier by exposing a virtual function after the onlyPoolManager check.
      */
-    function _unlockCallback(bytes calldata data) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
         (bool success, bytes memory returnData) = address(this).call(data);
         if (success) return returnData;
         if (returnData.length == 0) revert LockFailure();
