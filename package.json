@@ -6,10 +6,17 @@
     "src/*.sol",
     "src/**/*.sol"
   ],
+  "scripts": {
+    "docs": "npm run prepare-docs && oz-docs",
+    "docs:watch": "oz-docs watch contracts docs/templates docs/config.js"
+  },
   "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
   "bugs": {
     "url": "https://github.com/OpenZeppelin/uniswap-hooks/issues"
   },
   "author": "OpenZeppelin",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@openzeppelin/docs-utils": "^0.1.5"
+  }
 }

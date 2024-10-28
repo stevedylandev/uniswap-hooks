@@ -28,7 +28,7 @@ There are many ways you can participate and help build high quality software. Ch
 
 ## License
 
-OpenZeppelin Contracts is released under the [MIT License](LICENSE).
+OpenZeppelin Uniswap Hooks is released under the [MIT License](LICENSE).
 
 ## Legal
 
