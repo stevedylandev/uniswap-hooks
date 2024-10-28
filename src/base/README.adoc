@@ -1,0 +1,18 @@
+= Base
+
+[.readme-notice]
+NOTE: This document is better viewed on the docs page.
+
+Base contracts for building secure and modular Uniswap hooks, providing core functionality and common patterns for hook development.
+
+ * {BaseCustomCurve}: Base hook implementation for custom curves.
+ * {BaseHook}: Base implementation for hooks.
+ * {BaseNoOp}: Base hook implementation for no-op hooks.
+
+== Hooks
+
+{{BaseCustomCurve}}
+
+{{BaseHook}}
+
+{{BaseNoOp}}

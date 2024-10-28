@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/AntiSandwichHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/general/AntiSandwichHook.sol)
 
 pragma solidity ^0.8.20;
 
