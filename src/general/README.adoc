@@ -1,0 +1,12 @@
+= General
+
+[.readme-notice]
+NOTE: This document is better viewed on the docs page.
+
+General hooks that improve the default behavior of Uniswap pools by protecting users and improving efficiency.
+
+ * {AntiSandwichHook}: Hook that minimizes sandwich attacks by removing the price premium from swaps in a block.
+
+== Hooks
+
+{{AntiSandwichHook}}
