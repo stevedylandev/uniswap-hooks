@@ -11,11 +11,6 @@ fi
 
 rm -rf "$OUTDIR"
 
-# Check if forge is installed
-if ! command -v forge &> /dev/null; then
-  yarn run foundryup
-fi
-
 hardhat docgen
 
 node scripts/gen-nav.js "$OUTDIR" > "$OUTDIR/../nav.adoc"
