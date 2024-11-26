@@ -12,6 +12,11 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
 
+/**
+ * @dev Base implementation for custom accounting, including support for swaps and liquidity management.
+ *
+ * _Available since v0.1.0_
+ */
 abstract contract BaseCustomAccounting is BaseHook {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
