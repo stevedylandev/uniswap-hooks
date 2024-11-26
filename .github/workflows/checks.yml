@@ -1,20 +1,13 @@
-name: Checks
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
+name: checks
+on: push
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
   tests:
-    strategy:
-      fail-fast: true
-
-    name: Tests
+    name: Foundry tests
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -22,24 +15,20 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
 
-      - name: Show Forge version
-        run: |
-          forge --version
+      - name: Install dependencies
+        run: forge install
 
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
-
-      - name: Run Forge build
-        run: |
-          forge build --sizes
+      - name: Check contract sizes
+        run: forge build --sizes --skip test
         id: build
 
-      - name: Run Forge tests
-        run: |
-          forge test -vvv
+      - name: Run tests
+        run: FOUNDRY_PROFILE="deep" forge test -v
         id: test
+
+      - name: Check format
+        run: forge fmt --check
+        id: format
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
