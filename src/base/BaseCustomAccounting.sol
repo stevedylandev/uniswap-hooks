@@ -27,7 +27,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Call the custom swap logic and create a return delta to be consumed by the {PoolManager}.
+     * @dev Call the custom swap logic and create a return delta to be consumed by the `PoolManager`.
      */
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
@@ -72,7 +72,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         returns (uint256 amount);
 
     /**
-     * @dev Set the hook permissions, specifically {beforeAddLiquidity}, {beforeSwap} and {beforeSwapReturnDelta}.
+     * @dev Set the hook permissions, specifically `beforeSwap` and `beforeSwapReturnDelta`.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({

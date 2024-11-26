@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/examples/AntiSandwichHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/general/AntiSandwichHook.sol)
 
 pragma solidity ^0.8.20;
 
@@ -15,9 +15,23 @@ import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
 /**
- * @dev Implementation of an anti-sandwich hook.
+ * @dev Sandwich-resistant hook, based on
+ * https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
+ * implementation.
  *
- * Based on the https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[implementation by cairoeth].
+ * This hook implements the sandwich-resistant AMM design introduced
+ * https://www.umbraresearch.xyz/writings/sandwich-resistant-amm[here]. Specifically,
+ * this hook guarantees that no swaps get filled at a price better than the price at
+ * the beginning of the slot window (i.e. one block).
+ *
+ * Within a slot window, swaps impact the pool asymmetrically for buys and sells.
+ * When a buy order is executed, the offer on the pool increases in accordance with
+ * the xy=k curve. However, the bid price remains constant, instead increasing the
+ * amount of liquidity on the bid. Subsequent sells eat into this liquidity, while
+ * decreasing the offer price according to xy=k.
+ *
+ * NOTE: Swaps in the other direction do not get the positive price difference
+ * compared to the initial price before the first block swap.
  *
  * _Available since v0.1.0_
  */
