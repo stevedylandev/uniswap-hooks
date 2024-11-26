@@ -18,3 +18,4 @@ node_modules
 # Docs build
 build/
 docs/modules/api
+.DS_Store

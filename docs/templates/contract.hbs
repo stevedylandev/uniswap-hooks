@@ -4,14 +4,24 @@
 
 [.contract]
 [[{{anchor}}]]
-=== `++{{name}}++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/main/{{__item_context.file.absolutePath}}[{github-icon},role=heading-link]
+=== `++{{name}}++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/v{{oz-version}}/{{__item_context.file.absolutePath}}[{github-icon},role=heading-link]
 
 [.hljs-theme-light.nopadding]
 ```solidity
-import { {{name}} } from "uniswap-hooks/{{__item_context.file.relativePath}}";
+import "uniswap-hooks/{{__item_context.file.absolutePath}}";
 ```
 
 {{{natspec.dev}}}
+
+{{#if modifiers}}
+[.contract-index]
+.Modifiers
+--
+{{#each modifiers}}
+* {xref-{{anchor~}} }[`++{{name}}({{names params}})++`]
+{{/each}}
+--
+{{/if}}
 
 {{#if has-functions}}
 [.contract-index]
@@ -26,16 +36,6 @@ import { {{name}} } from "uniswap-hooks/{{__item_context.file.relativePath}}";
 * {xref-{{anchor~}} }[`++{{name}}({{names params}})++`]
 {{/each}}
 
-{{/each}}
---
-{{/if}}
-
-{{#if modifiers}}
-[.contract-index]
-.Modifiers
---
-{{#each modifiers}}
-* {xref-{{anchor~}} }[`++{{name}}({{names params}})++`]
 {{/each}}
 --
 {{/if}}
@@ -91,41 +91,19 @@ import { {{name}} } from "uniswap-hooks/{{__item_context.file.relativePath}}";
 --
 {{/if}}
 
-{{#each functions}}
-[.contract-item]
-[[{{anchor}}]]
-==== `[.contract-item-name]#++{{name}}++#++({{typed-params params}}){{#if returns2}} → {{typed-params returns2}}{{/if}}++` [.item-kind]#{{visibility}}#
-
-{{#if natspec.notice}}
-NOTE: {{{natspec.notice}}}
-{{/if}}
-
-{{#if natspec.dev}}
-{{{natspec.dev}}}
-{{/if}}
-
-{{#if natspec.params}}
-*Parameters:*
-
-{{#each params}}
-* `{{name}}` (`{{type}}`) - {{{joinLines natspec}}}
-{{/each}}
-{{/if}}
-
-{{#if natspec.returns}}
-*Returns*
-
-{{#each returns}}
-* (`{{type}}`) - {{{joinLines natspec}}}
-{{/each}}
-{{/if}}
-
-{{/each}}
-
 {{#each modifiers}}
 [.contract-item]
 [[{{anchor}}]]
 ==== `[.contract-item-name]#++{{name}}++#++({{typed-params params}})++` [.item-kind]#modifier#
+
+{{{natspec.dev}}}
+
+{{/each}}
+
+{{#each functions}}
+[.contract-item]
+[[{{anchor}}]]
+==== `[.contract-item-name]#++{{name}}++#++({{typed-params params}}){{#if returns2}} → {{typed-params returns2}}{{/if}}++` [.item-kind]#{{visibility}}#
 
 {{{natspec.dev}}}
 

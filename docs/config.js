@@ -7,6 +7,7 @@ module.exports = {
   templates: 'docs/templates',
   exclude: ['mocks'],
   pageExtension: '.adoc',
+  sourcesDir: 'src',
   pages: (_, file, config) => {
     // For each contract file, find the closest README.adoc and return its location as the output page path.
     const sourcesDir = path.resolve(config.root, config.sourcesDir);
