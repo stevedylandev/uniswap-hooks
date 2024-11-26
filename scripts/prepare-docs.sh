@@ -16,7 +16,7 @@ if ! command -v forge &> /dev/null; then
   curl -L https://foundry.paradigm.xyz | bash
   source ~/.bashrc
   export PATH=$HOME/.foundry/bin:$PATH
-  foundryup || true
+  foundryup 2>/dev/null || true
 fi
 
 hardhat docgen
