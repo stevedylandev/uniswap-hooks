@@ -14,7 +14,7 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 /**
  * @dev Base implementation for no-op hooks.
  *
- * IMPORTANT: Given that this contract overrides default logic of the {PoolManager}, liquidity
+ * IMPORTANT: Given that this contract overrides default logic of the `PoolManager`, liquidity
  * must be provided by the hook itself (i.e. the hook must hold the liquidity/tokens).
  *
  * _Available since v0.1.0_
@@ -45,7 +45,7 @@ abstract contract BaseNoOp is BaseHook {
     }
 
     /**
-     * @dev Set the hook permissions, specifically {beforeSwap} and {beforeSwapReturnDelta}.
+     * @dev Set the hook permissions, specifically `beforeSwap` and `beforeSwapReturnDelta`.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({

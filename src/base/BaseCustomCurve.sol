@@ -18,7 +18,7 @@ import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
  * v3-like concentrated liquidity implementation of Uniswap. By inheriting {BaseCustomAccounting}, the hook calls
  * the {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate the amount of tokens
  * to be taken or settled, and a return delta is created based on their outputs. This return delta is then
- * consumed by the {PoolManager}.
+ * consumed by the `PoolManager`.
  *
  * IMPORTANT: This base contract acts similarly to {BaseNoOp}, which means that the hook must hold the liquidity
  * for swaps.
@@ -83,7 +83,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         returns (uint256 amountIn);
 
     /**
-     * @dev Set the hook permissions, specifically {beforeAddLiquidity}, {beforeSwap} and {beforeSwapReturnDelta}.
+     * @dev Set the hook permissions, specifically `beforeAddLiquidity`, `beforeSwap` and `beforeSwapReturnDelta`.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
