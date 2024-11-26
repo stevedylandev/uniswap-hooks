@@ -7,10 +7,9 @@ import {BaseHook} from "src/base/BaseHook.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for no-op hooks.
@@ -28,23 +27,20 @@ abstract contract BaseNoOp is BaseHook {
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    /**
-     * @dev TODO
-     */
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // TODO: finish support
         if (params.amountSpecified < 0) {
-            // take the input token so that v3-swap is skipped
             uint256 amountTaken = uint256(-params.amountSpecified);
             Currency input = params.zeroForOne ? key.currency0 : key.currency1;
             poolManager.mint(address(this), input.toId(), amountTaken);
-
             return (BaseHook.beforeSwap.selector, toBeforeSwapDelta(amountTaken.toInt128(), 0), 0);
+        } else {
+            // TODO: return or revert?
+            return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
     }
 

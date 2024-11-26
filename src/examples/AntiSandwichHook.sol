@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/general/AntiSandwichHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/examples/AntiSandwichHook.sol)
 
 pragma solidity ^0.8.20;
 
 import {DynamicAfterFee} from "src/fee/DynamicAfterFee.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
-import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
@@ -24,9 +22,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  * _Available since v0.1.0_
  */
 contract AntiSandwichHook is DynamicAfterFee {
-    using PoolIdLibrary for PoolKey;
     using Pool for *;
-    using CurrencySettler for Currency;
     using StateLibrary for IPoolManager;
 
     struct Checkpoint {

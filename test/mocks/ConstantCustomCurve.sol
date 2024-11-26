@@ -56,4 +56,7 @@ contract ConstantSumCurve is BaseCustomCurve {
 
         return abi.encode(amount0, amount1);
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }

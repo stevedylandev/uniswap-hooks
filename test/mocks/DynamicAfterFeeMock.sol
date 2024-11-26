@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "src/fee/DynamicAfterFee.sol";
-import {BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 
 contract DynamicAfterFeeMock is DynamicAfterFee {
@@ -37,4 +37,7 @@ contract DynamicAfterFeeMock is DynamicAfterFee {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }
