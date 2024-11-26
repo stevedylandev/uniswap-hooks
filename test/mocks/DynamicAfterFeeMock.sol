@@ -37,4 +37,7 @@ contract DynamicAfterFeeMock is DynamicAfterFee {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }

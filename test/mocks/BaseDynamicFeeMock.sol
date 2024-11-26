@@ -11,4 +11,7 @@ contract BaseDynamicFeeMock is BaseDynamicFee {
     function _getFee(PoolKey calldata) internal pure override returns (uint24) {
         return 50000;
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }

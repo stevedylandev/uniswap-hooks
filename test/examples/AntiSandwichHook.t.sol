@@ -24,7 +24,7 @@ contract AntiSandwichHookTest is Test, Deployers {
         hook = AntiSandwichHook(
             address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
         );
-        deployCodeTo("src/general/AntiSandwichHook.sol:AntiSandwichHook", abi.encode(manager), address(hook));
+        deployCodeTo("src/examples/AntiSandwichHook.sol:AntiSandwichHook", abi.encode(manager), address(hook));
 
         (key,) = initPoolAndAddLiquidity(
             currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
