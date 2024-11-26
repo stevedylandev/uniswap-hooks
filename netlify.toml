@@ -1,3 +1,3 @@
 [build]
-command = "rustup toolchain install stable && cargo install --git https://github.com/foundry-rs/foundry --profile release --locked forge cast chisel anvil && yarn run docs"
+command = "curl -L https://foundry.paradigm.xyz | bash && foundryup && yarn run docs"
 publish = "build/site"
