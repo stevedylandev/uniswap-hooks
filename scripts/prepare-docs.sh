@@ -13,20 +13,7 @@ rm -rf "$OUTDIR"
 
 # Check if forge is installed
 if ! command -v forge &> /dev/null; then
-  curl -L https://foundry.paradigm.xyz | bash
-
-  if ! grep -q 'export PATH="$HOME/.foundry/bin:$PATH"' "$PROFILE"; then
-      echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> "$PROFILE"
-  fi
-
-  source "$PROFILE"
-
-  if foundryup; then
-      echo "Foundry installation successful!"
-  else
-      echo "Foundry installation failed."
-      exit 1
-  fi
+  curl -L https://foundry.paradigm.xyz | bash && /opt/buildhome/.foundry/bin/foundryup
 fi
 
 hardhat docgen
