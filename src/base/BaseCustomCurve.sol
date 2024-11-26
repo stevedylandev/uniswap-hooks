@@ -3,12 +3,11 @@
 
 pragma solidity ^0.8.20;
 
-import {BaseHook} from "src/base/BaseHook.sol";
+import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
 
@@ -16,17 +15,17 @@ import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
  * @dev Base implementation for custom curves.
  *
  * This contract allows to implement a custom curve (or any logic) for swaps, which overrides the default
- * v3-like concentrated liquidity implementation of Uniswap. The {_beforeSwap} function calls the
- * {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} functions, and creates a return delta based
- * their outputs. The return delta is then consumed by the {PoolManager}.
+ * v3-like concentrated liquidity implementation of Uniswap. By inheriting {BaseCustomAccounting}, the hook calls
+ * the {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate the amount of tokens
+ * to be taken or settled, and a return delta is created based on their outputs. This return delta is then
+ * consumed by the {PoolManager}.
  *
  * IMPORTANT: This base contract acts similarly to {BaseNoOp}, which means that the hook must hold the liquidity
  * for swaps.
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseCustomCurve is BaseHook {
-    using CurrencyLibrary for Currency;
+abstract contract BaseCustomCurve is BaseCustomAccounting {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
 
@@ -38,40 +37,7 @@ abstract contract BaseCustomCurve is BaseHook {
     /**
      * @dev Set the pool manager.
      */
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
-
-    /**
-     * @dev Call the custom swap logic and create a return delta to be consumed by the {PoolManager}.
-     */
-    function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
-        internal
-        virtual
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
-        bool exactInput = params.amountSpecified < 0;
-        (Currency specified, Currency unspecified) =
-            (params.zeroForOne == exactInput) ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
-
-        uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
-        uint256 unspecifiedAmount;
-        BeforeSwapDelta returnDelta;
-        if (exactInput) {
-            unspecifiedAmount = _getAmountOutFromExactInput(specifiedAmount, specified, unspecified, params.zeroForOne);
-            specified.take(poolManager, address(this), specifiedAmount, true);
-            unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
-
-            returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
-        } else {
-            unspecifiedAmount = _getAmountInForExactOutput(specifiedAmount, unspecified, specified, params.zeroForOne);
-            unspecified.take(poolManager, address(this), unspecifiedAmount, true);
-            specified.settle(poolManager, address(this), specifiedAmount, true);
-
-            returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
-        }
-
-        return (BaseHook.beforeSwap.selector, returnDelta, 0);
-    }
+    constructor(IPoolManager _poolManager) BaseCustomAccounting(_poolManager) {}
 
     /**
      * @dev Force liquidity to only be added directly to the hook.
@@ -85,6 +51,19 @@ abstract contract BaseCustomCurve is BaseHook {
         returns (bytes4)
     {
         revert OnlyDirectLiquidity();
+    }
+
+    /**
+     * @inheritdoc BaseCustomAccounting
+     */
+    function _getAmount(uint256 amountIn, Currency input, Currency output, bool zeroForOne, bool exactInput)
+        internal
+        override
+        returns (uint256 amount)
+    {
+        return exactInput
+            ? _getAmountOutFromExactInput(amountIn, input, output, zeroForOne)
+            : _getAmountInForExactOutput(amountIn, input, output, zeroForOne);
     }
 
     /**

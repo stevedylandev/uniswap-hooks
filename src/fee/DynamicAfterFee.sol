@@ -5,12 +5,10 @@ pragma solidity ^0.8.20;
 
 import {BaseHook} from "src/base/BaseHook.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 /**
  * @dev Base implementation for dynamic fees applied after swaps.

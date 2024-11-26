@@ -8,9 +8,8 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for no-op hooks.
