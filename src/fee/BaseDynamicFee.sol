@@ -40,6 +40,13 @@ abstract contract BaseDynamicFee is BaseHook {
     }
 
     /**
+     * @notice Updates the dynamic LP fee for the given pool.
+     */
+    function poke(PoolKey calldata key) external virtual {
+        poolManager.updateDynamicLPFee(key, _getFee(key));
+    }
+
+    /**
      * @dev Set the hook permissions, specifically {afterInitialize}.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {

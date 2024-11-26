@@ -7,7 +7,7 @@ import {BaseHook} from "src/base/BaseHook.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 
 /**
@@ -21,15 +21,15 @@ abstract contract BaseOverrideFee is BaseHook {
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    function beforeSwap(
+    /**
+     * @dev Returns a fee, denominated in hundredths of a percent, to be applied to a swap.
+     */
+    function _getFee(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
-    ) external virtual override returns (bytes4, BeforeSwapDelta, uint24) {
-        (bytes4 selector, BeforeSwapDelta delta, uint24 fee) = _beforeSwap(sender, key, params, hookData);
-        return (selector, delta, fee | LPFeeLibrary.OVERRIDE_FEE_FLAG);
-    }
+    ) internal virtual returns (uint24);
 
     function _beforeSwap(
         address sender,
@@ -37,8 +37,8 @@ abstract contract BaseOverrideFee is BaseHook {
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
-        (bytes4 selector, BeforeSwapDelta delta, uint24 fee) = _beforeSwap(sender, key, params, hookData);
-        return (selector, delta, fee | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+        uint24 fee = _getFee(sender, key, params, hookData);
+        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, fee | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }
 
     /**
