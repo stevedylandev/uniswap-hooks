@@ -11,6 +11,16 @@ fi
 
 rm -rf "$OUTDIR"
 
+# Check if forge is installed
+if ! command -v forge &> /dev/null; then
+  (curl -L https://foundry.paradigm.xyz | bash) || true
+  echo $HOME
+  source $HOME/.bashrc
+  $HOME/.foundry/bin/foundryup
+  export PATH="$PATH:$HOME/.foundry/bin"
+  echo "export PATH=$PATH" >> $HOME/.bashrc
+fi
+
 hardhat docgen
 
 node scripts/gen-nav.js "$OUTDIR" > "$OUTDIR/../nav.adoc"
