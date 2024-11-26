@@ -9,7 +9,8 @@
   "scripts": {
     "docs": "npm run prepare-docs && oz-docs",
     "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
-    "prepare-docs": "scripts/prepare-docs.sh"
+    "prepare-docs": "scripts/prepare-docs.sh",
+    "foundryup": "curl -L https://foundry.paradigm.xyz | bash && bash $HOME/.foundry/bin/foundryup",
   },
   "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
   "bugs": {

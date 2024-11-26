@@ -13,8 +13,7 @@ rm -rf "$OUTDIR"
 
 # Check if forge is installed
 if ! command -v forge &> /dev/null; then
-  curl -L https://foundry.paradigm.xyz | bash && /opt/buildhome/.foundry/bin/foundryup
-  export PATH="$PATH:/opt/buildhome/.foundry/bin"
+  yarn run foundryup
 fi
 
 hardhat docgen
