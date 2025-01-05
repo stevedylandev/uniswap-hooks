@@ -69,7 +69,7 @@ abstract contract BaseHook is IHooks {
     /**
      * @dev Restrict the function to only be callable by the hook itself.
      */
-    modifier selfOnly() {
+    modifier onlySelf() {
         if (msg.sender != address(this)) revert NotSelf();
         _;
     }
@@ -100,6 +100,10 @@ abstract contract BaseHook is IHooks {
      * @dev Force the onlyPoolManager modifier by exposing a virtual function after the onlyPoolManager check.
      */
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
+        return _unlockCallback(data);
+    }
+
+    function _unlockCallback(bytes calldata data) internal virtual returns (bytes memory) {
         (bool success, bytes memory returnData) = address(this).call(data);
         if (success) return returnData;
         if (returnData.length == 0) revert LockFailure();
@@ -115,6 +119,7 @@ abstract contract BaseHook is IHooks {
     function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
         external
         virtual
+        onlyPoolManager
         returns (bytes4)
     {
         return _beforeInitialize(sender, key, sqrtPriceX96);
@@ -130,6 +135,7 @@ abstract contract BaseHook is IHooks {
     function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick)
         external
         virtual
+        onlyPoolManager
         returns (bytes4)
     {
         return _afterInitialize(sender, key, sqrtPriceX96, tick);
@@ -147,7 +153,7 @@ abstract contract BaseHook is IHooks {
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata hookData
-    ) external virtual returns (bytes4) {
+    ) external virtual onlyPoolManager returns (bytes4) {
         return _beforeAddLiquidity(sender, key, params, hookData);
     }
 
@@ -167,7 +173,7 @@ abstract contract BaseHook is IHooks {
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata hookData
-    ) external virtual returns (bytes4) {
+    ) external virtual onlyPoolManager returns (bytes4) {
         return _beforeRemoveLiquidity(sender, key, params, hookData);
     }
 
@@ -190,7 +196,7 @@ abstract contract BaseHook is IHooks {
         BalanceDelta delta0,
         BalanceDelta delta1,
         bytes calldata hookData
-    ) external virtual returns (bytes4, BalanceDelta) {
+    ) external virtual onlyPoolManager returns (bytes4, BalanceDelta) {
         return _afterAddLiquidity(sender, key, params, delta0, delta1, hookData);
     }
 
@@ -215,7 +221,7 @@ abstract contract BaseHook is IHooks {
         BalanceDelta delta0,
         BalanceDelta delta1,
         bytes calldata hookData
-    ) external virtual returns (bytes4, BalanceDelta) {
+    ) external virtual onlyPoolManager returns (bytes4, BalanceDelta) {
         return _afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData);
     }
 
@@ -238,7 +244,7 @@ abstract contract BaseHook is IHooks {
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
-    ) external virtual returns (bytes4, BeforeSwapDelta, uint24) {
+    ) external virtual onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
         return _beforeSwap(sender, key, params, hookData);
     }
 
@@ -259,7 +265,7 @@ abstract contract BaseHook is IHooks {
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external virtual returns (bytes4, int128) {
+    ) external virtual onlyPoolManager returns (bytes4, int128) {
         return _afterSwap(sender, key, params, delta, hookData);
     }
 
@@ -280,7 +286,7 @@ abstract contract BaseHook is IHooks {
         uint256 amount0,
         uint256 amount1,
         bytes calldata hookData
-    ) external virtual returns (bytes4) {
+    ) external virtual onlyPoolManager returns (bytes4) {
         return _beforeDonate(sender, key, amount0, amount1, hookData);
     }
 
@@ -301,7 +307,7 @@ abstract contract BaseHook is IHooks {
         uint256 amount0,
         uint256 amount1,
         bytes calldata hookData
-    ) external virtual returns (bytes4) {
+    ) external virtual onlyPoolManager returns (bytes4) {
         return _afterDonate(sender, key, amount0, amount1, hookData);
     }
 
