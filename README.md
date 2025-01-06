@@ -21,9 +21,7 @@ $ forge install OpenZeppelin/uniswap-hooks
 Add `@openzeppelin/uniswap-hooks/=lib/uniswap-hooks/src/` in `remappings.txt`.
 #### Hardhat
 
-```
-$ npm install @openzeppelin/uniswap-hooks
-```
+Not currently supported given that Uniswap v4 core and periphery contracts are not yet npm packages.
 
 ## Contribute
 
