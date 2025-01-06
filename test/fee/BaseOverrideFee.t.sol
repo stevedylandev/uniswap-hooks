@@ -16,6 +16,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {ProtocolFeeLibrary} from "v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {BaseOverrideFee} from "src/fee/BaseOverrideFee.sol";
 
 contract BaseOverrideFeeTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -37,7 +38,7 @@ contract BaseOverrideFeeTest is Test, Deployers {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        dynamicFeesHooks = BaseOverrideFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG)));
+        dynamicFeesHooks = BaseOverrideFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
             "test/mocks/BaseOverrideFeeMock.sol:BaseOverrideFeeMock", abi.encode(manager), address(dynamicFeesHooks)
         );
@@ -253,6 +254,20 @@ contract BaseOverrideFeeTest is Test, Deployers {
 
             assertEq(manager.protocolFeesAccrued(currency1), expectedProtocolFee);
         }
+    }
+
+    function test_afterInitialize_staticFee_reverts() public {
+        key.fee = 3000; // static fee
+
+        // afterInitialize will try to update the fee, and fail
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Hooks.Wrap__FailedHookCall.selector,
+                address(dynamicFeesHooks),
+                abi.encodeWithSelector(BaseOverrideFee.NotDynamicFee.selector)
+            )
+        );
+        manager.initialize(key, SQRT_PRICE_1_1);
     }
 
     function _fetchPoolLPFee(PoolKey memory _key) internal view returns (uint256 lpFee) {

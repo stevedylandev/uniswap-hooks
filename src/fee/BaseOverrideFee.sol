@@ -20,10 +20,30 @@ import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
  * _Available since v0.1.0_
  */
 abstract contract BaseOverrideFee is BaseHook {
+    using LPFeeLibrary for uint24;
+
+    /**
+     * @dev The hook was attempted to be initialized with a non-dynamic fee.
+     */
+    error NotDynamicFee();
+
     /**
      * @dev Set the `PoolManager` address.
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    /**
+     * @dev Check that the pool key has a dynamic fee.
+     */
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
+        if (!key.fee.isDynamicFee()) revert NotDynamicFee();
+        return this.afterInitialize.selector;
+    }
 
     /**
      * @dev Returns a fee, denominated in hundredths of a percent, to be applied to a swap.
@@ -56,7 +76,7 @@ abstract contract BaseOverrideFee is BaseHook {
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,
-            afterInitialize: false,
+            afterInitialize: true,
             beforeAddLiquidity: false,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,

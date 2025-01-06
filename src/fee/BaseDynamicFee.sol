@@ -7,6 +7,7 @@ import {BaseHook} from "src/base/BaseHook.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 
 /**
  * @dev Base implementation to apply a dynamic fee via the `PoolManager`'s `updateDynamicLPFee` function.
@@ -18,6 +19,13 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  * _Available since v0.1.0_
  */
 abstract contract BaseDynamicFee is BaseHook {
+    using LPFeeLibrary for uint24;
+
+    /**
+     * @dev The hook was attempted to be initialized with a non-dynamic fee.
+     */
+    error NotDynamicFee();
+
     /**
      * @dev Set the `PoolManager` address.
      */
@@ -37,6 +45,7 @@ abstract contract BaseDynamicFee is BaseHook {
         override
         returns (bytes4)
     {
+        if (!key.fee.isDynamicFee()) revert NotDynamicFee();
         poolManager.updateDynamicLPFee(key, _getFee(key));
         return this.afterInitialize.selector;
     }

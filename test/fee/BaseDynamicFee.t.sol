@@ -16,6 +16,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {ProtocolFeeLibrary} from "v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {BaseDynamicFee} from "src/fee/BaseDynamicFee.sol";
 
 contract BaseDynamicFeeTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -88,7 +89,7 @@ contract BaseDynamicFeeTest is Test, Deployers {
             abi.encodeWithSelector(
                 Hooks.Wrap__FailedHookCall.selector,
                 address(dynamicFeesHooks),
-                abi.encodeWithSelector(IPoolManager.UnauthorizedDynamicLPFeeUpdate.selector)
+                abi.encodeWithSelector(BaseDynamicFee.NotDynamicFee.selector)
             )
         );
         manager.initialize(key, SQRT_PRICE_1_1);
