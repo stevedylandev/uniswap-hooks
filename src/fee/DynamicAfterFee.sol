@@ -14,8 +14,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  * @dev Base implementation for dynamic fees applied after swaps.
  *
  * In order to use this hook, the inheriting contract must define a target delta for a swap before
- * the {afterSwap} function is called. Refer to the {AntiSandwichHook} contract as an example
- * implementation of this pattern.
+ * the {afterSwap} function is called.
  *
  * NOTE: This hook only supports exact-input swaps. For exact-output swaps, the hook will not apply
  * the target delta.
@@ -30,7 +29,7 @@ abstract contract DynamicAfterFee is BaseHook {
     mapping(PoolId => BalanceDelta) internal _targetDeltas;
 
     /**
-     * @dev Set the pool manager.
+     * @dev Set the `PoolManager` address.
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
@@ -44,11 +43,12 @@ abstract contract DynamicAfterFee is BaseHook {
         BalanceDelta delta,
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
+        int128 feeAmount = 0;
+
         // Only apply target delta for exact-input swaps
         if (params.amountSpecified < 0) {
             PoolId poolId = key.toId();
             BalanceDelta targetDelta = _targetDeltas[poolId];
-            int128 feeAmount = 0;
 
             // Skip empty/undefined target delta
             if (BalanceDelta.unwrap(targetDelta) != 0) {
@@ -73,17 +73,17 @@ abstract contract DynamicAfterFee is BaseHook {
                     poolManager.donate(key, uint256(uint128(feeAmount)), 0, "");
                 }
             }
-
-            return (this.afterSwap.selector, feeAmount);
-        } else {
-            return (this.afterSwap.selector, 0);
         }
+
+        return (this.afterSwap.selector, feeAmount);
     }
 
     /**
      * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     *
+     * @return permissions The hook permissions.
      */
-    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,

@@ -10,13 +10,13 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
+import {CurrencySettler} from "src/lib/CurrencySettler.sol";
 
 /**
- * @dev Base implementation for no-op hooks.
+ * @dev Base implementation for no-op hooks, which skips the v3-like swap implementation of the `PoolManager`.
  *
- * NOTE: Given that this contract overrides default logic of the `PoolManager`, liquidity must be
- * provided by the hook itself (i.e. the hook must hold the liquidity/tokens).
+ * IMPORTANT: No-op hooks only support exact-input swaps. For exact-output swaps, the hook will not act
+ * as a no-op, so they would be processed with the `PoolManager`'s implementation.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -29,10 +29,13 @@ abstract contract BaseNoOp is BaseHook {
     using CurrencySettler for Currency;
 
     /**
-     * @dev Set the pool manager.
+     * @dev Set the `PoolManager` address.
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
+    /**
+     * @dev No-op exact-input swaps by returning a delta that nets out the specified amount to 0.
+     */
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         virtual
@@ -59,8 +62,10 @@ abstract contract BaseNoOp is BaseHook {
 
     /**
      * @dev Set the hook permissions, specifically `beforeSwap` and `beforeSwapReturnDelta`.
+     *
+     * @return permissions The hook permissions.
      */
-    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,

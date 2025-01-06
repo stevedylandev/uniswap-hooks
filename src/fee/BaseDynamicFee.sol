@@ -9,7 +9,7 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
 /**
- * @dev Base implementation to apply a dynamic fee via the PoolManager's {updateDynamicLPFee} function.
+ * @dev Base implementation to apply a dynamic fee via the `PoolManager`'s `updateDynamicLPFee` function.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -19,7 +19,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  */
 abstract contract BaseDynamicFee is BaseHook {
     /**
-     * @dev Set the pool manager.
+     * @dev Set the `PoolManager` address.
      */
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
@@ -42,16 +42,21 @@ abstract contract BaseDynamicFee is BaseHook {
     }
 
     /**
-     * @notice Updates the dynamic LP fee for the given pool.
+     * @dev Updates the dynamic LP fee for the given pool, which must have a key
+     * that contains this hook's address.
+     *
+     * @param key The pool key to update the dynamic LP fee for.
      */
-    function poke(PoolKey calldata key) external virtual {
+    function poke(PoolKey calldata key) external virtual onlyValidPools(key.hooks) {
         poolManager.updateDynamicLPFee(key, _getFee(key));
     }
 
     /**
-     * @dev Set the hook permissions, specifically {afterInitialize}.
+     * @dev Set the hook permissions, specifically `afterInitialize`.
+     *
+     * @return permissions The hook permissions.
      */
-    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory) {
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: true,
