@@ -69,6 +69,8 @@ abstract contract BaseCustomAccounting is BaseHook {
 
     struct RemoveLiquidityParams {
         uint256 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
@@ -160,6 +162,11 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         // Burn the liquidity units from the sender
         _burn(params, delta, liquidity);
+
+        // Check for slippage
+        if (uint128(-delta.amount0()) < params.amount0Min || uint128(-delta.amount1()) < params.amount1Min) {
+            revert TooMuchSlippage();
+        }
     }
 
     /**
@@ -197,7 +204,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         // Get liquidity modification deltas
         (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(key, data.params, "");
 
-        // Get the releveant delta by substracting the fee delta from the liquidity delta (-= is not supported)
+        // Get the releveant delta by substracting the fee delta from the principal delta (-= is not supported)
         delta = delta - feeDelta;
 
         // If liquidity delta is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
