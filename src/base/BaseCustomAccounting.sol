@@ -8,7 +8,7 @@ import {CurrencySettler} from "src/lib/CurrencySettler.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
@@ -55,6 +55,11 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Liquidity was attempted to be added or removed via the `PoolManager` instead of the hook.
      */
     error LiquidityOnlyViaHook();
+
+    /**
+     * @dev Native currency was not sent with the correct amount.
+     */
+    error InvalidNativeValue();
 
     struct AddLiquidityParams {
         uint256 amount0Desired;
@@ -106,11 +111,16 @@ abstract contract BaseCustomAccounting is BaseHook {
      * of at least amount0Desired/amount1Desired on token0/token1. Always adds assets at the ideal ratio,
      * according to the price when the transaction is executed.
      *
+     * NOTE: This function doens't revert if currency0 is not native and msg.value is non-zero, i.e.
+     * the hook accepts native currency even if currency0 is not native to allow hooks for out-of-pool
+     * use cases.
+     *
      * @param params The parameters for the liquidity addition.
      * @return delta The balance delta of the liquidity addition from the `PoolManager`.
      */
     function addLiquidity(AddLiquidityParams calldata params)
         external
+        payable
         virtual
         ensure(params.deadline)
         returns (BalanceDelta delta)
@@ -118,6 +128,11 @@ abstract contract BaseCustomAccounting is BaseHook {
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
+
+        // Check if currency0 is native and validate msg.value (native currency, if present, is enforced to be currency0)
+        if (poolKey.currency0 == CurrencyLibrary.ADDRESS_ZERO && msg.value != params.amount0Desired) {
+            revert InvalidNativeValue();
+        }
 
         // Get the liquidity modification parameters and the amount of liquidity units to mint
         (bytes memory modifyParams, uint256 liquidity) = _getAddLiquidity(sqrtPriceX96, params);
