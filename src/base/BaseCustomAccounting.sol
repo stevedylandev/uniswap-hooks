@@ -125,7 +125,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         // Apply the liquidity modification
         delta = _modifyLiquidity(modifyParams);
 
-        // Mint the liquidity units to the sender
+        // Mint the liquidity units to the `params.to` address
         _mint(params, delta, liquidity);
 
         // Check for slippage
@@ -252,7 +252,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @param sqrtPriceX96 The current square root price of the pool.
      * @param params The parameters for the liquidity addition.
      * @return modify The encoded parameters for the liquidity addition, which must follow the
-     * `ModifyLiquidityParams` struct in the default implementation.
+     * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return liquidity The liquidity units to mint.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
@@ -266,7 +266,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      *
      * @param params The parameters for the liquidity removal.
      * @return modify The encoded parameters for the liquidity removal, which must follow the
-     * `ModifyLiquidityParams` struct in the default implementation.
+     * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
      * @return liquidity The liquidity units to burn.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
@@ -293,7 +293,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 liquidity) internal virtual;
 
     /**
-     * @dev Set the hook permissions, specifically `beforeInitialize`.
+     * @dev Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity` and `beforeRemoveLiquidity`.
      *
      * @return permissions The hook permissions.
      */

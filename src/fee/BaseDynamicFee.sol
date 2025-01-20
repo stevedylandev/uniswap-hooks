@@ -32,7 +32,7 @@ abstract contract BaseDynamicFee is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Returns a fee, denominated in hundredths of a percent, to be applied to the pool after it is initialized.
+     * @dev Returns a fee, denominated in hundredths of a bip, to be applied to the pool after it is initialized.
      */
     function _getFee(PoolKey calldata key) internal virtual returns (uint24);
 
