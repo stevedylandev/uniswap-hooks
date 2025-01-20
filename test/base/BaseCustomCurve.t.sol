@@ -168,6 +168,23 @@ contract BaseCustomCurveTest is Test, Deployers {
         );
     }
 
+    function test_removeLiquidity_tooMuchSlippage_reverts() public {
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+            )
+        );
+
+        vm.expectRevert(BaseCustomAccounting.TooMuchSlippage.selector);
+        hook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(10 ether, 6 ether, 6 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+        );
+
+        hook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(10 ether, 4 ether, 4 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+        );
+    }
+
     function test_swap_twoSwaps_succeeds() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(

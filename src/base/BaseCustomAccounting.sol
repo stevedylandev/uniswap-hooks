@@ -164,7 +164,9 @@ abstract contract BaseCustomAccounting is BaseHook {
         _burn(params, delta, liquidity);
 
         // Check for slippage
-        if (uint128(-delta.amount0()) < params.amount0Min || uint128(-delta.amount1()) < params.amount1Min) {
+        uint128 amount0 = delta.amount0() < 0 ? uint128(-delta.amount0()) : uint128(delta.amount0());
+        uint128 amount1 = delta.amount1() < 0 ? uint128(-delta.amount1()) : uint128(delta.amount1());
+        if (amount0 < params.amount0Min || amount1 < params.amount1Min) {
             revert TooMuchSlippage();
         }
     }
