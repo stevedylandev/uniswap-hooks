@@ -209,16 +209,23 @@ abstract contract BaseCustomAccounting is BaseHook {
         // Get the releveant delta by substracting the fee delta from the principal delta (-= is not supported)
         delta = delta - feeDelta;
 
-        // If liquidity delta is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        if (data.params.liquidityDelta < 0) {
-            // Get tokens from the pool and send to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
-            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
-        } else {
-            // Send tokens from the sender to the pool
+        // Handle each currency amount based on its sign
+        if (delta.amount0() < 0) {
+            // If amount0 is negative, send tokens from the sender to the pool
             key.currency0.settle(poolManager, data.sender, uint256(int256(-delta.amount0())), false);
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount0 is positive, send tokens from the pool to the sender
+            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
         }
+
+        if (delta.amount1() < 0) {
+            // If amount1 is negative, send tokens from the sender to the pool
+            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount1 is positive, send tokens from the pool to the sender
+            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
+        }
+
         return abi.encode(delta);
     }
 
