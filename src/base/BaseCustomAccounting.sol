@@ -192,11 +192,13 @@ abstract contract BaseCustomAccounting is BaseHook {
     // slither-disable-next-line dead-code
     function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
-        BalanceDelta delta;
         PoolKey memory key = poolKey;
 
-        // Apply liquidity modification parameters
-        (delta,) = poolManager.modifyLiquidity(key, data.params, "");
+        // Get liquidity modification deltas
+        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(key, data.params, "");
+
+        // Get the releveant delta by substracting the fee delta from the liquidity delta (-= is not supported)
+        delta = delta - feeDelta;
 
         // If liquidity delta is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
         if (data.params.liquidityDelta < 0) {
