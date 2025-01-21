@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {DynamicAfterFeeMock} from "test/mocks/DynamicAfterFeeMock.sol";
+import {BaseDynamicAfterFeeMock} from "test/mocks/BaseDynamicAfterFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -14,7 +14,7 @@ import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 
 contract DynamicAfterFeeTest is Test, Deployers {
-    DynamicAfterFeeMock dynamicFeesHook;
+    BaseDynamicAfterFeeMock dynamicFeesHook;
 
     event Swap(
         PoolId indexed poolId,
@@ -33,9 +33,11 @@ contract DynamicAfterFeeTest is Test, Deployers {
         deployFreshManagerAndRouters();
 
         dynamicFeesHook =
-            DynamicAfterFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
+            BaseDynamicAfterFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
         deployCodeTo(
-            "test/mocks/DynamicAfterFeeMock.sol:DynamicAfterFeeMock", abi.encode(manager), address(dynamicFeesHook)
+            "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
+            abi.encode(manager),
+            address(dynamicFeesHook)
         );
 
         deployMintAndApprove2Currencies();

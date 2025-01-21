@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.24;
 
-import {DynamicAfterFee} from "src/fee/DynamicAfterFee.sol";
+import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
@@ -39,7 +39,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  *
  * _Available since v0.1.0_
  */
-contract AntiSandwichHook is DynamicAfterFee {
+contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
 
@@ -51,7 +51,7 @@ contract AntiSandwichHook is DynamicAfterFee {
 
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
 
-    constructor(IPoolManager _poolManager) DynamicAfterFee(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal

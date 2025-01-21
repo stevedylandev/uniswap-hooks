@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/DynamicAfterFee.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicAfterFee.sol)
 
 pragma solidity ^0.8.24;
 
@@ -25,7 +25,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract DynamicAfterFee is BaseHook {
+abstract contract BaseDynamicAfterFee is BaseHook {
     mapping(PoolId => BalanceDelta) internal _targetDeltas;
 
     /**

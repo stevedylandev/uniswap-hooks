@@ -53,8 +53,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         override
         returns (bytes memory, uint256)
     {
-        (uint256 amount0, uint256 amount1, uint256 liquidity) = _getAmountIn(params);
-        return (abi.encode(amount0.toInt128(), amount1.toInt128()), liquidity);
+        (uint256 amount0, uint256 amount1, uint256 shares) = _getAmountIn(params);
+        return (abi.encode(amount0.toInt128(), amount1.toInt128()), shares);
     }
 
     /**
@@ -67,8 +67,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         override
         returns (bytes memory, uint256)
     {
-        (uint256 amount0, uint256 amount1, uint256 liquidity) = _getAmountOut(params);
-        return (abi.encode(-amount0.toInt128(), -amount1.toInt128()), liquidity);
+        (uint256 amount0, uint256 amount1, uint256 shares) = _getAmountOut(params);
+        return (abi.encode(-amount0.toInt128(), -amount1.toInt128()), shares);
     }
 
     /**
@@ -210,7 +210,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     function _getAmountOutFromExactInput(uint256 amountIn, Currency input, Currency output, bool zeroForOne)
         internal
         virtual
-        returns (uint256 amountOut);
+        returns (uint256 unspecifiedAmount);
 
     /**
      * @dev Calculate the amount of tokens to be taken from the swapper for an exact output amount.
@@ -218,23 +218,23 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     function _getAmountInForExactOutput(uint256 amountOut, Currency input, Currency output, bool zeroForOne)
         internal
         virtual
-        returns (uint256 amountIn);
+        returns (uint256 unspecifiedAmount);
 
     /**
-     * @dev Calculate the amount of tokens to use and liquidity units to burn for a remove liquidity request.
+     * @dev Calculate the amount of tokens to use and liquidity shares to burn for a remove liquidity request.
      */
     function _getAmountOut(RemoveLiquidityParams memory params)
         internal
         virtual
-        returns (uint256 amount0, uint256 amount1, uint256 liquidity);
+        returns (uint256 amount0, uint256 amount1, uint256 shares);
 
     /**
-     * @dev Calculate the amount of tokens to use and liquidity units to mint for an add liquidity request.
+     * @dev Calculate the amount of tokens to use and liquidity shares to mint for an add liquidity request.
      */
     function _getAmountIn(AddLiquidityParams memory params)
         internal
         virtual
-        returns (uint256 amount0, uint256 amount1, uint256 liquidity);
+        returns (uint256 amount0, uint256 amount1, uint256 shares);
 
     /**
      * @dev Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity`, `beforeRemoveLiquidity`,
