@@ -146,9 +146,15 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
      */
-    function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        override
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
 
         int128 amount0 = 0;

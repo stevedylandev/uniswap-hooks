@@ -189,10 +189,14 @@ abstract contract BaseCustomAccounting is BaseHook {
      * accordingly.
      *
      * @param rawData The encoded `CallbackData` struct.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
      */
-    // slither-disable-next-line dead-code
-    function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
         BalanceDelta delta;
         PoolKey memory key = poolKey;

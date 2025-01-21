@@ -208,15 +208,6 @@ contract BaseHookTest is Test, Deployers {
         hook.callback(abi.encodeWithSelector(BaseHookMock._callback.selector, true));
     }
 
-    function test_callback_lock_reverts() public {
-        (key,) = initPoolAndAddLiquidity(
-            currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
-        );
-
-        vm.expectRevert(BaseHook.LockFailure.selector);
-        hook.callback(abi.encodeWithSelector(this.test_callback_lock_reverts.selector));
-    }
-
     function test_all_notPoolManager_reverts() public {
         vm.expectRevert(BaseHook.NotPoolManager.selector);
         hook.beforeInitialize(address(this), key, SQRT_PRICE_1_1);

@@ -144,6 +144,15 @@ contract BaseHookMock is BaseHook {
         poolManager.unlock(call);
     }
 
+    function unlockCallback(bytes calldata rawData) external onlyPoolManager returns (bytes memory) {
+        (bool success, bytes memory returnData) = address(this).call(rawData);
+        if (success) return returnData;
+        // if the call failed, bubble up the reason
+        assembly ("memory-safe") {
+            revert(add(returnData, 32), mload(returnData))
+        }
+    }
+
     /// @dev when called in the `callback` function, the poolManager will call the `_unlockCallback` function which calls this contract's `_callback` function itself.
     function _callback(bool revertCallback) external onlySelf returns (bytes memory) {
         emit Callback();
