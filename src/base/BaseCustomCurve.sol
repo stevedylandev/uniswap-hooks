@@ -108,16 +108,20 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         BeforeSwapDelta returnDelta;
 
         if (exactInput) {
+            // For exact input swaps:
+            // 1. Take the specified input (user-given) amount from this contract's balance in the pool
             specified.take(poolManager, address(this), specifiedAmount, true);
+            // 2. Send the calculated output amount to this contract's balance in the pool
             unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
-            // On exact input, amount0 is specified and amount1 is unspecified.
             returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
+            // For exact output swaps:
+            // 1. Take the calculated input amount from this contract's balance in the pool
             unspecified.take(poolManager, address(this), unspecifiedAmount, true);
+            // 2. Send the specified (user-given) output amount to this contract's balance in the pool
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
-            // On exact output, amount1 is specified and amount0 is unspecified.
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
 
@@ -150,31 +154,46 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         int128 amount0 = 0;
         int128 amount1 = 0;
 
-        // If liquidity amount is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        // When removing liquidity, burn ERC-6909 claim tokens and transfer tokens from pool to receiver.
-        // When adding liquidity, mint ERC-6909 claim tokens and transfer tokens from receiver to pool.
+        // This section handles liquidity modifications (adding/removing) for both tokens in the pool
+        // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
+        // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
+            // First settle (send) tokens from pool to this contract
             poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
+            // Then take (receive) tokens from hook and send to the user
             poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
+            // Record the amount so that it can be then encoded into the delta
             amount0 = data.amount0;
         }
 
+        // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
+            // First settle (send) tokens from pool to this contract
             poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
+            // Then take (receive) tokens from hook and send to the user
             poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
+            // Record the amount so that it can be then encoded into the delta
             amount1 = data.amount1;
         }
 
+        // Add liquidity if amount0 is positive
         if (data.amount0 > 0) {
+            // First settle (send) tokens from user to pool
             poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
+            // Then take (receive) tokens from pool to this contract (hook)
             poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
+            // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
 
+        // Add liquidity if amount1 is positive
         if (data.amount1 > 0) {
+            // First settle (send) tokens from user to pool
             poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
+            // Then take (receive) tokens from pool to this contract (hook)
             poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
+            // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
 
