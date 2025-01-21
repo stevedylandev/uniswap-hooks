@@ -223,6 +223,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
     /**
      * @dev Calculate the amount of tokens to be received by the swapper from an exact input amount.
+     * @return amountOut The amount of tokens to be sent by the swapper in exchange for `amountIn`.
      */
     function _getAmountOutFromExactInput(uint256 amountIn, Currency input, Currency output, bool zeroForOne)
         internal
@@ -231,6 +232,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
     /**
      * @dev Calculate the amount of tokens to be taken from the swapper for an exact output amount.
+     * @return amountIn The amount of tokens the receiver would receive in exchange for `amountOut`.
      */
     function _getAmountInForExactOutput(uint256 amountOut, Currency input, Currency output, bool zeroForOne)
         internal
@@ -239,6 +241,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
     /**
      * @dev Calculate the amount of tokens to use and liquidity units to burn for a remove liquidity request.
+     * @return amount0 The amount of token0 to be received by the liquidity provider.
+     * @return amount1 The amount of token1 to be received by the liquidity provider.
+     * @return liquidity The amount of liquidity units to be burned by the liquidity provider.
      */
     function _getAmountOut(RemoveLiquidityParams memory params)
         internal
@@ -247,6 +252,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
     /**
      * @dev Calculate the amount of tokens to use and liquidity units to mint for an add liquidity request.
+     * @return amount0 The amount of token0 to be sent by the liquidity provider.
+     * @return amount1 The amount of token1 to be sent by the liquidity provider.
+     * @return liquidity The amount of liquidity units to be minted by the liquidity provider.
      */
     function _getAmountIn(AddLiquidityParams memory params)
         internal

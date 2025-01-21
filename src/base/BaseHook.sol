@@ -105,9 +105,10 @@ abstract contract BaseHook is IHooks {
      * @dev Force the `onlyPoolManager` modifier by exposing a virtual function after the `onlyPoolManager` check.
      *
      * @param data The calldata to use when unlocking the callback.
+     * @return returnData The return data of the callback, which is encoded and decoded according to the implementor's logic
      */
-    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
-        return _unlockCallback(data);
+    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory returnData) {
+        returnData = _unlockCallback(data);
     }
 
     /**
