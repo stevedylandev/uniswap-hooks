@@ -65,6 +65,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct RemoveLiquidityParams {
@@ -72,6 +73,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct CallbackData {
