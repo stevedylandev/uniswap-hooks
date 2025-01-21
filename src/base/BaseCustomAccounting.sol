@@ -19,7 +19,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  * over the liquidity. The implementation inheriting this hook must implement the respective functions
  * to calculate the liquidity modification parameters and the amount of liquidity units to mint or burn.
  *
- * Aditionally, the implementator must consider that the hook is the sole owner of the liquidity and
+ * Additionally, the implementer must consider that the hook is the sole owner of the liquidity and
  * manage fees over liquidity units accordingly.
  *
  * NOTE: This base hook is designed to work with a single pool key. If you want to use the same custom
@@ -37,7 +37,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     using StateLibrary for IPoolManager;
 
     /**
-     * @dev An liquidity modification order was attempted to be executed after the deadline.
+     * @dev A liquidity modification order was attempted to be executed after the deadline.
      */
     error ExpiredPastDeadline();
 

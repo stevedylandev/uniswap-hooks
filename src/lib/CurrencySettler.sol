@@ -10,7 +10,7 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 /**
  * @dev Library used to interact with the `PoolManager` to settle any open deltas.
  * To settle a positive delta (a credit to the user), a user may take or mint.
- * To settle a negative delta (a debt on the user), a user make transfer or burn to pay off a debt.
+ * To settle a negative delta (a debt on the user), a user may transfer or burn to pay off a debt.
  *
  * Based on the https://github.com/Uniswap/v4-core/blob/main/test/utils/CurrencySettler.sol[Uniswap v4 test utils implementation].
  *
