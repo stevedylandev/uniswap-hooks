@@ -254,6 +254,10 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @return modify The encoded parameters for the liquidity addition, which must follow the
      * `ModifyLiquidityParams` struct in the default implementation.
      * @return liquidity The liquidity units to mint.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
@@ -268,6 +272,10 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @return modify The encoded parameters for the liquidity removal, which must follow the
      * `ModifyLiquidityParams` struct in the default implementation.
      * @return liquidity The liquidity units to burn.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal

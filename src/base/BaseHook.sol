@@ -97,7 +97,7 @@ abstract contract BaseHook is IHooks {
     /**
      * @dev Validate the hook address against the expected permissions.
      */
-    function validateHookAddress(BaseHook hook) internal pure virtual {
+    function validateHookAddress(BaseHook hook) internal pure {
         Hooks.validateHookPermissions(hook, getHookPermissions());
     }
 
