@@ -154,27 +154,29 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // When removing liquidity, burn ERC-6909 claim tokens and transfer tokens from pool to receiver.
         // When adding liquidity, mint ERC-6909 claim tokens and transfer tokens from receiver to pool.
 
+        PoolKey memory _poolKey = poolKey;
+
         if (data.amount0 < 0) {
-            poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
-            poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
+            _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
+            _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
             amount0 = data.amount0;
         }
 
         if (data.amount1 < 0) {
-            poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
-            poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
+            _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
+            _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
             amount1 = data.amount1;
         }
 
         if (data.amount0 > 0) {
-            poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
-            poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
+            _poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
+            _poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
             amount0 = -data.amount0;
         }
 
         if (data.amount1 > 0) {
-            poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
-            poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
+            _poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
+            _poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
             amount1 = -data.amount1;
         }
 
