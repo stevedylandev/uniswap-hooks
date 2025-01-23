@@ -159,13 +159,13 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (data.amount0 < 0) {
             _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
             _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
-            amount0 = data.amount0;
+            amount0 = -data.amount0;
         }
 
         if (data.amount1 < 0) {
             _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
             _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
-            amount1 = data.amount1;
+            amount1 = -data.amount1;
         }
 
         if (data.amount0 > 0) {
