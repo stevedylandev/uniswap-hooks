@@ -96,13 +96,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
         // Get the amount of the unspecified currency to be taken or settled
-        uint256 unspecifiedAmount = _getAmount(
-            specifiedAmount,
-            exactInput ? specified : unspecified,
-            exactInput ? unspecified : specified,
-            params.zeroForOne,
-            exactInput
-        );
+        uint256 unspecifiedAmount = _getUnspecifiedAmount(params);
 
         // New delta must be returned, so store in memory
         BeforeSwapDelta returnDelta;
@@ -184,38 +178,13 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Calculate the amount of tokens to be taken or settled from the swapper, depending on the swap
+     * @dev Calculate the amount of the unspecified currency to be taken or settled from the swapper, depending on the swap
      * direction.
      *
-     * @param amountIn The amount of tokens to be taken or settled.
-     * @param input The input currency.
-     * @param output The output currency.
-     * @param zeroForOne Indicator of the swap direction.
-     * @param exactInput True if the swap is exact input, false if exact output.
-     * @return amount The amount of tokens to be taken or settled.
+     * @param params The swap parameters.
+     * @return unspecifiedAmount The amount of the unspecified currency to be taken or settled.
      */
-    function _getAmount(uint256 amountIn, Currency input, Currency output, bool zeroForOne, bool exactInput)
-        internal
-        virtual
-        returns (uint256 amount)
-    {
-        return exactInput
-            ? _getAmountOutFromExactInput(amountIn, input, output, zeroForOne)
-            : _getAmountInForExactOutput(amountIn, input, output, zeroForOne);
-    }
-
-    /**
-     * @dev Calculate the amount of tokens to be received by the swapper from an exact input amount.
-     */
-    function _getAmountOutFromExactInput(uint256 amountIn, Currency input, Currency output, bool zeroForOne)
-        internal
-        virtual
-        returns (uint256 unspecifiedAmount);
-
-    /**
-     * @dev Calculate the amount of tokens to be taken from the swapper for an exact output amount.
-     */
-    function _getAmountInForExactOutput(uint256 amountOut, Currency input, Currency output, bool zeroForOne)
+    function _getUnspecifiedAmount(IPoolManager.SwapParams calldata params)
         internal
         virtual
         returns (uint256 unspecifiedAmount);

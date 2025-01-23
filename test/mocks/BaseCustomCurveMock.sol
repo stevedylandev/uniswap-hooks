@@ -11,10 +11,28 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
     constructor(IPoolManager _manager) BaseCustomCurve(_manager) ERC20("Mock", "MOCK") {}
 
+    function _getUnspecifiedAmount(IPoolManager.SwapParams calldata params)
+        internal
+        virtual
+        override
+        returns (uint256 unspecifiedAmount)
+    {
+        bool exactInput = params.amountSpecified < 0;
+        (Currency specified, Currency unspecified) = (params.zeroForOne == exactInput)
+            ? (poolKey.currency0, poolKey.currency1)
+            : (poolKey.currency1, poolKey.currency0);
+        uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
+        Currency input = exactInput ? specified : unspecified;
+        Currency output = exactInput ? unspecified : specified;
+
+        return exactInput
+            ? _getAmountOutFromExactInput(specifiedAmount, input, output, params.zeroForOne)
+            : _getAmountInForExactOutput(specifiedAmount, input, output, params.zeroForOne);
+    }
+
     function _getAmountOutFromExactInput(uint256 amountIn, Currency, Currency, bool)
         internal
         pure
-        override
         returns (uint256 amountOut)
     {
         // in constant-sum curve, tokens trade exactly 1:1
@@ -24,7 +42,6 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
     function _getAmountInForExactOutput(uint256 amountOut, Currency, Currency, bool)
         internal
         pure
-        override
         returns (uint256 amountIn)
     {
         // in constant-sum curve, tokens trade exactly 1:1
