@@ -8,7 +8,7 @@ Uniswap v4 introduces a specialized `Currency` type to handle both native ETH an
 
 When tokens remain in the `PoolManager`, Uniswap v4 can seamlessly represent them as ERC-6909 tokens, enabling internal accounting without external transfers. Positive deltas (credits) can be redeemed by “taking” or minting ERC-6909 tokens, and negative deltas (debts) can be settled by “paying” or burning those tokens.
 
-The `CurrencySettler` library provides easy-to-use utilities for modifying and closing these deltas. Based on the inputs, the functions determine whether to sync, transfer, or settle native assets, ERC-20 tokens, or ERC-6909 tokens. This removes the need to manually reconcile token balances or worry about the correct sequence of operations:
+The xref:api:utils.adoc#CurrencySettler[`CurrencySettler`] library provides easy-to-use utilities for modifying and closing these deltas. Based on the inputs, the functions determine whether to sync, transfer, or settle native assets, ERC-20 tokens, or ERC-6909 tokens. This removes the need to manually reconcile token balances or worry about the correct sequence of operations:
 
 [source,solidity]
 ----
@@ -45,4 +45,4 @@ The `CurrencySettler` library provides easy-to-use utilities for modifying and c
 ...
 ----
 
-The `settle` function is used to pay into the `PoolManager`, handling both ERC-20 transfers and ERC-6909 burns. On the other hand, the `take` function allows you to receive a positive delta by either minting ERC-6909 tokens or transferring an ERC-20 token from the `PoolManager`.
+The xref:api:utils.adoc#CurrencySettler-settle-Currency-contract-IPoolManager-address-uint256-bool-[`settle`] function is used to pay into the `PoolManager`, handling both ERC-20 transfers and ERC-6909 burns. On the other hand, the xref:api:utils.adoc#CurrencySettler-take-Currency-contract-IPoolManager-address-uint256-bool-[`take`] function allows you to receive a positive delta by either minting ERC-6909 tokens or transferring an ERC-20 token from the `PoolManager`.
