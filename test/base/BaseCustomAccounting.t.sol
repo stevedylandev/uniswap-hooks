@@ -211,7 +211,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
             )
         );
     }
-    
+
     function test_addLiquidity_native_invalidValue_revert() public {
         BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
         deployCodeTo(
@@ -248,8 +248,10 @@ contract BaseCustomAccountingTest is Test, Deployers {
         hook.removeLiquidity(
             BaseCustomAccounting.RemoveLiquidityParams(
                 10 ether, 10 ether - 1, 10 ether - 1, MAX_DEADLINE, MIN_TICK, MAX_TICK
+            )
+        );
     }
-    
+
     function test_swap_twoSwaps_succeeds() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
@@ -429,7 +431,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
 
         nativeHook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK)
         );
 
         assertEq(manager.getLiquidity(id), 0);

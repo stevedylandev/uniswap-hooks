@@ -389,7 +389,7 @@ contract BaseCustomCurveTest is Test, Deployers {
         uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
 
         nativeHook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK)
         );
 
         assertEq(manager.getLiquidity(id), 0);
