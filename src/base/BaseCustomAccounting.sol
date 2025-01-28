@@ -4,7 +4,7 @@
 pragma solidity ^0.8.24;
 
 import {BaseHook} from "src/base/BaseHook.sol";
-import {CurrencySettler} from "src/lib/CurrencySettler.sol";
+import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
