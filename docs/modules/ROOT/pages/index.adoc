@@ -1,6 +1,6 @@
 = Uniswap Hooks
 
-A Solidity library for secure and modular Uniswap hooks, specifically with support for https://docs.uniswap.org/contracts/v4/overview[Uniswap v4]. This library includes:
+A Solidity library for secure and modular hooks for https://docs.uniswap.org/contracts/v4/overview[Uniswap v4]. This library includes:
 
 * Base implementations for custom accounting, asynchronous swaps, and custom curves
 * Fee-related implementations for management and enforcement
