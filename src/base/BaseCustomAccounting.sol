@@ -75,6 +75,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct RemoveLiquidityParams {
@@ -84,6 +85,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct CallbackData {
@@ -216,10 +218,14 @@ abstract contract BaseCustomAccounting is BaseHook {
      * accordingly.
      *
      * @param rawData The encoded `CallbackData` struct.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
      */
-    // slither-disable-next-line dead-code
-    function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
         PoolKey memory key = poolKey;
 
@@ -295,6 +301,10 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @return modify The encoded parameters for the liquidity addition, which must follow the
      * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return liquidity The liquidity units to mint.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
@@ -309,6 +319,10 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @return modify The encoded parameters for the liquidity removal, which must follow the
      * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
      * @return liquidity The liquidity units to burn.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal
