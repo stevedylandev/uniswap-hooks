@@ -158,7 +158,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
         PoolKey memory _poolKey = poolKey;
-        
+
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
             // First settle (send) tokens from pool to this contract
