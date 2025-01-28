@@ -79,6 +79,8 @@ abstract contract BaseCustomAccounting is BaseHook {
 
     struct RemoveLiquidityParams {
         uint256 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
@@ -180,6 +182,13 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         // Burn the liquidity units from the sender
         _burn(params, delta, liquidity);
+
+        // Check for slippage
+        uint128 amount0 = delta.amount0() < 0 ? uint128(-delta.amount0()) : uint128(delta.amount0());
+        uint128 amount1 = delta.amount1() < 0 ? uint128(-delta.amount1()) : uint128(delta.amount1());
+        if (amount0 < params.amount0Min || amount1 < params.amount1Min) {
+            revert TooMuchSlippage();
+        }
     }
 
     /**
@@ -212,22 +221,31 @@ abstract contract BaseCustomAccounting is BaseHook {
     // slither-disable-next-line dead-code
     function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
-        BalanceDelta delta;
         PoolKey memory key = poolKey;
 
-        // Apply liquidity modification parameters
-        (delta,) = poolManager.modifyLiquidity(key, data.params, "");
+        // Get liquidity modification deltas
+        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(key, data.params, "");
 
-        // If liquidity delta is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        if (data.params.liquidityDelta < 0) {
-            // Get tokens from the pool and send to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
-            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
-        } else {
-            // Send tokens from the sender to the pool
+        // Get the releveant delta by substracting the fee delta from the principal delta (-= is not supported)
+        delta = delta - feeDelta;
+
+        // Handle each currency amount based on its sign
+        if (delta.amount0() < 0) {
+            // If amount0 is negative, send tokens from the sender to the pool
             key.currency0.settle(poolManager, data.sender, uint256(int256(-delta.amount0())), false);
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount0 is positive, send tokens from the pool to the sender
+            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
         }
+
+        if (delta.amount1() < 0) {
+            // If amount1 is negative, send tokens from the sender to the pool
+            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount1 is positive, send tokens from the pool to the sender
+            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
+        }
+
         return abi.encode(delta);
     }
 
