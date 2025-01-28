@@ -111,13 +111,13 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             specified.take(poolManager, address(this), specifiedAmount, true);
             unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
-            // On exact input, amount0 is specified and amount1 is unspecified.
+            // On exact input, the specified amount is taken and the unspecified amount is settled.
             returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
             unspecified.take(poolManager, address(this), unspecifiedAmount, true);
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
-            // On exact output, amount1 is specified and amount0 is unspecified.
+            // On exact output, the unspecified amount is taken and the specified amount is settled.
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
 
@@ -129,7 +129,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return delta The balance delta of the liquidity modifications.
      */
     function _modifyLiquidity(bytes memory params) internal virtual override returns (BalanceDelta delta) {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
@@ -138,11 +138,11 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Decodes the callback data and applies the liquidity modification, overriding the custom
+     * @dev Decodes the callback data and applies the liquidity modifications, overriding the custom
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return delta The balance delta of the liquidity modifications.
      */
     function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
@@ -150,9 +150,10 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         int128 amount0 = 0;
         int128 amount1 = 0;
 
-        // If liquidity amount is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        // When removing liquidity, burn ERC-6909 claim tokens and transfer tokens from pool to receiver.
-        // When adding liquidity, mint ERC-6909 claim tokens and transfer tokens from receiver to pool.
+        // If liquidity amount is negative, transfer tokens from the PoolManager contract to the receiver.
+        // Otherwise, transfer tokens from the receiver to the PoolManager contract.
+        // When transferring tokens to the PoolManager, mint ERC-6909 claim tokens.
+        // When transferring tokens from the PoolManager, burn ERC-6909 claim tokens.
 
         if (data.amount0 < 0) {
             poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);

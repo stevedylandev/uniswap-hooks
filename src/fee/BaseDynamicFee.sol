@@ -32,7 +32,7 @@ abstract contract BaseDynamicFee is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Returns a fee, denominated in hundredths of a percent, to be applied to the pool after it is initialized.
+     * @dev Returns a fee, denominated in hundredths of a bip, to be applied to the pool after it is initialized.
      */
     function _getFee(PoolKey calldata key) internal virtual returns (uint24);
 
@@ -53,6 +53,17 @@ abstract contract BaseDynamicFee is BaseHook {
     /**
      * @dev Updates the dynamic LP fee for the given pool, which must have a key
      * that contains this hook's address.
+     *
+     * WARNING: This function can be called by anyone at any time. If `_getFee` implementation
+     * depends on external conditions (e.g., oracle prices, other pool states, token balances),
+     * it may be vulnerable to manipulation. An attacker could potentially:
+     * 1. Manipulate the external conditions that `_getFee` depends on
+     * 2. Call `poke()` to update the fee to a more favorable rate
+     * 3. Execute trades at the manipulated fee rate
+     *
+     * Inheriting contracts should consider implementing access controls on this function,
+     * make the logic in `_getFee` resistant to short-term manipulation, or accept the risk
+     * of fee manipulation.
      *
      * @param key The pool key to update the dynamic LP fee for.
      */

@@ -39,7 +39,7 @@ abstract contract BaseHook is IHooks {
     error InvalidPool();
 
     /**
-     * @dev The hook is not unlocked.
+     * @dev The call during callback returned an empty response (i.e. when inexistent function is called).
      */
     error LockFailure();
 
@@ -78,7 +78,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Restrict the function to only be callable by a valid pool.
+     * @dev Restrict the function to only be called for a valid pool.
      */
     modifier onlyValidPools(IHooks hooks) {
         if (hooks != this) revert InvalidPool();

@@ -46,7 +46,7 @@ abstract contract BaseOverrideFee is BaseHook {
     }
 
     /**
-     * @dev Returns a fee, denominated in hundredths of a percent, to be applied to a swap.
+     * @dev Returns a fee, denominated in hundredths of a bip, to be applied to a swap.
      */
     function _getFee(
         address sender,
@@ -69,7 +69,7 @@ abstract contract BaseOverrideFee is BaseHook {
     }
 
     /**
-     * @dev Set the hook permissions, specifically `beforeSwap`.
+     * @dev Set the hook permissions, specifically `beforeInitialize` and `beforeSwap`.
      *
      * @return permissions The hook permissions.
      */
