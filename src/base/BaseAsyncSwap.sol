@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseNoOp.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseAsyncSwap.sol)
 
 pragma solidity ^0.8.24;
 
@@ -13,19 +13,19 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/lib/CurrencySettler.sol";
 
 /**
- * @dev Base implementation for no-op hooks, which skips the v3-like swap implementation of the `PoolManager`
+ * @dev Base implementation for async swaps, which skip the v3-like swap implementation of the `PoolManager`
  * by taking the full swap input amount and returning a delta that nets out the specified amount to 0.
  *
  * This base hook allows developers to implement arbitrary logic to handle swaps, including use-cases like
  * asynchronous swaps and custom swap-ordering. However, given this flexibility, developers should ensure
  * that any logic implemented interacts safely with the `PoolManager` and works correctly.
  *
- * In order to no-op the swap, the hook mints ERC-6909 claim tokens for the specified currency and amount.
+ * In order to handle async swaps, the hook mints ERC-6909 claim tokens for the specified currency and amount.
  * Inheriting contracts are free to handle these claim tokens as necessary, which can be redeemed for the
  * underlying currency by using the `settle` function from the `CurrencySettler` library.
  *
- * IMPORTANT: No-op hooks only support exact-input swaps. For exact-output swaps, the hook will not act
- * as a no-op, so they would be processed with the `PoolManager`'s implementation.
+ * IMPORTANT: The hook only supports async exact-input swaps. Exact-output swaps will be processed normally
+ * by the `PoolManager`.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -33,7 +33,7 @@ import {CurrencySettler} from "src/lib/CurrencySettler.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseNoOp is BaseHook {
+abstract contract BaseAsyncSwap is BaseHook {
     using SafeCast for uint256;
     using CurrencySettler for Currency;
 
@@ -43,7 +43,8 @@ abstract contract BaseNoOp is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev No-op exact-input swaps by returning a delta that nets out the specified amount to 0.
+     * @dev Skip the v3-like swap implementation of the `PoolManager` by returning a delta that nets out the
+     * specified amount to 0 to enable asynchronous swaps.
      */
     function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
@@ -51,7 +52,7 @@ abstract contract BaseNoOp is BaseHook {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // No-op is only possible on exact-input swaps, so exact-output swaps are executed by the `PoolManager` as normal
+        // Async swaps are only possible on exact-input swaps, so exact-output swaps are executed by the `PoolManager` as normal
         if (params.amountSpecified < 0) {
             // Determine which currency is specified
             Currency specified = params.zeroForOne ? key.currency0 : key.currency1;
