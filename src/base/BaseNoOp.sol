@@ -13,7 +13,16 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/lib/CurrencySettler.sol";
 
 /**
- * @dev Base implementation for no-op hooks, which skips the v3-like swap implementation of the `PoolManager`.
+ * @dev Base implementation for no-op hooks, which skips the v3-like swap implementation of the `PoolManager`
+ * by taking the full swap input amount and returning a delta that nets out the specified amount to 0.
+ *
+ * This base hook allows developers to implement arbitrary logic to handle swaps, including use-cases like
+ * asynchronous swaps and custom swap-ordering. However, given this flexibility, developers should ensure
+ * that any logic implemented interacts safely with the `PoolManager` and works correctly.
+ *
+ * In order to no-op the swap, the hook mints ERC-6909 claim tokens for the specified currency and amount.
+ * Inheriting contracts are free to handle these claim tokens as necessary, which can be redeemed for the
+ * underlying currency by using the `settle` function from the `CurrencySettler` library.
  *
  * IMPORTANT: No-op hooks only support exact-input swaps. For exact-output swaps, the hook will not act
  * as a no-op, so they would be processed with the `PoolManager`'s implementation.
@@ -42,7 +51,7 @@ abstract contract BaseNoOp is BaseHook {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // No-op is only possible on exact-input swaps
+        // No-op is only possible on exact-input swaps, so exact-output swaps are executed by the `PoolManager` as normal
         if (params.amountSpecified < 0) {
             // Determine which currency is specified
             Currency specified = params.zeroForOne ? key.currency0 : key.currency1;

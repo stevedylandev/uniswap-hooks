@@ -14,9 +14,10 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  * @dev Base implementation for dynamic fees applied after swaps.
  *
  * In order to use this hook, the inheriting contract must define a target delta for a swap before
- * the {afterSwap} function is called.
+ * the {afterSwap} function is called. This can be done accurately by using the {beforeSwap} hook
+ * to define the target delta for the current swap according to arbitrary logic.
  *
- * NOTE: This hook only supports exact-input swaps. For exact-output swaps, the hook will not apply
+ * IMPORTANT: This hook only supports exact-input swaps. For exact-output swaps, the hook will not apply
  * the target delta.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
@@ -35,6 +36,20 @@ abstract contract BaseDynamicAfterFee is BaseHook {
 
     /**
      * @dev Calculate the target delta and apply the fee so that the returned delta matches.
+     *
+     * Target deltas are only applied for exact-input swaps that meet the minimum delta value
+     * for either `amount0` or `amount1`.
+     *
+     * NOTE: The target delta is reset to 0 after the swap is processed, regardless of the
+     * swap parameters. Therefore, it is recommended to use the {beforeSwap} hook to set the
+     * target delta for swaps automatically.
+     *
+     * IMPORTANT: The fees obtained from netting with the target delta are donated to the pool and
+     * distributed among in-range liquidity providers. Note that this donation mechanism can be
+     * exploited by attackers who add just-in-time liquidity to a narrow range around the final
+     * tick after the swap. Such liquidity would receive a disproportionate share of the donation
+     * despite not meaningfully participating in the swap. Implementers should carefully consider
+     * this possibility when using this default hook implementation.
      */
     function _afterSwap(
         address,

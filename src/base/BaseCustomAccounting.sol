@@ -8,7 +8,7 @@ import {CurrencySettler} from "src/lib/CurrencySettler.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
@@ -56,6 +56,16 @@ abstract contract BaseCustomAccounting is BaseHook {
      */
     error LiquidityOnlyViaHook();
 
+    /**
+     * @dev Native currency was not sent with the correct amount.
+     */
+    error InvalidNativeValue();
+
+    /**
+     * @dev Hook was already initialized.
+     */
+    error AlreadyInitialized();
+
     struct AddLiquidityParams {
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -65,13 +75,17 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct RemoveLiquidityParams {
         uint256 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
+        bytes32 salt;
     }
 
     struct CallbackData {
@@ -106,11 +120,16 @@ abstract contract BaseCustomAccounting is BaseHook {
      * of at least amount0Desired/amount1Desired on token0/token1. Always adds assets at the ideal ratio,
      * according to the price when the transaction is executed.
      *
+     * NOTE: This function doens't revert if currency0 is not native and msg.value is non-zero, i.e.
+     * the hook accepts native currency even if currency0 is not native to allow hooks for out-of-pool
+     * use cases.
+     *
      * @param params The parameters for the liquidity addition.
      * @return delta The balance delta of the liquidity addition from the `PoolManager`.
      */
     function addLiquidity(AddLiquidityParams calldata params)
         external
+        payable
         virtual
         ensure(params.deadline)
         returns (BalanceDelta delta)
@@ -119,13 +138,18 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        // Get the liquidity modification parameters and the amount of liquidity shares to mint
+        // Check if currency0 is native and validate msg.value (native currency, if present, is enforced to be currency0)
+        if (poolKey.currency0 == CurrencyLibrary.ADDRESS_ZERO && msg.value != params.amount0Desired) {
+            revert InvalidNativeValue();
+        }
+
+        // Get the liquidity modification parameters and the amount of liquidity units to mint
         (bytes memory modifyParams, uint256 shares) = _getAddLiquidity(sqrtPriceX96, params);
 
         // Apply the liquidity modification
         delta = _modifyLiquidity(modifyParams);
 
-        // Mint the liquidity shares to the sender
+        // Mint the liquidity units to the `params.to` address
         _mint(params, delta, shares);
 
         // Check for slippage
@@ -160,6 +184,13 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         // Burn the liquidity shares from the sender
         _burn(params, delta, shares);
+
+        // Check for slippage
+        uint128 amount0 = delta.amount0() < 0 ? uint128(-delta.amount0()) : uint128(delta.amount0());
+        uint128 amount1 = delta.amount1() < 0 ? uint128(-delta.amount1()) : uint128(delta.amount1());
+        if (amount0 < params.amount0Min || amount1 < params.amount1Min) {
+            revert TooMuchSlippage();
+        }
     }
 
     /**
@@ -187,27 +218,40 @@ abstract contract BaseCustomAccounting is BaseHook {
      * accordingly.
      *
      * @param rawData The encoded `CallbackData` struct.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
      */
-    // slither-disable-next-line dead-code
-    function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
-        BalanceDelta delta;
         PoolKey memory key = poolKey;
 
-        // Apply liquidity modification parameters
-        (delta,) = poolManager.modifyLiquidity(key, data.params, "");
+        // Get liquidity modification deltas
+        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(key, data.params, "");
 
-        // If liquidity delta is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        if (data.params.liquidityDelta < 0) {
-            // Get tokens from the pool and send to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
-            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
-        } else {
-            // Send tokens from the sender to the pool
+        // Get the releveant delta by substracting the fee delta from the principal delta (-= is not supported)
+        delta = delta - feeDelta;
+
+        // Handle each currency amount based on its sign
+        if (delta.amount0() < 0) {
+            // If amount0 is negative, send tokens from the sender to the pool
             key.currency0.settle(poolManager, data.sender, uint256(int256(-delta.amount0())), false);
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount0 is positive, send tokens from the pool to the sender
+            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
         }
+
+        if (delta.amount1() < 0) {
+            // If amount1 is negative, send tokens from the sender to the pool
+            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+        } else {
+            // If amount1 is positive, send tokens from the pool to the sender
+            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
+        }
+
         return abi.encode(delta);
     }
 
@@ -216,6 +260,9 @@ abstract contract BaseCustomAccounting is BaseHook {
      * it can safely be used across the hook's functions.
      */
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+        // Check if the pool key is already initialized
+        if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
+
         // Store the pool key to be used in other functions
         poolKey = key;
         return this.beforeInitialize.selector;
@@ -252,8 +299,12 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @param sqrtPriceX96 The current square root price of the pool.
      * @param params The parameters for the liquidity addition.
      * @return modify The encoded parameters for the liquidity addition, which must follow the
-     * `ModifyLiquidityParams` struct in the default implementation.
+     * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to mint.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
@@ -266,8 +317,12 @@ abstract contract BaseCustomAccounting is BaseHook {
      *
      * @param params The parameters for the liquidity removal.
      * @return modify The encoded parameters for the liquidity removal, which must follow the
-     * `ModifyLiquidityParams` struct in the default implementation.
+     * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to burn.
+     *
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
+     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
+     * unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal
@@ -293,7 +348,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
 
     /**
-     * @dev Set the hook permissions, specifically `beforeInitialize`.
+     * @dev Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity` and `beforeRemoveLiquidity`.
      *
      * @return permissions The hook permissions.
      */

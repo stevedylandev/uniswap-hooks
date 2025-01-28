@@ -39,11 +39,6 @@ abstract contract BaseHook is IHooks {
     error InvalidPool();
 
     /**
-     * @dev The hook is not unlocked.
-     */
-    error LockFailure();
-
-    /**
      * @dev The hook function is not implemented.
      */
     error HookNotImplemented();
@@ -78,7 +73,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Restrict the function to only be callable by a valid pool.
+     * @dev Restrict the function to only be called for a valid pool.
      */
     modifier onlyValidPools(IHooks hooks) {
         if (hooks != this) revert InvalidPool();
@@ -97,32 +92,8 @@ abstract contract BaseHook is IHooks {
     /**
      * @dev Validate the hook address against the expected permissions.
      */
-    function validateHookAddress(BaseHook hook) internal pure virtual {
+    function validateHookAddress(BaseHook hook) internal pure {
         Hooks.validateHookPermissions(hook, getHookPermissions());
-    }
-
-    /**
-     * @dev Force the `onlyPoolManager` modifier by exposing a virtual function after the `onlyPoolManager` check.
-     *
-     * @param data The calldata to use when unlocking the callback.
-     */
-    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
-        return _unlockCallback(data);
-    }
-
-    /**
-     * @dev Unlock the callback and call itself with the given calldata.
-     *
-     * @param data The calldata to use, which must be a supported function by the hook.
-     */
-    function _unlockCallback(bytes calldata data) internal virtual returns (bytes memory) {
-        (bool success, bytes memory returnData) = address(this).call(data);
-        if (success) return returnData;
-        if (returnData.length == 0) revert LockFailure();
-        // if the call failed, bubble up the reason
-        assembly ("memory-safe") {
-            revert(add(returnData, 32), mload(returnData))
-        }
     }
 
     /**

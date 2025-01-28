@@ -102,16 +102,20 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         BeforeSwapDelta returnDelta;
 
         if (exactInput) {
+            // For exact input swaps:
+            // 1. Take the specified input (user-given) amount from this contract's balance in the pool
             specified.take(poolManager, address(this), specifiedAmount, true);
+            // 2. Send the calculated output amount to this contract's balance in the pool
             unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
-            // On exact input, amount0 is specified and amount1 is unspecified.
             returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
+            // For exact output swaps:
+            // 1. Take the calculated input amount from this contract's balance in the pool
             unspecified.take(poolManager, address(this), unspecifiedAmount, true);
+            // 2. Send the specified (user-given) output amount to this contract's balance in the pool
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
-            // On exact output, amount1 is specified and amount0 is unspecified.
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
 
@@ -123,7 +127,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return delta The balance delta of the liquidity modifications.
      */
     function _modifyLiquidity(bytes memory params) internal virtual override returns (BalanceDelta delta) {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
@@ -132,45 +136,66 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Decodes the callback data and applies the liquidity modification, overriding the custom
+     * @dev Decodes the callback data and applies the liquidity modifications, overriding the custom
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
      */
-    function _unlockCallback(bytes calldata rawData) internal virtual override returns (bytes memory) {
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        override
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
 
         int128 amount0 = 0;
         int128 amount1 = 0;
 
-        // If liquidity amount is negative, remove liquidity from the pool. Otherwise, add liquidity to the pool.
-        // When removing liquidity, burn ERC-6909 claim tokens and transfer tokens from pool to receiver.
-        // When adding liquidity, mint ERC-6909 claim tokens and transfer tokens from receiver to pool.
+        // This section handles liquidity modifications (adding/removing) for both tokens in the pool
+        // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
         PoolKey memory _poolKey = poolKey;
-
+        
+        // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
+            // First settle (send) tokens from pool to this contract
             _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
+            // Then take (receive) tokens from hook and send to the user
             _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
+            // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
 
+        // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
+            // First settle (send) tokens from pool to this contract
             _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
+            // Then take (receive) tokens from hook and send to the user
             _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
+            // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
 
+        // Add liquidity if amount0 is positive
         if (data.amount0 > 0) {
+            // First settle (send) tokens from user to pool
             _poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
+            // Then take (receive) tokens from pool to this contract (hook)
             _poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
+            // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
 
+        // Add liquidity if amount1 is positive
         if (data.amount1 > 0) {
+            // First settle (send) tokens from user to pool
             _poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
+            // Then take (receive) tokens from pool to this contract (hook)
             _poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
+            // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
 
@@ -190,7 +215,28 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         returns (uint256 unspecifiedAmount);
 
     /**
+     * @dev Calculate the amount of tokens to be received by the swapper from an exact input amount.
+     * @return amountOut The amount of tokens to be sent by the swapper in exchange for `amountIn`.
+     */
+    function _getAmountOutFromExactInput(uint256 amountIn, Currency input, Currency output, bool zeroForOne)
+        internal
+        virtual
+        returns (uint256 amountOut);
+
+    /**
+     * @dev Calculate the amount of tokens to be taken from the swapper for an exact output amount.
+     * @return amountIn The amount of tokens the receiver would receive in exchange for `amountOut`.
+     */
+    function _getAmountInForExactOutput(uint256 amountOut, Currency input, Currency output, bool zeroForOne)
+        internal
+        virtual
+        returns (uint256 amountIn);
+
+    /**
      * @dev Calculate the amount of tokens to use and liquidity shares to burn for a remove liquidity request.
+     * @return amount0 The amount of token0 to be received by the liquidity provider.
+     * @return amount1 The amount of token1 to be received by the liquidity provider.
+     * @return shares The amount of liquidity shares to be burned by the liquidity provider.
      */
     function _getAmountOut(RemoveLiquidityParams memory params)
         internal
@@ -199,6 +245,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
     /**
      * @dev Calculate the amount of tokens to use and liquidity shares to mint for an add liquidity request.
+     * @return amount0 The amount of token0 to be sent by the liquidity provider.
+     * @return amount1 The amount of token1 to be sent by the liquidity provider.
+     * @return shares The amount of liquidity shares to be minted by the liquidity provider.
      */
     function _getAmountIn(AddLiquidityParams memory params)
         internal
