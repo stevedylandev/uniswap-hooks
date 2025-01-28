@@ -17,10 +17,10 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  *
  * To enable hook-owned liquidity, tokens must be deposited via the hook to allow control and flexibility
  * over the liquidity. The implementation inheriting this hook must implement the respective functions
- * to calculate the liquidity modification parameters and the amount of liquidity units to mint or burn.
+ * to calculate the liquidity modification parameters and the amount of liquidity shares to mint or burn.
  *
- * Aditionally, the implementator must consider that the hook is the sole owner of the liquidity and
- * manage fees over liquidity units accordingly.
+ * Additionally, the implementer must consider that the hook is the sole owner of the liquidity and
+ * manage fees over liquidity shares accordingly.
  *
  * NOTE: This base hook is designed to work with a single pool key. If you want to use the same custom
  * accounting hook for multiple pools, you must have multiple storage instances of this contract and
@@ -37,7 +37,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     using StateLibrary for IPoolManager;
 
     /**
-     * @dev An liquidity modification order was attempted to be executed after the deadline.
+     * @dev A liquidity modification order was attempted to be executed after the deadline.
      */
     error ExpiredPastDeadline();
 
@@ -144,13 +144,13 @@ abstract contract BaseCustomAccounting is BaseHook {
         }
 
         // Get the liquidity modification parameters and the amount of liquidity units to mint
-        (bytes memory modifyParams, uint256 liquidity) = _getAddLiquidity(sqrtPriceX96, params);
+        (bytes memory modifyParams, uint256 shares) = _getAddLiquidity(sqrtPriceX96, params);
 
         // Apply the liquidity modification
         delta = _modifyLiquidity(modifyParams);
 
         // Mint the liquidity units to the `params.to` address
-        _mint(params, delta, liquidity);
+        _mint(params, delta, shares);
 
         // Check for slippage
         if (uint128(-delta.amount0()) < params.amount0Min || uint128(-delta.amount1()) < params.amount1Min) {
@@ -176,14 +176,14 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        // Get the liquidity modification parameters and the amount of liquidity units to burn
-        (bytes memory modifyParams, uint256 liquidity) = _getRemoveLiquidity(params);
+        // Get the liquidity modification parameters and the amount of liquidity shares to burn
+        (bytes memory modifyParams, uint256 shares) = _getRemoveLiquidity(params);
 
         // Apply the liquidity modification
         delta = _modifyLiquidity(modifyParams);
 
-        // Burn the liquidity units from the sender
-        _burn(params, delta, liquidity);
+        // Burn the liquidity shares from the sender
+        _burn(params, delta, shares);
 
         // Check for slippage
         uint128 amount0 = delta.amount0() < 0 ? uint128(-delta.amount0()) : uint128(delta.amount0());
@@ -294,13 +294,13 @@ abstract contract BaseCustomAccounting is BaseHook {
 
     /**
      * @dev Get the liquidity modification to apply for a given liquidity addition,
-     * and the amount of liquidity units would be minted to the sender.
+     * and the amount of liquidity shares would be minted to the sender.
      *
      * @param sqrtPriceX96 The current square root price of the pool.
      * @param params The parameters for the liquidity addition.
      * @return modify The encoded parameters for the liquidity addition, which must follow the
      * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
-     * @return liquidity The liquidity units to mint.
+     * @return shares The liquidity shares to mint.
      *
      * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
      * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
@@ -309,16 +309,16 @@ abstract contract BaseCustomAccounting is BaseHook {
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
         virtual
-        returns (bytes memory modify, uint256 liquidity);
+        returns (bytes memory modify, uint256 shares);
 
     /**
      * @dev Get the liquidity modification to apply for a given liquidity removal,
-     * and the amount of liquidity units would be burned from the sender.
+     * and the amount of liquidity shares would be burned from the sender.
      *
      * @param params The parameters for the liquidity removal.
      * @return modify The encoded parameters for the liquidity removal, which must follow the
      * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
-     * @return liquidity The liquidity units to burn.
+     * @return shares The liquidity shares to burn.
      *
      * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
      * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
@@ -327,25 +327,25 @@ abstract contract BaseCustomAccounting is BaseHook {
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal
         virtual
-        returns (bytes memory modify, uint256 liquidity);
+        returns (bytes memory modify, uint256 shares);
 
     /**
-     * @dev Mint liquidity units to the sender.
+     * @dev Mint liquidity shares to the sender.
      *
      * @param params The parameters for the liquidity addition.
      * @param delta The balance delta of the liquidity addition from the `PoolManager`.
-     * @param liquidity The liquidity units to mint.
+     * @param shares The liquidity shares to mint.
      */
-    function _mint(AddLiquidityParams memory params, BalanceDelta delta, uint256 liquidity) internal virtual;
+    function _mint(AddLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
 
     /**
-     * @dev Burn liquidity units from the sender.
+     * @dev Burn liquidity shares from the sender.
      *
      * @param params The parameters for the liquidity removal.
      * @param delta The balance delta of the liquidity removal from the `PoolManager`.
-     * @param liquidity The liquidity units to burn.
+     * @param shares The liquidity shares to burn.
      */
-    function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 liquidity) internal virtual;
+    function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
 
     /**
      * @dev Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity` and `beforeRemoveLiquidity`.
