@@ -524,4 +524,10 @@ contract BaseCustomAccountingTest is Test, Deployers {
             )
         );
     }
+
+    function test_beforeInitialize_alreadyInitialized_reverts() public {
+        vm.prank(address(manager));
+        vm.expectRevert(BaseCustomAccounting.AlreadyInitialized.selector);
+        hook.beforeInitialize(address(this), key, SQRT_PRICE_1_1);
+    }
 }
