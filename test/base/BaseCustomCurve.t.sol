@@ -8,7 +8,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
@@ -93,6 +93,39 @@ contract BaseCustomCurveTest is Test, Deployers {
         uint256 liquidityTokenBal = hook.balanceOf(address(this));
 
         assertEq(key.currency0.balanceOf(address(this)), prevBalance0 - 10 ether);
+        assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 10 ether);
+
+        assertEq(liquidityTokenBal, 10 ether);
+    }
+
+    function test_addLiquidity_native_succeeds() public {
+        BaseCustomCurveMock nativeHook = BaseCustomCurveMock(0x1000000000000000000000000000000000002A88);
+        deployCodeTo("test/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(manager), address(nativeHook));
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+
+        uint256 prevBalance0 = address(this).balance;
+        uint256 prevBalance1 = key.currency1.balanceOf(address(this));
+
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+        );
+
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
+
+        assertEq(address(this).balance, prevBalance0 - 10 ether);
         assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 10 ether);
 
         assertEq(liquidityTokenBal, 10 ether);
@@ -326,6 +359,43 @@ contract BaseCustomCurveTest is Test, Deployers {
         );
 
         assertEq(manager.getLiquidity(id), 0);
+    }
+
+    function test_removeLiquidity_native_succeeds() public {
+        BaseCustomCurveMock nativeHook = BaseCustomCurveMock(0x1000000000000000000000000000000000002A88);
+        deployCodeTo("test/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(manager), address(nativeHook));
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+
+        uint256 prevBalance0 = address(this).balance;
+        uint256 prevBalance1 = key.currency1.balanceOf(address(this));
+
+        nativeHook.addLiquidity{value: 10 ether}(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+            )
+        );
+
+        uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
+
+        nativeHook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+        );
+
+        assertEq(manager.getLiquidity(id), 0);
+
+        assertEq(address(this).balance, prevBalance0 - 5 ether);
+        assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 5 ether);
     }
 
     function test_removeLiquidity_multiple_succeeds() public {
