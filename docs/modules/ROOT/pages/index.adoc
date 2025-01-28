@@ -38,7 +38,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @dev A hook that allows the owner to dynamically update the LP fee.
  */
-contract DynamicFeeHook is BaseDynamicFee, Ownable {
+contract DynamicLPFeeHook is BaseDynamicFee, Ownable {
     uint24 public fee;
 
     constructor(IPoolManager _poolManager) BaseDynamicFee(_poolManager) Ownable(msg.sender) {}
