@@ -8,7 +8,7 @@ Base contracts for building secure and modular Uniswap hooks, providing core fun
  * {BaseCustomAccounting}: Base hook implementation for custom accounting, including support for swaps and liquidity management.
  * {BaseCustomCurve}: Base hook implementation for custom curves.
  * {BaseHook}: Base implementation for hooks.
- * {BaseNoOp}: Base hook implementation for no-op hooks.
+ * {BaseAsyncSwap}: Base hook implementation for asynchronous swaps.
 
 == Hooks
 
@@ -18,4 +18,4 @@ Base contracts for building secure and modular Uniswap hooks, providing core fun
 
 {{BaseHook}}
 
-{{BaseNoOp}}
+{{BaseAsyncSwap}}

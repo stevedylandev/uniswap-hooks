@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseNoOpMock} from "test/mocks/BaseNoOpMock.sol";
+import {BaseAsyncSwapMock} from "test/mocks/BaseAsyncSwapMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -17,11 +17,11 @@ import {ProtocolFeeLibrary} from "v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 
-contract BaseNoOpTest is Test, Deployers {
+contract BaseAsyncSwapTest is Test, Deployers {
     using StateLibrary for IPoolManager;
     using ProtocolFeeLibrary for uint16;
 
-    BaseNoOpMock hook;
+    BaseAsyncSwapMock hook;
 
     event Swap(
         PoolId indexed poolId,
@@ -37,8 +37,8 @@ contract BaseNoOpTest is Test, Deployers {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        hook = BaseNoOpMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG)));
-        deployCodeTo("test/mocks/BaseNoOpMock.sol:BaseNoOpMock", abi.encode(manager), address(hook));
+        hook = BaseAsyncSwapMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG)));
+        deployCodeTo("test/mocks/BaseAsyncSwapMock.sol:BaseAsyncSwapMock", abi.encode(manager), address(hook));
 
         deployMintAndApprove2Currencies();
         (key,) = initPoolAndAddLiquidity(
@@ -87,7 +87,7 @@ contract BaseNoOpTest is Test, Deployers {
         uint256 balance0After = currency0.balanceOfSelf();
         uint256 balance1After = currency1.balanceOfSelf();
 
-        // no-op is not applied to exact-output swaps
+        // async swaps are not applied to exact-output swaps
         assertEq(balance0Before - balance0After, 101);
         assertEq(balance1After - balance1Before, 100);
     }
