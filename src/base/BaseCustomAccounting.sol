@@ -60,7 +60,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Native currency was not sent with the correct amount.
      */
     error InvalidNativeValue();
-    
+
     /**
      * @dev Hook was already initialized.
      */
