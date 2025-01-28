@@ -56,6 +56,11 @@ abstract contract BaseCustomAccounting is BaseHook {
      */
     error LiquidityOnlyViaHook();
 
+    /**
+     * @dev Hook was already initialized.
+     */
+    error AlreadyInitialized();
+
     struct AddLiquidityParams {
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -216,6 +221,9 @@ abstract contract BaseCustomAccounting is BaseHook {
      * it can safely be used across the hook's functions.
      */
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+        // Check if the pool key is already initialized
+        if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
+
         // Store the pool key to be used in other functions
         poolKey = key;
         return this.beforeInitialize.selector;
