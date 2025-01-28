@@ -1,0 +1,6 @@
+= Utilities
+
+Libraries and general purpose utilities are included in the library to help develop hooks. For technical details, refer to the xref:api:utils.adoc[API Reference].
+
+== Currency Settler
+
