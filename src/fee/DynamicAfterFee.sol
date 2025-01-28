@@ -36,7 +36,7 @@ abstract contract DynamicAfterFee is BaseHook {
 
     /**
      * @dev Calculate the target delta and apply the fee so that the returned delta matches.
-     * 
+     *
      * Target deltas are only applied for exact-input swaps that meet the minimum delta value
      * for either `amount0` or `amount1`.
      *

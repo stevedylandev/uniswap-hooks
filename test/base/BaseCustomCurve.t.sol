@@ -118,7 +118,7 @@ contract BaseCustomCurveTest is Test, Deployers {
         uint256 prevBalance1 = key.currency1.balanceOf(address(this));
 
         BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
-            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
 
         nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
@@ -214,17 +214,21 @@ contract BaseCustomCurveTest is Test, Deployers {
     function test_removeLiquidity_tooMuchSlippage_reverts() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+                10 ether, 10 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
         vm.expectRevert(BaseCustomAccounting.TooMuchSlippage.selector);
         hook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(10 ether, 6 ether, 6 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+            BaseCustomAccounting.RemoveLiquidityParams(
+                10 ether, 6 ether, 6 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
 
         hook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(10 ether, 4 ether, 4 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+            BaseCustomAccounting.RemoveLiquidityParams(
+                10 ether, 4 ether, 4 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
     }
 
@@ -291,7 +295,9 @@ contract BaseCustomCurveTest is Test, Deployers {
     function test_removeLiquidity_noLiquidity_reverts() public {
         vm.expectRevert();
         hook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(1000000 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
+            BaseCustomAccounting.RemoveLiquidityParams(
+                1000000 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
     }
 
@@ -365,7 +371,9 @@ contract BaseCustomCurveTest is Test, Deployers {
         uint256 liquidityTokenBal = hook.balanceOf(address(this));
 
         hook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
+            BaseCustomAccounting.RemoveLiquidityParams(
+                liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
 
         assertEq(manager.getLiquidity(id), 0);
@@ -392,14 +400,16 @@ contract BaseCustomCurveTest is Test, Deployers {
 
         nativeHook.addLiquidity{value: 10 ether}(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK
+                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
         uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
 
         nativeHook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK)
+            BaseCustomAccounting.RemoveLiquidityParams(
+                liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
 
         assertEq(manager.getLiquidity(id), 0);
@@ -484,7 +494,9 @@ contract BaseCustomCurveTest is Test, Deployers {
         uint256 liquidityTokenBal = hook.balanceOf(address(this));
 
         hook.removeLiquidity(
-            BaseCustomAccounting.RemoveLiquidityParams(liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
+            BaseCustomAccounting.RemoveLiquidityParams(
+                liquidityTokenBal, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
         );
 
         assertEq(manager.getLiquidity(id), 0);
