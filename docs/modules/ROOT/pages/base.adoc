@@ -4,7 +4,7 @@ Base contract implementations are provided in the library as building blocks to 
 
 == Hook
 
-xref:api:base.adoc#BaseHook[BaseHook] is provided as the underlying scaffolding contract. It declares every supported hook callback along with modifiers and revert statements that enforce security and prevent misuse. By design, all hook entrypoints/actions are turned off. This allows the inheriting contract to choose which methods to enable by overriding the permissions struct in xref:api:base.adoc#BaseHook-getHookPermissions[`getHookPermissions`] and implementing the respective internal functions.
+xref:api:base.adoc#BaseHook[BaseHook] is provided as the underlying scaffolding contract. It declares every supported hook callback along with modifiers and revert statements that enforce security and prevent misuse. By design, all hook entrypoints/actions are turned off. This allows the inheriting contract to choose which methods to enable by overriding the permissions struct in xref:api:base.adoc#BaseHook-getHookPermissions--[`getHookPermissions`] and implementing the respective internal functions.
 
 [source,solidity]
 ----
