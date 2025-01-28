@@ -215,24 +215,6 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         returns (uint256 unspecifiedAmount);
 
     /**
-     * @dev Calculate the amount of tokens to be received by the swapper from an exact input amount.
-     * @return amountOut The amount of tokens to be sent by the swapper in exchange for `amountIn`.
-     */
-    function _getAmountOutFromExactInput(uint256 amountIn, Currency input, Currency output, bool zeroForOne)
-        internal
-        virtual
-        returns (uint256 amountOut);
-
-    /**
-     * @dev Calculate the amount of tokens to be taken from the swapper for an exact output amount.
-     * @return amountIn The amount of tokens the receiver would receive in exchange for `amountOut`.
-     */
-    function _getAmountInForExactOutput(uint256 amountOut, Currency input, Currency output, bool zeroForOne)
-        internal
-        virtual
-        returns (uint256 amountIn);
-
-    /**
      * @dev Calculate the amount of tokens to use and liquidity shares to burn for a remove liquidity request.
      * @return amount0 The amount of token0 to be received by the liquidity provider.
      * @return amount1 The amount of token1 to be received by the liquidity provider.
