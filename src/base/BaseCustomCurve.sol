@@ -133,7 +133,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return delta The balance delta of the liquidity modifications.
      */
     function _modifyLiquidity(bytes memory params) internal virtual override returns (BalanceDelta delta) {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
@@ -142,7 +142,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Decodes the callback data and applies the liquidity modification, overriding the custom
+     * @dev Decodes the callback data and applies the liquidity modifications, overriding the custom
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
