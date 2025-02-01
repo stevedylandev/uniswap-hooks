@@ -2,18 +2,34 @@
 pragma solidity ^0.8.26;
 
 import "src/fee/BaseDynamicAfterFee.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 
 contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
+    mapping(PoolId => uint256) public targetOutput;
+    bool public applyTargetOutput;
+
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
-    function getTargetDelta(PoolId poolId) public view returns (BalanceDelta) {
-        return _targetDeltas[poolId];
+    function getTargetOutput(PoolId poolId) public view returns (uint256) {
+        return _getTargetOutput(poolId);
     }
 
-    function setTargetDelta(PoolId poolId, BalanceDelta delta) public {
-        _targetDeltas[poolId] = delta;
+    function setTargetOutput(PoolId poolId, uint256 output, bool active) public {
+        targetOutput[poolId] = output;
+        applyTargetOutput = active;
+    }
+
+    function _afterSwapHandler(PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, uint256, uint256)
+        internal
+        override
+    {}
+
+    function _getTargetOutput(address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
+        internal
+        view
+        override
+        returns (uint256, bool)
+    {
+        return (targetOutput[key.toId()], applyTargetOutput);
     }
 
     // Exclude from coverage report

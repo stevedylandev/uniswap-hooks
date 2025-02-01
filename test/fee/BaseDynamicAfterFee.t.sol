@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
+import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
 import {BaseDynamicAfterFeeMock} from "test/mocks/BaseDynamicAfterFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
@@ -12,9 +13,29 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {V4Quoter} from "v4-periphery/src/lens/V4Quoter.sol";
+import {Deploy} from "v4-periphery/test/shared/Deploy.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 
-contract DynamicAfterFeeTest is Test, Deployers {
+interface IV4Quoter {
+    struct QuoteExactSingleParams {
+        PoolKey poolKey;
+        bool zeroForOne;
+        uint128 exactAmount;
+        bytes hookData;
+    }
+
+    function quoteExactInputSingle(QuoteExactSingleParams memory params)
+        external
+        returns (uint256 amountOut, uint256 gasEstimate);
+}
+
+contract BaseDynamicAfterFeeTest is Test, Deployers {
+    using SafeCast for uint256;
+
     BaseDynamicAfterFeeMock dynamicFeesHook;
+    IV4Quoter quoter;
 
     event Swap(
         PoolId indexed poolId,
@@ -32,8 +53,9 @@ contract DynamicAfterFeeTest is Test, Deployers {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        dynamicFeesHook =
-            BaseDynamicAfterFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
+        dynamicFeesHook = BaseDynamicAfterFeeMock(
+            address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
+        );
         deployCodeTo(
             "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
             abi.encode(manager),
@@ -47,57 +69,77 @@ contract DynamicAfterFeeTest is Test, Deployers {
 
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
+
+        quoter = IV4Quoter(address(Deploy.v4Quoter(address(manager), "")));
     }
 
     function test_swap_100PercentLPFeeExactInput_succeeds() public {
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
 
-        dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(-100, 0));
-        BalanceDelta currentDelta = dynamicFeesHook.getTargetDelta(key.toId());
-        assertEq(currentDelta.amount0(), -100);
-        assertEq(currentDelta.amount1(), 0);
+        dynamicFeesHook.setTargetOutput(key.toId(), 0, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetOutput(key.toId());
+        assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
         vm.expectEmit(true, true, true, true, address(manager));
         emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
-        vm.expectEmit(true, true, true, true, address(manager));
-        emit Donate(key.toId(), address(dynamicFeesHook), 0, 99);
+
+        uint256 balanceBefore = currency1.balanceOf(address(this));
 
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
+        assertEq(currency1.balanceOf(address(dynamicFeesHook)), 99);
+        assertEq(currency1.balanceOf(address(this)), balanceBefore);
     }
 
     function test_swap_50PercentLPFeeExactInput_succeeds() public {
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
 
-        dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(-100, 49));
-        BalanceDelta currentDelta = dynamicFeesHook.getTargetDelta(key.toId());
-        assertEq(currentDelta.amount0(), -100);
-        assertEq(currentDelta.amount1(), 49);
+        dynamicFeesHook.setTargetOutput(key.toId(), 49, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetOutput(key.toId());
+        assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
         vm.expectEmit(true, true, true, true, address(manager));
         emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
-        vm.expectEmit(true, true, true, true, address(manager));
-        emit Donate(key.toId(), address(dynamicFeesHook), 0, 50);
+
+        uint256 balanceBefore = currency1.balanceOf(address(this));
 
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
+        assertEq(currency1.balanceOf(address(dynamicFeesHook)), 50);
+        assertEq(currency1.balanceOf(address(this)), balanceBefore + 49);
+    }
+
+    function test_swap_skipped_succeeds() public {
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
+
+        dynamicFeesHook.setTargetOutput(key.toId(), 999, false);
+        uint256 currentOutput = dynamicFeesHook.getTargetOutput(key.toId());
+        assertEq(currentOutput, 0);
+
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        vm.expectEmit(true, true, true, true, address(manager));
+        emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
+        swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
+
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
     }
 
     function test_swap_50PercentLPFeeExactOutput_succeeds() public {
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
 
-        dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(-101, 50));
-        BalanceDelta currentDelta = dynamicFeesHook.getTargetDelta(key.toId());
-        assertEq(currentDelta.amount0(), -101);
-        assertEq(currentDelta.amount1(), 50);
+        dynamicFeesHook.setTargetOutput(key.toId(), 50, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetOutput(key.toId());
+        assertEq(currentOutput, 0);
 
         IPoolManager.SwapParams memory params =
             IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
@@ -110,45 +152,47 @@ contract DynamicAfterFeeTest is Test, Deployers {
         // No fee is applied because this is an exact-output swap
         swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
-        currentDelta = dynamicFeesHook.getTargetDelta(key.toId());
-        assertEq(currentDelta.amount0(), -101);
-        assertEq(currentDelta.amount1(), 50);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
     }
 
     function test_swap_deltaExceeds_succeeds() public {
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
 
-        dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(-100, 101));
-        BalanceDelta currentDelta = dynamicFeesHook.getTargetDelta(key.toId());
-        assertEq(currentDelta.amount0(), -100);
-        assertEq(currentDelta.amount1(), 101);
+        dynamicFeesHook.setTargetOutput(key.toId(), 101, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetOutput(key.toId());
+        assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        vm.expectEmit(true, true, true, true, address(manager));
-        emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
-
-        // Target delta has no effect given that target amount1 exceeds the swap delta
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Hooks.Wrap__FailedHookCall.selector,
+                address(dynamicFeesHook),
+                abi.encodeWithSelector(BaseDynamicAfterFee.TargetDeltaExceeds.selector)
+            )
+        );
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
     }
 
     function test_swap_fuzz_succeeds(bool zeroForOne, uint24 lpFee, uint128 amountSpecified) public {
-        assertEq(BalanceDelta.unwrap(dynamicFeesHook.getTargetDelta(key.toId())), 0);
+        assertEq(dynamicFeesHook.getTargetOutput(key.toId()), 0);
 
-        lpFee = uint24(bound(lpFee, 10000, 1000000));
+        lpFee = uint24(bound(lpFee, 0, 1e6));
         amountSpecified = uint128(bound(amountSpecified, 1, 6017734268818166));
-
-        uint256 deltaFee = (uint256(amountSpecified) * lpFee) / 1000000;
-        int128 targetAmount1 = deltaFee > 0 ? int128(uint128(amountSpecified - deltaFee)) : int128(0);
-
-        if (zeroForOne) {
-            dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(-int128(amountSpecified), targetAmount1));
-        } else {
-            dynamicFeesHook.setTargetDelta(key.toId(), toBalanceDelta(targetAmount1, -int128(amountSpecified)));
-        }
+        (uint256 amountUnspecified,) = quoter.quoteExactInputSingle(
+            IV4Quoter.QuoteExactSingleParams({
+                poolKey: key,
+                zeroForOne: zeroForOne,
+                exactAmount: amountSpecified,
+                hookData: ZERO_BYTES
+            })
+        );
+        uint256 deltaFee = (amountUnspecified * lpFee) / 1e6;
+        uint256 targetAmount = amountUnspecified - deltaFee;
+        dynamicFeesHook.setTargetOutput(key.toId(), targetAmount, true);
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: zeroForOne,
@@ -162,9 +206,9 @@ contract DynamicAfterFeeTest is Test, Deployers {
 
         if (zeroForOne) {
             assertEq(delta.amount0(), -int128(amountSpecified));
-            assertEq(delta.amount1(), targetAmount1);
+            assertEq(delta.amount1(), targetAmount.toInt128());
         } else {
-            assertEq(delta.amount0(), targetAmount1);
+            assertEq(delta.amount0(), targetAmount.toInt128());
             assertEq(delta.amount1(), -int128(amountSpecified));
         }
     }
