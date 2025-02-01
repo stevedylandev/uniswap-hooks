@@ -138,6 +138,43 @@ contract BaseCustomAccountingTest is Test, Deployers {
         assertEq(liquidityTokenBal, 10 ether);
     }
 
+    function test_addLiquidity_nativeRefund_succeeds() public {
+        BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+        deployCodeTo(
+            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+        );
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+
+        uint256 prevBalance0 = address(this).balance;
+        uint256 prevBalance1 = key.currency1.balanceOf(address(this));
+
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+
+        nativeHook.setNativeRefund(true);
+
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
+
+        assertEq(manager.getLiquidity(id), liquidityTokenBal);
+        assertEq(address(this).balance, prevBalance0 - (10 ether - 1));
+        assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - (10 ether - 1));
+        assertEq(liquidityTokenBal, 10 ether - 1);
+    }
+
     function test_addLiquidity_fuzz_succeeds(uint112 amount) public {
         vm.assume(amount > 0);
 
@@ -239,6 +276,23 @@ contract BaseCustomAccountingTest is Test, Deployers {
         nativeHook.addLiquidity{value: 0}(
             BaseCustomAccounting.AddLiquidityParams(
                 10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+    }
+
+    function test_addLiquidity_notNative_invalidValue_revert() public {
+        vm.expectRevert(BaseCustomAccounting.InvalidNativeValue.selector);
+        hook.addLiquidity{value: 1}(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether,
+                10 ether,
+                100000 ether,
+                100000 ether,
+                address(this),
+                MAX_DEADLINE,
+                MIN_TICK,
+                MAX_TICK,
+                bytes32(0)
             )
         );
     }

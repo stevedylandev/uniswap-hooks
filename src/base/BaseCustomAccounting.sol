@@ -34,6 +34,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  */
 abstract contract BaseCustomAccounting is BaseHook {
     using CurrencySettler for Currency;
+    using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
 
     /**
@@ -120,7 +121,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * of at least amount0Desired/amount1Desired on token0/token1. Always adds assets at the ideal ratio,
      * according to the price when the transaction is executed.
      *
-     * NOTE: This function doens't revert if currency0 is not native and msg.value is non-zero, i.e.
+     * NOTE: This function doesn't revert if currency0 is not native and msg.value is non-zero, i.e.
      * the hook accepts native currency even if currency0 is not native to allow hooks for out-of-pool
      * use cases.
      *
@@ -138,8 +139,11 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        // Check if currency0 is native and validate msg.value (native currency, if present, is enforced to be currency0)
-        if (poolKey.currency0 == CurrencyLibrary.ADDRESS_ZERO && msg.value != params.amount0Desired) {
+        // Revert if msg.value is non-zero but currency0 is not native, or if currency0 is native but msg.value doesn't match
+        bool isNative = poolKey.currency0.isAddressZero();
+        if (!isNative) {
+            if (msg.value > 0) revert InvalidNativeValue();
+        } else if (msg.value != params.amount0Desired) {
             revert InvalidNativeValue();
         }
 
@@ -153,8 +157,14 @@ abstract contract BaseCustomAccounting is BaseHook {
         _mint(params, delta, shares);
 
         // Check for slippage
-        if (uint128(-delta.amount0()) < params.amount0Min || uint128(-delta.amount1()) < params.amount1Min) {
+        uint128 amount0 = uint128(-delta.amount0());
+        if (amount0 < params.amount0Min || uint128(-delta.amount1()) < params.amount1Min) {
             revert TooMuchSlippage();
+        }
+
+        // If the currency0 is native, refund any remaining amount if the amount received is less than the amount desired.
+        if (isNative && amount0 < params.amount0Desired) {
+            poolKey.currency0.transfer(msg.sender, params.amount0Desired - amount0);
         }
     }
 
@@ -305,6 +315,10 @@ abstract contract BaseCustomAccounting is BaseHook {
      * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
      * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
      * unauthorized withdrawals of their liquidity position and accrued fees.
+     *
+     * NOTE: The returned `ModifyLiquidityParams` struct encoded in `modify` should never return
+     * parameters which when passed to `PoolManager.modifyLiquidity` cause the `delta.amount0` to be
+     * greater than `params.amount0Desired`.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
