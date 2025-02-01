@@ -11,7 +11,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
  * @dev Base implementation for custom curves, inheriting from {BaseCustomAccounting}.
@@ -127,12 +127,20 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
-     * @return delta The balance delta of the liquidity modifications.
+     * @return callerDelta The balance delta from the liquidity modification. This is the total of both principal and fee deltas.
+     * @return feesAccrued The balance delta of the fees generated in the liquidity range.
      */
-    function _modifyLiquidity(bytes memory params) internal virtual override returns (BalanceDelta delta) {
+    function _modifyLiquidity(bytes memory params)
+        internal
+        virtual
+        override
+        returns (BalanceDelta callerDelta, BalanceDelta feesAccrued)
+    {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
-        delta =
-            abi.decode(poolManager.unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))), (BalanceDelta));
+        (callerDelta, feesAccrued) = abi.decode(
+            poolManager.unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))),
+            (BalanceDelta, BalanceDelta)
+        );
     }
 
     /**
@@ -140,7 +148,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
-     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
         external
@@ -199,7 +207,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             amount1 = -data.amount1;
         }
 
-        return abi.encode(toBalanceDelta(amount0, amount1));
+        // Return the encoded caller and fees accrued (zero by default) deltas
+        return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     /**

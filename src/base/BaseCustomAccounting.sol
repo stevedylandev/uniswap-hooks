@@ -48,7 +48,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     error PoolNotInitialized();
 
     /**
-     * @dev Liquidity modification delta resulted in too much slippage.
+     * @dev Principal delta of liquidity modification resulted in too much slippage.
      */
     error TooMuchSlippage();
 
@@ -123,10 +123,11 @@ abstract contract BaseCustomAccounting is BaseHook {
      *
      * NOTE: This function doesn't revert if currency0 is not native and msg.value is non-zero, i.e.
      * the hook accepts native currency even if currency0 is not native to allow hooks for out-of-pool
-     * use cases.
+     * use cases. Additionally, the `amount0Min` and `amount1Min` parameters are relative to the
+     * principal delta, which excludes fees accrued from the liquidity modification delta.
      *
      * @param params The parameters for the liquidity addition.
-     * @return delta The balance delta of the liquidity addition from the `PoolManager`.
+     * @return delta The principal delta of the liquidity addition.
      */
     function addLiquidity(AddLiquidityParams calldata params)
         external
@@ -151,10 +152,13 @@ abstract contract BaseCustomAccounting is BaseHook {
         (bytes memory modifyParams, uint256 shares) = _getAddLiquidity(sqrtPriceX96, params);
 
         // Apply the liquidity modification
-        delta = _modifyLiquidity(modifyParams);
+        (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
         // Mint the liquidity units to the `params.to` address
-        _mint(params, delta, shares);
+        _mint(params, callerDelta, shares);
+
+        // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
+        delta = callerDelta - feesAccrued;
 
         // Check for slippage
         uint128 amount0 = uint128(-delta.amount0());
@@ -173,8 +177,11 @@ abstract contract BaseCustomAccounting is BaseHook {
      *
      * @dev `msg.sender` should have already given the hook allowance of at least liquidity on the pool.
      *
+     * NOTE: The `amount0Min` and `amount1Min` parameters are relative to the principal delta, which
+     * excludes fees accrued from the liquidity modification delta.
+     *
      * @param params The parameters for the liquidity removal.
-     * @return delta The balance delta of the liquidity removal from the `PoolManager`.
+     * @return delta The principal delta of the liquidity removal.
      */
     function removeLiquidity(RemoveLiquidityParams calldata params)
         external
@@ -190,15 +197,16 @@ abstract contract BaseCustomAccounting is BaseHook {
         (bytes memory modifyParams, uint256 shares) = _getRemoveLiquidity(params);
 
         // Apply the liquidity modification
-        delta = _modifyLiquidity(modifyParams);
+        (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
         // Burn the liquidity shares from the sender
-        _burn(params, delta, shares);
+        _burn(params, callerDelta, shares);
+
+        // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
+        delta = callerDelta - feesAccrued;
 
         // Check for slippage
-        uint128 amount0 = delta.amount0() < 0 ? uint128(-delta.amount0()) : uint128(delta.amount0());
-        uint128 amount1 = delta.amount1() < 0 ? uint128(-delta.amount1()) : uint128(delta.amount1());
-        if (amount0 < params.amount0Min || amount1 < params.amount1Min) {
+        if (uint128(delta.amount0()) < params.amount0Min || uint128(delta.amount1()) < params.amount1Min) {
             revert TooMuchSlippage();
         }
     }
@@ -207,15 +215,20 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Calls the `PoolManager` to unlock and call back the hook's `_unlockCallback` function.
      *
      * @param params The encoded parameters for the liquidity modification based on the `ModifyLiquidityParams` struct.
-     * @return delta The balance delta of the liquidity modification from the `PoolManager`.
+     * @return callerDelta The balance delta from the liquidity modification. This is the total of both principal and fee deltas.
+     * @return feesAccrued The balance delta of the fees generated in the liquidity range.
      */
     // slither-disable-next-line dead-code
-    function _modifyLiquidity(bytes memory params) internal virtual returns (BalanceDelta delta) {
-        delta = abi.decode(
+    function _modifyLiquidity(bytes memory params)
+        internal
+        virtual
+        returns (BalanceDelta callerDelta, BalanceDelta feesAccrued)
+    {
+        (callerDelta, feesAccrued) = abi.decode(
             poolManager.unlock(
                 abi.encode(CallbackData(msg.sender, abi.decode(params, (IPoolManager.ModifyLiquidityParams))))
             ),
-            (BalanceDelta)
+            (BalanceDelta, BalanceDelta)
         );
     }
 
@@ -228,7 +241,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * accordingly.
      *
      * @param rawData The encoded `CallbackData` struct.
-     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
         external
@@ -240,29 +253,27 @@ abstract contract BaseCustomAccounting is BaseHook {
         PoolKey memory key = poolKey;
 
         // Get liquidity modification deltas
-        (BalanceDelta delta, BalanceDelta feeDelta) = poolManager.modifyLiquidity(key, data.params, "");
-
-        // Get the releveant delta by substracting the fee delta from the principal delta (-= is not supported)
-        delta = delta - feeDelta;
+        (BalanceDelta callerDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, data.params, "");
 
         // Handle each currency amount based on its sign
-        if (delta.amount0() < 0) {
+        if (callerDelta.amount0() < 0) {
             // If amount0 is negative, send tokens from the sender to the pool
-            key.currency0.settle(poolManager, data.sender, uint256(int256(-delta.amount0())), false);
+            key.currency0.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount0())), false);
         } else {
             // If amount0 is positive, send tokens from the pool to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(delta.amount0())), false);
+            key.currency0.take(poolManager, data.sender, uint256(int256(callerDelta.amount0())), false);
         }
 
-        if (delta.amount1() < 0) {
+        if (callerDelta.amount1() < 0) {
             // If amount1 is negative, send tokens from the sender to the pool
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-delta.amount1())), false);
+            key.currency1.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount1())), false);
         } else {
             // If amount1 is positive, send tokens from the pool to the sender
-            key.currency1.take(poolManager, data.sender, uint256(int256(delta.amount1())), false);
+            key.currency1.take(poolManager, data.sender, uint256(int256(callerDelta.amount1())), false);
         }
 
-        return abi.encode(delta);
+        // Return both deltas so that slippage checks can be done on the principal delta
+        return abi.encode(callerDelta, feesAccrued);
     }
 
     /**
@@ -347,7 +358,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Mint liquidity shares to the sender.
      *
      * @param params The parameters for the liquidity addition.
-     * @param delta The balance delta of the liquidity addition from the `PoolManager`.
+     * @param delta The balance delta from the liquidity addition. This is the total of both principal and fee deltas.
      * @param shares The liquidity shares to mint.
      */
     function _mint(AddLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
@@ -356,7 +367,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Burn liquidity shares from the sender.
      *
      * @param params The parameters for the liquidity removal.
-     * @param delta The balance delta of the liquidity removal from the `PoolManager`.
+     * @param delta The balance delta from the liquidity removal. This is the total of both principal and fee deltas.
      * @param shares The liquidity shares to burn.
      */
     function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;

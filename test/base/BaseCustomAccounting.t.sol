@@ -233,6 +233,66 @@ contract BaseCustomAccountingTest is Test, Deployers {
         assertEq(liquidityTokenBal, 14545454545454545454);
     }
 
+    function test_addLiquidity_swapFeeThenAdd_succeeds(uint24 lpFee) public {
+        lpFee = uint24(bound(lpFee, 0, 1e6));
+        vm.prank(address(hook));
+        manager.updateDynamicLPFee(key, lpFee);
+
+        uint256 prevBalance0 = key.currency0.balanceOf(address(this));
+        uint256 prevBalance1 = key.currency1.balanceOf(address(this));
+
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+
+        uint256 liquidityTokenBal = hook.balanceOf(address(this));
+
+        assertEq(manager.getLiquidity(id), liquidityTokenBal);
+        assertEq(liquidityTokenBal, 10 ether);
+        assertEq(key.currency0.balanceOf(address(this)), prevBalance0 - 10 ether);
+        assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 10 ether);
+
+        if (lpFee == 0) {
+            vm.expectEmit(true, true, true, true, address(manager));
+            emit Swap(
+                id,
+                address(swapRouter),
+                -4142135623730950489,
+                2928932188134524755,
+                56022770974786139918731938227,
+                10 ether,
+                -6932,
+                0
+            );
+        }
+
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -10 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        PoolSwapTest.TestSettings memory settings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        swapRouter.swap(key, params, settings, ZERO_BYTES);
+
+        if (lpFee == 0) {
+            assertEq(key.currency0.balanceOf(address(this)), prevBalance0 - (10 ether + 4142135623730950489));
+            assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 7071067811865475245);
+        }
+
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                5 ether, 5 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+
+        if (lpFee == 0) {
+            liquidityTokenBal = hook.balanceOf(address(this));
+            assertEq(manager.getLiquidity(id), liquidityTokenBal);
+            assertEq(liquidityTokenBal, 13535533905932737622);
+        }
+    }
+
     function test_addLiquidity_expired_revert() public {
         vm.expectRevert(BaseCustomAccounting.ExpiredPastDeadline.selector);
         hook.addLiquidity(
