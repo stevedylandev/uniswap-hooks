@@ -18,9 +18,11 @@ import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/typ
  *
  * This hook allows to implement a custom curve (or any logic) for swaps, which overrides the default v3-like
  * concentrated liquidity implementation of the `PoolManager`. During a swap, the hook calls the
- * {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate the amount of tokens
- * to be taken or settled. The return delta created from this calculation is then consumed and applied by the
- * `PoolManager`.
+ * {_getUnspecifiedAmount} function to get the amount of tokens to be sent to the receiver. The return delta
+ * created from this calculation is then consumed and applied by the `PoolManager`.
+ *
+ * NOTE: This hook by default does not include a fee mechanism, which can be implemented by inheriting
+ * contracts if needed.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -72,9 +74,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the default swap logic of the `PoolManager` and calls the
-     * {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate
-     * the amount of tokens to be taken or settled.
+     * @dev Overides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
+     * to get the amount of tokens to be sent to the receiver.
      *
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
      * via the {addLiquidity} function.
