@@ -169,9 +169,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
-            // First settle (send) tokens from pool to this contract
+            // Burns ERC-6909 tokens to receive tokens
             _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
-            // Then take (receive) tokens from hook and send to the user
+            // Sends tokens from the pool to the user
             _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
@@ -179,9 +179,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
         // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
-            // First settle (send) tokens from pool to this contract
+            // Burns ERC-6909 tokens to receive tokens
             _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
-            // Then take (receive) tokens from hook and send to the user
+            // Sends tokens from the pool to the user
             _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
@@ -191,7 +191,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (data.amount0 > 0) {
             // First settle (send) tokens from user to pool
             _poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
-            // Then take (receive) tokens from pool to this contract (hook)
+            // Take (mint) ERC-6909 tokens to be received by this hook
             _poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
@@ -201,7 +201,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (data.amount1 > 0) {
             // First settle (send) tokens from user to pool
             _poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
-            // Then take (receive) tokens from pool to this contract (hook)
+            // Take (mint) ERC-6909 tokens to be received by this hook
             _poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;

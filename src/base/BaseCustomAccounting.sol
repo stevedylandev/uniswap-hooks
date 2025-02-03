@@ -323,9 +323,9 @@ abstract contract BaseCustomAccounting is BaseHook {
      * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to mint.
      *
-     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
-     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
-     * unauthorized withdrawals of their liquidity position and accrued fees.
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider and
+     * specified salt combination, according to the `ModifyLiquidityParams` struct in the default
+     * implementation, to prevent unauthorized withdrawals of their liquidity position and accrued fees.
      *
      * NOTE: The returned `ModifyLiquidityParams` struct encoded in `modify` should never return
      * parameters which when passed to `PoolManager.modifyLiquidity` cause the `delta.amount0` to be
@@ -345,9 +345,9 @@ abstract contract BaseCustomAccounting is BaseHook {
      * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to burn.
      *
-     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider,
-     * according to the `ModifyLiquidityParams` struct in the default implementation, to prevent
-     * unauthorized withdrawals of their liquidity position and accrued fees.
+     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider and
+     * specified salt combination, according to the `ModifyLiquidityParams` struct in the default
+     * implementation, to prevent unauthorized withdrawals of their liquidity position and accrued fees.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal
