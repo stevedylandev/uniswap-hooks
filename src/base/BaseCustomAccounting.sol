@@ -235,11 +235,6 @@ abstract contract BaseCustomAccounting is BaseHook {
     /**
      * @dev Callback from the `PoolManager` when liquidity is modified, either adding or removing.
      *
-     * NOTE: This function assumes that both delta amounts are negative when removing liquidity, and positive
-     * when adding liquidity. In case it's needed to support a negative and positive delta for a single
-     * liquidity modification, this function should be overridden or the amount values adjusted
-     * accordingly.
-     *
      * @param rawData The encoded `CallbackData` struct.
      * @return returnData The encoded caller and fees accrued deltas.
      */
