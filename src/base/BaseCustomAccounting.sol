@@ -155,7 +155,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
         // Mint the liquidity units to the `params.to` address
-        _mint(params, callerDelta, shares);
+        _mint(params, callerDelta, feesAccrued, shares);
 
         // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
         delta = callerDelta - feesAccrued;
@@ -358,19 +358,28 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @dev Mint liquidity shares to the sender.
      *
      * @param params The parameters for the liquidity addition.
-     * @param delta The balance delta from the liquidity addition. This is the total of both principal and fee deltas.
+     * @param callerDelta The balance delta from the liquidity addition. This is the total of both principal and fee delta.
+     * @param feesAccrued The balance delta of the fees generated in the liquidity range.
      * @param shares The liquidity shares to mint.
      */
-    function _mint(AddLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
+    function _mint(AddLiquidityParams memory params, BalanceDelta callerDelta, BalanceDelta feesAccrued, uint256 shares)
+        internal
+        virtual;
 
     /**
      * @dev Burn liquidity shares from the sender.
      *
      * @param params The parameters for the liquidity removal.
-     * @param delta The balance delta from the liquidity removal. This is the total of both principal and fee deltas.
+     * @param callerDelta The balance delta from the liquidity removal. This is the total of both principal and fee delta.
+     * @param feesAccrued The balance delta of the fees generated in the liquidity range.
      * @param shares The liquidity shares to burn.
      */
-    function _burn(RemoveLiquidityParams memory params, BalanceDelta delta, uint256 shares) internal virtual;
+    function _burn(
+        RemoveLiquidityParams memory params,
+        BalanceDelta callerDelta,
+        BalanceDelta feesAccrued,
+        uint256 shares
+    ) internal virtual;
 
     /**
      * @dev Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity` and `beforeRemoveLiquidity`.
