@@ -148,13 +148,13 @@ abstract contract BaseCustomAccounting is BaseHook {
             revert InvalidNativeValue();
         }
 
-        // Get the liquidity modification parameters and the amount of liquidity units to mint
+        // Get the liquidity modification parameters and the amount of liquidity shares to mint
         (bytes memory modifyParams, uint256 shares) = _getAddLiquidity(sqrtPriceX96, params);
 
         // Apply the liquidity modification
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
-        // Mint the liquidity units to the `params.to` address
+        // Mint the liquidity shares to the `params.to` address
         _mint(params, callerDelta, feesAccrued, shares);
 
         // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
