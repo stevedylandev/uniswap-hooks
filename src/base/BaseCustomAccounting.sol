@@ -121,10 +121,8 @@ abstract contract BaseCustomAccounting is BaseHook {
      * of at least amount0Desired/amount1Desired on token0/token1. Always adds assets at the ideal ratio,
      * according to the price when the transaction is executed.
      *
-     * NOTE: This function doesn't revert if currency0 is not native and msg.value is non-zero, i.e.
-     * the hook accepts native currency even if currency0 is not native to allow hooks for out-of-pool
-     * use cases. Additionally, the `amount0Min` and `amount1Min` parameters are relative to the
-     * principal delta, which excludes fees accrued from the liquidity modification delta.
+     * NOTE: The `amount0Min` and `amount1Min` parameters are relative to the principal delta, which excludes
+     * fees accrued from the liquidity modification delta.
      *
      * @param params The parameters for the liquidity addition.
      * @return delta The principal delta of the liquidity addition.
@@ -200,7 +198,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
         // Burn the liquidity shares from the sender
-        _burn(params, callerDelta, shares);
+        _burn(params, callerDelta, feesAccrued, shares);
 
         // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
         delta = callerDelta - feesAccrued;

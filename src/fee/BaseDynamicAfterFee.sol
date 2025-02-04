@@ -155,7 +155,7 @@ abstract contract BaseDynamicAfterFee is BaseHook {
     }
 
     /**
-     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     * @dev Set the hook permissions, specifically {beforeSwap}, {afterSwap} and {afterSwapReturnDelta}.
      *
      * @return permissions The hook permissions.
      */
