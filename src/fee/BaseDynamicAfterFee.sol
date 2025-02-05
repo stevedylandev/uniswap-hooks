@@ -31,9 +31,9 @@ abstract contract BaseDynamicAfterFee is BaseHook {
     using SafeCast for uint256;
     using CurrencySettler for Currency;
 
-    uint256 private _targetOutput;
+    uint256 internal _targetOutput;
 
-    bool private _applyTargetOutput;
+    bool internal _applyTargetOutput;
 
     /**
      * @dev Target output exceeds swap amount.
@@ -149,15 +149,6 @@ abstract contract BaseDynamicAfterFee is BaseHook {
         uint256 targetOutput,
         uint256 feeAmount
     ) internal virtual;
-
-    /**
-     * @dev Get the current target output.
-     *
-     * @return targetOutput The current target output, denominated in the unspecified currency of the swap.
-     */
-    function _getCurrentTargetOutput() internal view virtual returns (uint256) {
-        return _targetOutput;
-    }
 
     /**
      * @dev Set the hook permissions, specifically {beforeSwap}, {afterSwap} and {afterSwapReturnDelta}.

@@ -12,7 +12,7 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     function getTargetOutput() public view returns (uint256) {
-        return _getCurrentTargetOutput();
+        return _targetOutput;
     }
 
     function setTargetOutput(uint256 output, bool active) public {
