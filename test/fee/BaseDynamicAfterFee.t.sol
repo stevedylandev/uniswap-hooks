@@ -9,7 +9,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
@@ -17,6 +17,7 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {V4Quoter} from "v4-periphery/src/lens/V4Quoter.sol";
 import {Deploy} from "v4-periphery/test/shared/Deploy.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
 interface IV4Quoter {
     struct QuoteExactSingleParams {
@@ -54,7 +55,9 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
         deployFreshManagerAndRouters();
 
         dynamicFeesHook = BaseDynamicAfterFeeMock(
-            address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
+            payable(
+                address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
+            )
         );
         deployCodeTo(
             "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
@@ -92,6 +95,47 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
 
         assertEq(dynamicFeesHook.getTargetOutput(), 0);
         assertEq(currency1.balanceOf(address(dynamicFeesHook)), 99);
+        assertEq(currency1.balanceOf(address(this)), balanceBefore);
+    }
+
+    function test_swap_100PercentLPFeeExactInputNative_succeeds() public {
+        BaseDynamicAfterFeeMock nativeHook =
+            BaseDynamicAfterFeeMock(payable(0x10000000000000000000000000000000000000C4));
+        deployCodeTo(
+            "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock", abi.encode(manager), address(nativeHook)
+        );
+        (key,) = initPoolAndAddLiquidityETH(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1,
+            1 ether
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+
+        assertEq(nativeHook.getTargetOutput(), 0);
+
+        nativeHook.setTargetOutput(0, true);
+        uint256 currentOutput = nativeHook.getTargetOutput();
+        assertEq(currentOutput, 0);
+
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        vm.expectEmit(true, true, true, true, address(manager));
+        emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
+
+        uint256 balanceBefore = currency1.balanceOf(address(this));
+
+        swapRouter.swap{value: 100}(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
+
+        assertEq(nativeHook.getTargetOutput(), 0);
+        assertEq(currency1.balanceOf(address(nativeHook)), 99);
         assertEq(currency1.balanceOf(address(this)), balanceBefore);
     }
 

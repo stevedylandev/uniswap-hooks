@@ -4,13 +4,15 @@ pragma solidity ^0.8.26;
 import "src/fee/BaseDynamicAfterFee.sol";
 
 contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
+    using CurrencySettler for Currency;
+
     uint256 public targetOutput;
     bool public applyTargetOutput;
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     function getTargetOutput() public view returns (uint256) {
-        return _getTargetOutput();
+        return _getCurrentTargetOutput();
     }
 
     function setTargetOutput(uint256 output, bool active) public {
@@ -18,10 +20,19 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         applyTargetOutput = active;
     }
 
-    function _afterSwapHandler(PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, uint256, uint256)
-        internal
-        override
-    {}
+    function _afterSwapHandler(
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta,
+        uint256,
+        uint256 feeAmount
+    ) internal override {
+        Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
+
+        // Burn ERC-6909 and take underlying tokens
+        unspecified.settle(poolManager, address(this), feeAmount, true);
+        unspecified.take(poolManager, address(this), feeAmount, false);
+    }
 
     function _getTargetOutput(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
         internal
@@ -31,6 +42,8 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
     {
         return (targetOutput, applyTargetOutput);
     }
+
+    receive() external payable {}
 
     // Exclude from coverage report
     function test() public {}

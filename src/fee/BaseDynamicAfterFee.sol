@@ -68,6 +68,10 @@ abstract contract BaseDynamicAfterFee is BaseHook {
 
     /**
      * @dev Apply the target output to the unspecified currency of the swap using fees.
+     * The fees are minted as ERC-6909 tokens, which can then be redeemed in the
+     * {_afterSwapHandler} function. Note that if the underlying unspecified currency
+     * is native, the implementing contract must ensure that it can receive native tokens
+     * when redeeming.
      *
      * NOTE: The target output is reset to 0, both when the apply flag is set to `false`
      * and when set to `true`.
@@ -103,9 +107,9 @@ abstract contract BaseDynamicAfterFee is BaseHook {
         // Calculate the fee amount, which is the difference between the swap amount and the target output
         uint256 feeAmount = uint128(unspecifiedAmount) - targetOutput;
 
-        // Take fee and call handler
+        // Mint ERC-6909 tokens for unspecified currency fee and call handler
         if (feeAmount > 0) {
-            unspecified.take(poolManager, address(this), feeAmount, false);
+            unspecified.take(poolManager, address(this), feeAmount, true);
             _afterSwapHandler(key, params, delta, targetOutput, feeAmount);
         }
 
@@ -151,7 +155,7 @@ abstract contract BaseDynamicAfterFee is BaseHook {
      *
      * @return targetOutput The current target output, denominated in the unspecified currency of the swap.
      */
-    function _getTargetOutput() internal view virtual returns (uint256) {
+    function _getCurrentTargetOutput() internal view virtual returns (uint256) {
         return _targetOutput;
     }
 
