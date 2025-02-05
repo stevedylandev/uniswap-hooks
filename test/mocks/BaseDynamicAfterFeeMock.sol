@@ -4,17 +4,17 @@ pragma solidity ^0.8.26;
 import "src/fee/BaseDynamicAfterFee.sol";
 
 contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
-    mapping(PoolId => uint256) public targetOutput;
+    uint256 public targetOutput;
     bool public applyTargetOutput;
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
-    function getTargetOutput(PoolId poolId) public view returns (uint256) {
-        return _getTargetOutput(poolId);
+    function getTargetOutput() public view returns (uint256) {
+        return _getTargetOutput();
     }
 
-    function setTargetOutput(PoolId poolId, uint256 output, bool active) public {
-        targetOutput[poolId] = output;
+    function setTargetOutput(uint256 output, bool active) public {
+        targetOutput = output;
         applyTargetOutput = active;
     }
 
@@ -23,13 +23,13 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         override
     {}
 
-    function _getTargetOutput(address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
+    function _getTargetOutput(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
         internal
         view
         override
         returns (uint256, bool)
     {
-        return (targetOutput[key.toId()], applyTargetOutput);
+        return (targetOutput, applyTargetOutput);
     }
 
     // Exclude from coverage report

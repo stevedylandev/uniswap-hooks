@@ -5,13 +5,13 @@ pragma solidity ^0.8.24;
 
 import {BaseHook} from "src/base/BaseHook.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
@@ -29,15 +29,16 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
  */
 abstract contract BaseDynamicAfterFee is BaseHook {
     using SafeCast for uint256;
+    using CurrencySettler for Currency;
 
-    mapping(PoolId => uint256) private _targetOutput;
+    uint256 private _targetOutput;
 
     bool private _applyTargetOutput;
 
     /**
-     * @dev Target delta exceeds swap amount.
+     * @dev Target output exceeds swap amount.
      */
-    error TargetDeltaExceeds();
+    error TargetOutputExceeds();
 
     /**
      * @dev Set the `PoolManager` address.
@@ -60,7 +61,7 @@ abstract contract BaseDynamicAfterFee is BaseHook {
 
         // Set the target output and apply flag, overriding any previous values.
         _applyTargetOutput = applyTargetOutput;
-        _targetOutput[key.toId()] = targetOutput;
+        _targetOutput = targetOutput;
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -78,11 +79,10 @@ abstract contract BaseDynamicAfterFee is BaseHook {
         BalanceDelta delta,
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
-        PoolId poolId = key.toId();
-        uint256 targetOutput = _targetOutput[poolId];
+        uint256 targetOutput = _targetOutput;
 
         // Reset storage target output to 0 and use one stored in memory
-        _targetOutput[poolId] = 0;
+        _targetOutput = 0;
 
         // Skip if target output is not active
         if (!_applyTargetOutput) {
@@ -97,15 +97,17 @@ abstract contract BaseDynamicAfterFee is BaseHook {
         // If fee is on output, get the absolute output amount
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
-        // Revert if the target delta exceeds the swap amount
-        if (targetOutput > uint128(unspecifiedAmount)) revert TargetDeltaExceeds();
+        // Revert if the target output exceeds the swap amount
+        if (targetOutput > uint128(unspecifiedAmount)) revert TargetOutputExceeds();
 
         // Calculate the fee amount, which is the difference between the swap amount and the target output
         uint256 feeAmount = uint128(unspecifiedAmount) - targetOutput;
 
         // Take fee and call handler
-        poolManager.take(unspecified, address(this), feeAmount);
-        _afterSwapHandler(key, params, delta, targetOutput, feeAmount);
+        if (feeAmount > 0) {
+            unspecified.take(poolManager, address(this), feeAmount, false);
+            _afterSwapHandler(key, params, delta, targetOutput, feeAmount);
+        }
 
         return (this.afterSwap.selector, feeAmount.toInt128());
     }
@@ -145,13 +147,12 @@ abstract contract BaseDynamicAfterFee is BaseHook {
     ) internal virtual;
 
     /**
-     * @dev Get the target output for a pool.
+     * @dev Get the current target output.
      *
-     * @param poolId The pool ID.
-     * @return targetOutput The current target output for the pool.
+     * @return targetOutput The current target output, denominated in the unspecified currency of the swap.
      */
-    function _getTargetOutput(PoolId poolId) internal view virtual returns (uint256) {
-        return _targetOutput[poolId];
+    function _getTargetOutput() internal view virtual returns (uint256) {
+        return _targetOutput;
     }
 
     /**
