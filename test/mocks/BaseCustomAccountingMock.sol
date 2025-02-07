@@ -16,11 +16,17 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     using SafeCast for uint256;
     using StateLibrary for IPoolManager;
 
+    bool public nativeRefund;
+
     constructor(IPoolManager _poolManager) BaseCustomAccounting(_poolManager) ERC20("Mock", "MOCK") {}
+
+    function setNativeRefund(bool _nativeRefund) external {
+        nativeRefund = _nativeRefund;
+    }
 
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
-        pure
+        view
         override
         returns (bytes memory modify, uint256 liquidity)
     {
@@ -28,7 +34,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(params.tickLower),
             TickMath.getSqrtPriceAtTick(params.tickUpper),
-            params.amount0Desired,
+            nativeRefund ? params.amount0Desired - 1 : params.amount0Desired,
             params.amount1Desired
         );
 
@@ -66,11 +72,11 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
         );
     }
 
-    function _mint(AddLiquidityParams memory params, BalanceDelta, uint256 liquidity) internal override {
+    function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
         _mint(params.to, liquidity);
     }
 
-    function _burn(RemoveLiquidityParams memory, BalanceDelta, uint256 liquidity) internal override {
+    function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
         _burn(msg.sender, liquidity);
     }
 

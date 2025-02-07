@@ -11,16 +11,18 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
  * @dev Base implementation for custom curves, inheriting from {BaseCustomAccounting}.
  *
  * This hook allows to implement a custom curve (or any logic) for swaps, which overrides the default v3-like
  * concentrated liquidity implementation of the `PoolManager`. During a swap, the hook calls the
- * {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate the amount of tokens
- * to be taken or settled. The return delta created from this calculation is then consumed and applied by the
- * `PoolManager`.
+ * {_getUnspecifiedAmount} function to get the amount of tokens to be sent to the receiver. The return delta
+ * created from this calculation is then consumed and applied by the `PoolManager`.
+ *
+ * NOTE: This hook by default does not include a fee mechanism, which can be implemented by inheriting
+ * contracts if needed.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -72,9 +74,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the default swap logic of the `PoolManager` and calls the
-     * {_getAmountOutFromExactInput} or {_getAmountInForExactOutput} function to calculate
-     * the amount of tokens to be taken or settled.
+     * @dev Overides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
+     * to get the amount of tokens to be sent to the receiver.
      *
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
      * via the {addLiquidity} function.
@@ -127,12 +128,20 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
-     * @return delta The balance delta of the liquidity modifications.
+     * @return callerDelta The balance delta from the liquidity modification. This is the total of both principal and fee deltas.
+     * @return feesAccrued The balance delta of the fees generated in the liquidity range.
      */
-    function _modifyLiquidity(bytes memory params) internal virtual override returns (BalanceDelta delta) {
+    function _modifyLiquidity(bytes memory params)
+        internal
+        virtual
+        override
+        returns (BalanceDelta callerDelta, BalanceDelta feesAccrued)
+    {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
-        delta =
-            abi.decode(poolManager.unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))), (BalanceDelta));
+        (callerDelta, feesAccrued) = abi.decode(
+            poolManager.unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))),
+            (BalanceDelta, BalanceDelta)
+        );
     }
 
     /**
@@ -140,7 +149,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
      *
      * @param rawData The callback data encoded in the {_modifyLiquidity} function.
-     * @return returnData The encoded balance delta of the liquidity modification from the `PoolManager`.
+     * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
         external
@@ -161,9 +170,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
-            // First settle (send) tokens from pool to this contract
+            // Burns ERC-6909 tokens to receive tokens
             _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
-            // Then take (receive) tokens from hook and send to the user
+            // Sends tokens from the pool to the user
             _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
@@ -171,9 +180,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
         // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
-            // First settle (send) tokens from pool to this contract
+            // Burns ERC-6909 tokens to receive tokens
             _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
-            // Then take (receive) tokens from hook and send to the user
+            // Sends tokens from the pool to the user
             _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
@@ -183,7 +192,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (data.amount0 > 0) {
             // First settle (send) tokens from user to pool
             _poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
-            // Then take (receive) tokens from pool to this contract (hook)
+            // Take (mint) ERC-6909 tokens to be received by this hook
             _poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
@@ -193,13 +202,14 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (data.amount1 > 0) {
             // First settle (send) tokens from user to pool
             _poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
-            // Then take (receive) tokens from pool to this contract (hook)
+            // Take (mint) ERC-6909 tokens to be received by this hook
             _poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
 
-        return abi.encode(toBalanceDelta(amount0, amount1));
+        // Return the encoded caller and fees accrued (zero by default) deltas
+        return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     /**
