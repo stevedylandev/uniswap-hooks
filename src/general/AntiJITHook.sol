@@ -66,6 +66,9 @@ contract AntiJITHook is BaseHook {
 
             int128 amount0 = BalanceDeltaLibrary.amount0(delta1);
             int128 amount1 = BalanceDeltaLibrary.amount1(delta1);
+
+            poolManager.take(key.currency0, address(this), uint256(int256(amount0)));
+            poolManager.take(key.currency1, address(this), uint256(int256(amount1)));
             
             // amount0 and amount1 are positive
             BalanceDelta deltaSent = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), hookData);
