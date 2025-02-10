@@ -69,7 +69,7 @@ abstract contract BaseOverrideFee is BaseHook {
     }
 
     /**
-     * @dev Set the hook permissions, specifically `beforeInitialize` and `beforeSwap`.
+     * @dev Set the hook permissions, specifically `afterInitialize` and `beforeSwap`.
      *
      * @return permissions The hook permissions.
      */

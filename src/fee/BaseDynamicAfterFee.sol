@@ -5,20 +5,21 @@ pragma solidity ^0.8.24;
 
 import {BaseHook} from "src/base/BaseHook.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
  *
- * In order to use this hook, the inheriting contract must define a target delta for a swap before
- * the {afterSwap} function is called. This can be done accurately by using the {beforeSwap} hook
- * to define the target delta for the current swap according to arbitrary logic.
- *
- * IMPORTANT: This hook only supports exact-input swaps. For exact-output swaps, the hook will not apply
- * the target delta.
+ * In order to use this hook, the inheriting contract must define the {_getTargetOutput} and
+ * {_afterSwapHandler} functions. The {_getTargetOutput} function returns the target output to
+ * apply to the swap depending on the given apply flag. The {_afterSwapHandler} function is called
+ * after the target output is applied to the swap and currency amount is received.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -27,7 +28,17 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
  * _Available since v0.1.0_
  */
 abstract contract BaseDynamicAfterFee is BaseHook {
-    mapping(PoolId => BalanceDelta) internal _targetDeltas;
+    using SafeCast for uint256;
+    using CurrencySettler for Currency;
+
+    uint256 internal _targetOutput;
+
+    bool internal _applyTargetOutput;
+
+    /**
+     * @dev Target output exceeds swap amount.
+     */
+    error TargetOutputExceeds();
 
     /**
      * @dev Set the `PoolManager` address.
@@ -35,21 +46,35 @@ abstract contract BaseDynamicAfterFee is BaseHook {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Calculate the target delta and apply the fee so that the returned delta matches.
+     * @dev Sets the target output and apply flag to be used in the `afterSwap` hook.
      *
-     * Target deltas are only applied for exact-input swaps that meet the minimum delta value
-     * for either `amount0` or `amount1`.
+     * NOTE: The target output is reset to 0 in the `afterSwap` hook regardless of the apply flag.
+     */
+    function _beforeSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
+        // Get the target output and apply flag
+        (uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
+
+        // Set the target output and apply flag, overriding any previous values.
+        _applyTargetOutput = applyTargetOutput;
+        _targetOutput = targetOutput;
+
+        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+    }
+
+    /**
+     * @dev Apply the target output to the unspecified currency of the swap using fees.
+     * The fees are minted as ERC-6909 tokens, which can then be redeemed in the
+     * {_afterSwapHandler} function. Note that if the underlying unspecified currency
+     * is native, the implementing contract must ensure that it can receive native tokens
+     * when redeeming.
      *
-     * NOTE: The target delta is reset to 0 after the swap is processed, regardless of the
-     * swap parameters. Therefore, it is recommended to use the {beforeSwap} hook to set the
-     * target delta for swaps automatically.
-     *
-     * IMPORTANT: The fees obtained from netting with the target delta are donated to the pool and
-     * distributed among in-range liquidity providers. Note that this donation mechanism can be
-     * exploited by attackers who add just-in-time liquidity to a narrow range around the final
-     * tick after the swap. Such liquidity would receive a disproportionate share of the donation
-     * despite not meaningfully participating in the swap. Implementers should carefully consider
-     * this possibility when using this default hook implementation.
+     * NOTE: The target output is reset to 0, both when the apply flag is set to `false`
+     * and when set to `true`.
      */
     function _afterSwap(
         address,
@@ -58,43 +83,75 @@ abstract contract BaseDynamicAfterFee is BaseHook {
         BalanceDelta delta,
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
-        int128 feeAmount = 0;
+        uint256 targetOutput = _targetOutput;
 
-        // Only apply target delta for exact-input swaps
-        if (params.amountSpecified < 0) {
-            PoolId poolId = key.toId();
-            BalanceDelta targetDelta = _targetDeltas[poolId];
+        // Reset storage target output to 0 and use one stored in memory
+        _targetOutput = 0;
 
-            // Skip empty/undefined target delta
-            if (BalanceDelta.unwrap(targetDelta) != 0) {
-                // Reset storage target delta to 0 and use one stored in memory
-                _targetDeltas[poolId] = BalanceDelta.wrap(0);
-
-                // Apply target delta on token amount user would receive (amount1)
-                if (params.zeroForOne && delta.amount1() > targetDelta.amount1()) {
-                    feeAmount = delta.amount1() - targetDelta.amount1();
-
-                    // feeAmount is positive and int128, so we can safely cast to uint128 given that uint128
-                    // has a larger maximum value.
-                    poolManager.donate(key, 0, uint256(uint128(feeAmount)), "");
-                }
-
-                // Apply target delta on token amount user would receive (amount0)
-                if (!params.zeroForOne && delta.amount0() > targetDelta.amount0()) {
-                    feeAmount = delta.amount0() - targetDelta.amount0();
-
-                    // feeAmount is positive and int128, so we can safely cast to uint128 given that uint128
-                    // has a larger maximum value.
-                    poolManager.donate(key, uint256(uint128(feeAmount)), 0, "");
-                }
-            }
+        // Skip if target output is not active
+        if (!_applyTargetOutput) {
+            return (this.afterSwap.selector, 0);
         }
 
-        return (this.afterSwap.selector, feeAmount);
+        // Fee defined in the unspecified currency of the swap
+        (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
+            ? (key.currency1, delta.amount1())
+            : (key.currency0, delta.amount0());
+
+        // If fee is on output, get the absolute output amount
+        if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
+
+        // Revert if the target output exceeds the swap amount
+        if (targetOutput > uint128(unspecifiedAmount)) revert TargetOutputExceeds();
+
+        // Calculate the fee amount, which is the difference between the swap amount and the target output
+        uint256 feeAmount = uint128(unspecifiedAmount) - targetOutput;
+
+        // Mint ERC-6909 tokens for unspecified currency fee and call handler
+        if (feeAmount > 0) {
+            unspecified.take(poolManager, address(this), feeAmount, true);
+            _afterSwapHandler(key, params, delta, targetOutput, feeAmount);
+        }
+
+        return (this.afterSwap.selector, feeAmount.toInt128());
     }
 
     /**
-     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     * @dev Return the target output to be enforced by the `afterSwap` hook using fees.
+     *
+     * IMPORTANT: The swap will revert if the target output exceeds the output unspecified amount from the swap.
+     * In order to consume all of the output from the swap, set the target output to equal the output unspecified
+     * amount and set the apply flag to `true`.
+     *
+     * @return targetOutput The target output, defined in the unspecified currency of the swap.
+     * @return applyTargetOutput The apply flag, which can be set to `false` to skip applying the target output.
+     */
+    function _getTargetOutput(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) internal virtual returns (uint256 targetOutput, bool applyTargetOutput);
+
+    /**
+     * @dev Handler called after applying the target output to a swap and receiving the currency amount.
+     *
+     * @param key The pool key.
+     * @param params The swap parameters.
+     * @param delta The balance delta from the swap.
+     * @param targetOutput The target output, defined in the unspecified currency of the swap.
+     * @param feeAmount The amount of the unspecified currency taken from the swap.
+     */
+    function _afterSwapHandler(
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        uint256 targetOutput,
+        uint256 feeAmount
+    ) internal virtual;
+
+    /**
+     * @dev Set the hook permissions, specifically {beforeSwap}, {afterSwap} and {afterSwapReturnDelta}.
      *
      * @return permissions The hook permissions.
      */
@@ -106,7 +163,7 @@ abstract contract BaseDynamicAfterFee is BaseHook {
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
-            beforeSwap: false,
+            beforeSwap: true,
             afterSwap: true,
             beforeDonate: false,
             afterDonate: false,

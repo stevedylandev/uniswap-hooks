@@ -24,7 +24,10 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
  * Inheriting contracts are free to handle these claim tokens as necessary, which can be redeemed for the
  * underlying currency by using the `settle` function from the `CurrencySettler` library.
  *
- * IMPORTANT: The hook only supports async exact-input swaps. Exact-output swaps will be processed normally
+ * IMPORTANT: If the hook is used for multiple pools, the ERC-6909 tokens must be separated and managed
+ * independently for each pool in order to prevent draining of ERC-6909 tokens from one pool to another.
+ *
+ * NOTE: The hook only supports async exact-input swaps. Exact-output swaps will be processed normally
  * by the `PoolManager`.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
