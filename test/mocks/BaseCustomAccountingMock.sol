@@ -16,12 +16,12 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     using SafeCast for uint256;
     using StateLibrary for IPoolManager;
 
-    bool public nativeRefund;
+    uint256 public nativeRefund;
 
     constructor(IPoolManager _poolManager) BaseCustomAccounting(_poolManager) ERC20("Mock", "MOCK") {}
 
-    function setNativeRefund(bool _nativeRefund) external {
-        nativeRefund = _nativeRefund;
+    function setNativeRefund(uint256 nativeRefundFee) external {
+        nativeRefund = nativeRefundFee;
     }
 
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
@@ -34,7 +34,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(params.tickLower),
             TickMath.getSqrtPriceAtTick(params.tickUpper),
-            nativeRefund ? params.amount0Desired - 1 : params.amount0Desired,
+            nativeRefund > 0 ? params.amount0Desired - nativeRefund : params.amount0Desired,
             params.amount1Desired
         );
 
