@@ -13,8 +13,11 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {CurrencySettler} from "src/utils/CurrencySettler.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 
 contract AntiJITHook is BaseHook {
+    using CurrencySettler for Currency;
     using Pool for *;
     mapping(bytes32 => uint256) public _lastAddedLiquidity;
     uint256 public blockNumberOffset;
@@ -23,12 +26,13 @@ contract AntiJITHook is BaseHook {
 
     error BlockNumberOffsetTooLow();
 
+
     constructor(IPoolManager _poolManager, uint256 _blockNumberOffset) BaseHook(_poolManager) {
         if(_blockNumberOffset < MIN_BLOCK_NUMBER_OFFSET) {
             revert BlockNumberOffsetTooLow();
         }
         blockNumberOffset = _blockNumberOffset;
-    }
+    }  
 
 
     function _afterAddLiquidity(
@@ -47,7 +51,7 @@ contract AntiJITHook is BaseHook {
             _lastAddedLiquidity[positionKey] = block.number;
         }
 
-        return (this.afterAddLiquidity.selector, delta0);
+        return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function _afterRemoveLiquidity(
@@ -64,23 +68,45 @@ contract AntiJITHook is BaseHook {
         if(block.number - lastAddedLiquidity <= blockNumberOffset) {
             // donate the fees to the pool
 
-            int128 amount0 = BalanceDeltaLibrary.amount0(delta1);
-            int128 amount1 = BalanceDeltaLibrary.amount1(delta1);
+            int128 amount0 = delta1.amount0();
+            int128 amount1 = delta1.amount1();
 
-            poolManager.take(key.currency0, address(this), uint256(int256(amount0)));
-            poolManager.take(key.currency1, address(this), uint256(int256(amount1)));
+            BalanceDelta deltaHook = _donateFees(key, amount0, amount1);
+
+            BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
             
-            // amount0 and amount1 are positive
-            BalanceDelta deltaSent = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), hookData);
-
-            BalanceDelta delta = balanceDeltaAdd(delta0, deltaSent);
-
-            return (this.afterRemoveLiquidity.selector, delta);
+            return (this.afterRemoveLiquidity.selector, deltaSender);
         }
 
-        return (this.afterRemoveLiquidity.selector, delta0);
+
+        return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
+    function _donateFees(PoolKey calldata key, int128 amount0, int128 amount1) internal returns (BalanceDelta) {
+        _takeFeesFromPoolManager(key, amount0, amount1);
+        BalanceDelta delta = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), "");
+        _settleFees(key, amount0, amount1);
+        return delta;
+    }
+
+    function _takeFeesFromPoolManager(PoolKey calldata key, int128 amount0, int128 amount1) internal {
+        (Currency currency0, Currency currency1) = _getCurrencies(key);
+
+        currency0.take(poolManager, address(this), uint256(int256(amount0)), true);
+        currency1.take(poolManager, address(this), uint256(int256(amount1)), true);
+    }
+
+    function _settleFees(PoolKey calldata key, int128 amount0, int128 amount1) internal {
+        (Currency currency0, Currency currency1) = _getCurrencies(key);
+
+        currency0.settle(poolManager, address(this), uint256(int256(amount0)), true);
+        currency1.settle(poolManager, address(this), uint256(int256(amount1)), true);
+    }
+
+    function _getCurrencies(PoolKey calldata key) internal view returns (Currency currency0, Currency currency1) {
+        currency0 = key.currency0;
+        currency1 = key.currency1;
+    }
 
 
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
