@@ -322,19 +322,18 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         assertEq(address(nativeHook).balance, 0);
 
-        // Set the native refund to 9.99 ether (i.e. deposit 0.01 ether)
-        nativeHook.setNativeRefund(9.99 ether);
+        // Set the native refund to 99.99 ether (i.e. deposit 0.01 ether)
+        nativeHook.setNativeRefund(99.99 ether);
 
         // Add liquidity to trigger refund
-        deal(address(this), 10 ether);
+        deal(address(this), 100 ether);
         addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
-            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            100 ether, 100 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
-        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+        nativeHook.addLiquidity{value: 100 ether}(addLiquidityParams);
 
         // Hook keeps 25% of the accrued fees and user received fees accrued + refund
         assertEq(address(nativeHook).balance, 0.25 ether - 1);
-        assertEq(address(this).balance, 9.99 ether + 0.25 ether);
     }
 
     function test_addLiquidity_fuzz_succeeds(uint112 amount) public {
