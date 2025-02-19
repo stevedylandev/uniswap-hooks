@@ -16,6 +16,7 @@ import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {BaseCustomAccountingFeeMock} from "test/mocks/BaseCustomAccountingFeeMock.sol";
 
 contract BaseCustomAccountingTest is Test, Deployers {
     using SafeCast for uint256;
@@ -276,6 +277,64 @@ contract BaseCustomAccountingTest is Test, Deployers {
         nativeHook.addLiquidity{value: 0.01 ether}(addLiquidityParams);
 
         assertEq(address(nativeHook).balance, 0);
+    }
+
+    function test_addLiquidity_keepFeesAccrued_succeeds() public {
+        BaseCustomAccountingFeeMock nativeHook =
+            BaseCustomAccountingFeeMock(payable(0x1000000000000000000000000000000000002A00));
+        deployCodeTo(
+            "test/mocks/BaseCustomAccountingFeeMock.sol:BaseCustomAccountingFeeMock",
+            abi.encode(manager),
+            address(nativeHook)
+        );
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        // Set the fees accrued fee to 50%
+        nativeHook.setFee(5000);
+
+        // Add liquidity
+        deal(address(this), 10 ether);
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        // Update LP fee
+        vm.prank(address(nativeHook));
+        manager.updateDynamicLPFee(key, 500000);
+
+        // Swap to accrue fees
+        deal(address(this), 1 ether);
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        PoolSwapTest.TestSettings memory settings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
+
+        assertEq(address(nativeHook).balance, 0);
+
+        // Set the native refund to 9.99 ether (i.e. deposit 0.01 ether)
+        nativeHook.setNativeRefund(9.99 ether);
+
+        // Add liquidity to trigger refund
+        deal(address(this), 10 ether);
+        addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        // Hook keeps 25% of the accrued fees and user received fees accrued + refund
+        assertEq(address(nativeHook).balance, 0.25 ether - 1);
+        assertEq(address(this).balance, 9.99 ether + 0.25 ether);
     }
 
     function test_addLiquidity_fuzz_succeeds(uint112 amount) public {

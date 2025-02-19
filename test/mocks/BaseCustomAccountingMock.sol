@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";

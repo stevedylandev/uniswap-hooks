@@ -163,17 +163,11 @@ abstract contract BaseCustomAccounting is BaseHook {
             revert TooMuchSlippage();
         }
 
-        // If the currency0 is native, refund any remaining msg.value that wasn't used based on the caller delta
-        if (isNative) {
-            // If caller delta amount is positive, it means that fees accrued turned the principal delta amount
-            // into a positive amount, so we refund all of the msg.value
-            // If caller delta amount is negative, we refund any msg.value amount that was not used during settlement
-            poolKey.currency0.transfer(
-                msg.sender,
-                callerDelta.amount0() > 0
-                    ? params.amount0Desired
-                    : params.amount0Desired - uint128(-callerDelta.amount0())
-            );
+        // If the currency0 is native, refund any remaining msg.value that wasn't used based when settling the principal delta
+        if (isNative && delta.amount0() < 0) {
+            // The substraction may revert if the `_getAddLiquidity` function returns a liquidity modification that
+            // leads to a principal delta that is greater than the amount of msg.value sent.
+            poolKey.currency0.transfer(msg.sender, params.amount0Desired - amount0);
         }
     }
 
@@ -259,56 +253,49 @@ abstract contract BaseCustomAccounting is BaseHook {
         // Get liquidity modification deltas
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, data.params, "");
 
-        // Handle each currency amount based on its sign
-        if (callerDelta.amount0() < 0) {
+        // Calculate the principal delta
+        BalanceDelta principalDelta = callerDelta - feesAccrued;
+
+        // Handle each currency amount based on its sign after applying the liquidity modification
+        if (principalDelta.amount0() < 0) {
             // If amount0 is negative, send tokens from the sender to the pool
-            key.currency0.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount0())), false);
+            key.currency0.settle(poolManager, data.sender, uint256(int256(-principalDelta.amount0())), false);
         } else {
-            // If amount0 is positive, send tokens from the pool to this hook
-            key.currency0.take(poolManager, address(this), uint256(int256(callerDelta.amount0())), false);
-
-            // Handle the tokens taken from the pool
-            _handleTokensTaken(data, key.currency0, callerDelta, feesAccrued);
+            // If amount0 is positive, send tokens from the pool to the sender
+            key.currency0.take(poolManager, data.sender, uint256(int256(principalDelta.amount0())), false);
         }
 
-        if (callerDelta.amount1() < 0) {
+        if (principalDelta.amount1() < 0) {
             // If amount1 is negative, send tokens from the sender to the pool
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount1())), false);
+            key.currency1.settle(poolManager, data.sender, uint256(int256(-principalDelta.amount1())), false);
         } else {
-            // If amount1 is positive, send tokens from the pool to this hook
-            key.currency1.take(poolManager, address(this), uint256(int256(callerDelta.amount1())), false);
-
-            // Handle the tokens taken from the pool
-            _handleTokensTaken(data, key.currency1, callerDelta, feesAccrued);
+            // If amount1 is positive, send tokens from the pool to the sender
+            key.currency1.take(poolManager, data.sender, uint256(int256(principalDelta.amount1())), false);
         }
+
+        // Handle any accrued fees (by default, transfer all fees to the sender)
+        _handleAccruedFees(data, callerDelta, feesAccrued);
 
         // Return both deltas so that slippage checks can be done on the principal delta
         return abi.encode(callerDelta, feesAccrued);
     }
 
     /**
-     * @dev Handle the tokens taken from the pool. By default, this function transfers the tokens to the
-     * sender. However, this function can be overriden to take fees accrued in the position, or any other
-     * desired logic.
+     * @dev Handle any fees accrued in a liquidity position. By default, this function transfers the tokens to the
+     * owner of the liquidity position. However, this function can be overriden to take fees accrued in the position,
+     * or any other desired logic.
      *
      * @param data The encoded `CallbackData` struct, including the sender and the parameters for the liquidity modification.
-     * @param currency The currency of the tokens taken from the pool.
      * @param callerDelta The balance delta from the liquidity modification.
      * @param feesAccrued The balance delta of the fees generated in the liquidity range.
      */
-    function _handleTokensTaken(
-        CallbackData memory data,
-        Currency currency,
-        BalanceDelta callerDelta,
-        BalanceDelta feesAccrued
-    ) internal virtual {
-        // Get the amount of tokens to transfer to the sender
-        uint256 amount = currency == poolKey.currency0
-            ? uint256(int256(callerDelta.amount0()))
-            : uint256(int256(callerDelta.amount1()));
-
-        // Transfer the tokens to the sender
-        currency.transfer(data.sender, amount);
+    function _handleAccruedFees(CallbackData memory data, BalanceDelta callerDelta, BalanceDelta feesAccrued)
+        internal
+        virtual
+    {
+        // Send any accrued fees to the sender
+        poolKey.currency0.take(poolManager, data.sender, uint256(int256(feesAccrued.amount0())), false);
+        poolKey.currency1.take(poolManager, data.sender, uint256(int256(feesAccrued.amount1())), false);
     }
 
     /**
@@ -441,9 +428,4 @@ abstract contract BaseCustomAccounting is BaseHook {
             afterRemoveLiquidityReturnDelta: false
         });
     }
-
-    /**
-     * @dev Receive native token transfers from pools.
-     */
-    receive() external payable {}
 }
