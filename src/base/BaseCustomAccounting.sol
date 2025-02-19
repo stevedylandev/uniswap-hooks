@@ -72,11 +72,10 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 amount1Desired;
         uint256 amount0Min;
         uint256 amount1Min;
-        address to;
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
-        bytes32 salt;
+        bytes32 userInputSalt;
     }
 
     struct RemoveLiquidityParams {
@@ -86,7 +85,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         uint256 deadline;
         int24 tickLower;
         int24 tickUpper;
-        bytes32 salt;
+        bytes32 userInputSalt;
     }
 
     struct CallbackData {
@@ -152,7 +151,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         // Apply the liquidity modification
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = _modifyLiquidity(modifyParams);
 
-        // Mint the liquidity shares to the `params.to` address
+        // Mint the liquidity shares to sender
         _mint(params, callerDelta, feesAccrued, shares);
 
         // Get the principal delta by subtracting the fee delta from the caller delta (-= is not supported)
@@ -253,6 +252,10 @@ abstract contract BaseCustomAccounting is BaseHook {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
         PoolKey memory key = poolKey;
 
+        // Set the salt value of the liquidity position, which is the keccak256 hash of the sender and salt from the callback data
+        // This ensures that each liquidity position is unique and cannot be accessed by other users
+        data.params.salt = keccak256(abi.encode(data.sender, data.params.salt));
+
         // Get liquidity modification deltas
         (BalanceDelta callerDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, data.params, "");
 
@@ -261,20 +264,51 @@ abstract contract BaseCustomAccounting is BaseHook {
             // If amount0 is negative, send tokens from the sender to the pool
             key.currency0.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount0())), false);
         } else {
-            // If amount0 is positive, send tokens from the pool to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(callerDelta.amount0())), false);
+            // If amount0 is positive, send tokens from the pool to this hook
+            key.currency0.take(poolManager, address(this), uint256(int256(callerDelta.amount0())), false);
+
+            // Handle the tokens taken from the pool
+            _handleTokensTaken(data, key.currency0, callerDelta, feesAccrued);
         }
 
         if (callerDelta.amount1() < 0) {
             // If amount1 is negative, send tokens from the sender to the pool
             key.currency1.settle(poolManager, data.sender, uint256(int256(-callerDelta.amount1())), false);
         } else {
-            // If amount1 is positive, send tokens from the pool to the sender
-            key.currency1.take(poolManager, data.sender, uint256(int256(callerDelta.amount1())), false);
+            // If amount1 is positive, send tokens from the pool to this hook
+            key.currency1.take(poolManager, address(this), uint256(int256(callerDelta.amount1())), false);
+
+            // Handle the tokens taken from the pool
+            _handleTokensTaken(data, key.currency1, callerDelta, feesAccrued);
         }
 
         // Return both deltas so that slippage checks can be done on the principal delta
         return abi.encode(callerDelta, feesAccrued);
+    }
+
+    /**
+     * @dev Handle the tokens taken from the pool. By default, this function transfers the tokens to the
+     * sender. However, this function can be overriden to take fees accrued in the position, or any other
+     * desired logic.
+     *
+     * @param data The encoded `CallbackData` struct, including the sender and the parameters for the liquidity modification.
+     * @param currency The currency of the tokens taken from the pool.
+     * @param callerDelta The balance delta from the liquidity modification.
+     * @param feesAccrued The balance delta of the fees generated in the liquidity range.
+     */
+    function _handleTokensTaken(
+        CallbackData memory data,
+        Currency currency,
+        BalanceDelta callerDelta,
+        BalanceDelta feesAccrued
+    ) internal virtual {
+        // Get the amount of tokens to transfer to the sender
+        uint256 amount = currency == poolKey.currency0
+            ? uint256(int256(callerDelta.amount0()))
+            : uint256(int256(callerDelta.amount1()));
+
+        // Transfer the tokens to the sender
+        currency.transfer(data.sender, amount);
     }
 
     /**
@@ -324,13 +358,15 @@ abstract contract BaseCustomAccounting is BaseHook {
      * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to mint.
      *
-     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider and
-     * specified salt combination, according to the `ModifyLiquidityParams` struct in the default
-     * implementation, to prevent unauthorized withdrawals of their liquidity position and accrued fees.
-     *
      * NOTE: The returned `ModifyLiquidityParams` struct encoded in `modify` should never return
      * parameters which when passed to `PoolManager.modifyLiquidity` cause the `delta.amount0` to be
      * greater than `params.amount0Desired`.
+     *
+     * IMPORTANT: The salt returned in `modify` indicates which position of the sender the liquidity
+     * modification is applied given that the `_unlockCallback` function uses the keccak256 hash of
+     * the sender and the salt returned here to determine the liquidity position. By default, we
+     * recommend using the `userInputSalt` parameter from the `AddLiquidityParams` struct as the salt
+     * here.
      */
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
         internal
@@ -405,4 +441,9 @@ abstract contract BaseCustomAccounting is BaseHook {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+
+    /**
+     * @dev Receive native token transfers from pools.
+     */
+    receive() external payable {}
 }

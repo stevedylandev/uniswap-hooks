@@ -44,7 +44,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
                     tickLower: params.tickLower,
                     tickUpper: params.tickUpper,
                     liquidityDelta: liquidity.toInt256(),
-                    salt: 0
+                    salt: params.userInputSalt
                 })
             ),
             liquidity
@@ -65,7 +65,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
                     tickLower: params.tickLower,
                     tickUpper: params.tickUpper,
                     liquidityDelta: -liquidity.toInt256(),
-                    salt: 0
+                    salt: params.userInputSalt
                 })
             ),
             liquidity
@@ -73,7 +73,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     }
 
     function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
-        _mint(params.to, liquidity);
+        _mint(msg.sender, liquidity);
     }
 
     function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {

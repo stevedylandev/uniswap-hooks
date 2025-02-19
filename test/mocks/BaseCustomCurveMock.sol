@@ -71,7 +71,7 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
     }
 
     function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
-        _mint(params.to, liquidity);
+        _mint(msg.sender, liquidity);
     }
 
     function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
