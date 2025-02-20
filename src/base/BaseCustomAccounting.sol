@@ -8,6 +8,7 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
@@ -32,7 +33,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseCustomAccounting is BaseHook {
+abstract contract BaseCustomAccounting is BaseHook, IUnlockCallback {
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
@@ -238,6 +239,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      */
     function unlockCallback(bytes calldata rawData)
         external
+        override
         virtual
         onlyPoolManager
         returns (bytes memory returnData)
