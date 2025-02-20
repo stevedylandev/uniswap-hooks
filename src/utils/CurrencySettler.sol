@@ -31,6 +31,7 @@ library CurrencySettler {
         if (burn) {
             poolManager.burn(payer, currency.toId(), amount);
         } else if (currency.isAddressZero()) {
+            poolManager.sync(currency);
             poolManager.settle{value: amount}();
         } else {
             poolManager.sync(currency);

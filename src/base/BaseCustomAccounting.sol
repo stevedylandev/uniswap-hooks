@@ -164,9 +164,14 @@ abstract contract BaseCustomAccounting is BaseHook {
         }
 
         // If the currency0 is native, refund any remaining msg.value that wasn't used based when settling the principal delta
-        // as long as the delta amount is less than or equal to the amount of msg.value sent (which prevents underflow reverts).
-        if (isNative && amount0 <= params.amount0Desired) {
-            poolKey.currency0.transfer(msg.sender, params.amount0Desired - amount0);
+        if (isNative) {
+            // Check that delta amount was covered by msg.value given that settle would be valid if hook can pay for difference
+            if (msg.value < amount0) revert InvalidNativeValue();
+
+            // Prevent underflow revert by checking that the delta amount is less than or equal to the amount of msg.value sent
+            if (amount0 <= params.amount0Desired) {
+                poolKey.currency0.transfer(msg.sender, params.amount0Desired - amount0);
+            }
         }
     }
 
