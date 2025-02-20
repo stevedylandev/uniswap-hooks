@@ -211,7 +211,7 @@ abstract contract BaseCustomAccounting is BaseHook {
     }
 
     /**
-     * @dev Calls the `PoolManager` to unlock and call back the hook's `_unlockCallback` function.
+     * @dev Calls the `PoolManager` to unlock and call back the hook's `unlockCallback` function.
      *
      * @param params The encoded parameters for the liquidity modification based on the `ModifyLiquidityParams` struct.
      * @return callerDelta The balance delta from the liquidity modification. This is the total of both principal and fee deltas.
@@ -350,7 +350,7 @@ abstract contract BaseCustomAccounting is BaseHook {
      * greater than `params.amount0Desired`.
      *
      * IMPORTANT: The salt returned in `modify` indicates which position of the sender the liquidity
-     * modification is applied given that the `_unlockCallback` function uses the keccak256 hash of
+     * modification is applied given that the `unlockCallback` function uses the keccak256 hash of
      * the sender and the salt returned here to determine the liquidity position. By default, we
      * recommend using the `userInputSalt` parameter from the `AddLiquidityParams` struct as the salt
      * here.
@@ -369,9 +369,11 @@ abstract contract BaseCustomAccounting is BaseHook {
      * same encoding structure as in `_getAddLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to burn.
      *
-     * IMPORTANT: The returned `modify` must contain a unique salt for each liquidity provider and
-     * specified salt combination, according to the `ModifyLiquidityParams` struct in the default
-     * implementation, to prevent unauthorized withdrawals of their liquidity position and accrued fees.
+     * IMPORTANT: The salt returned in `modify` indicates which position of the sender the liquidity
+     * modification is applied given that the `unlockCallback` function uses the keccak256 hash of
+     * the sender and the salt returned here to determine the liquidity position. By default, we
+     * recommend using the `userInputSalt` parameter from the `AddLiquidityParams` struct as the salt
+     * here.
      */
     function _getRemoveLiquidity(RemoveLiquidityParams memory params)
         internal

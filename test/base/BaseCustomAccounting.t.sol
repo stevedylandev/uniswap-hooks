@@ -334,6 +334,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         // Hook keeps 25% of the accrued fees and user received fees accrued + refund
         assertEq(address(nativeHook).balance, 0.25 ether - 1);
+        assertEq(address(this).balance, 99.99 ether + 0.25 ether);
     }
 
     function test_addLiquidity_fuzz_succeeds(uint112 amount) public {
