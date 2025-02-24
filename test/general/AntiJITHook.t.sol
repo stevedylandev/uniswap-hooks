@@ -40,12 +40,20 @@ contract AntiJITHookTest is Test, Deployers {
 
     function test_addLiquidity() public {
 
+        console.log("msg sender", msg.sender);
+        console.log("hook address", address(hook));
+        console.log("address(this)", address(this));
+        console.log("modifyLiquidityRouter", address(modifyLiquidityRouter));
+
+
         IPoolManager.ModifyLiquidityParams memory addLiquidityParams  = IPoolManager.ModifyLiquidityParams({
             tickLower: -600, 
             tickUpper: 600, 
             liquidityDelta: 1e18, 
             salt: 0
         });
+        modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
+        modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
         modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
         modifyLiquidityRouter.modifyLiquidity(noHookKey, addLiquidityParams, "");
 

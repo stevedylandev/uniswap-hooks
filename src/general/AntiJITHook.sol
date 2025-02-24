@@ -12,14 +12,15 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
+import {console} from "forge-std/console.sol";
 
 contract AntiJITHook is BaseHook {
     using CurrencySettler for Currency;
     using Pool for *;
-    mapping(bytes32 => uint256) public _lastAddedLiquidity;
+
+    mapping(PoolId id => mapping(bytes32 poisitionKey => uint256 blockNumber)) public _lastAddedLiquidity;
     uint256 public blockNumberOffset;
 
     uint256 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
@@ -36,19 +37,29 @@ contract AntiJITHook is BaseHook {
 
 
     function _afterAddLiquidity(
-        address sender,
+        address sender, // this is the address of the router
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta0,
         BalanceDelta, //fees
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
+
+        /// important to note that the sender is not the address of the final user/LP, it's actually the address of the router
+        /// the salt is actually a bytes() of tokenId, which is tokenId of the position minted by the position manager. This way, the token id actually identify 
+        /// the position minted to the actual user. It's also good because even if the user transfer the position to another address, the tokenId will still be the same
+        /// and the position key will be the same.
+        console.log("sender after add msg.sender", msg.sender);
+
+        console.log("sender after add", sender);
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         PoolId id = key.toId();
         uint128 liquidity = StateLibrary.getPositionLiquidity(poolManager, id, positionKey);
         if (liquidity > 0) {
-            _lastAddedLiquidity[positionKey] = block.number;
+            console.log("liquidity after add", liquidity);
+            // CHANGE THAT TO USE A MAPPING OF KEYS TO POSITION KEY TO BLOCK NUMBER
+            _lastAddedLiquidity[id][positionKey] = block.number;
         }
 
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
@@ -63,15 +74,16 @@ contract AntiJITHook is BaseHook {
         bytes calldata hookData
     ) internal virtual override returns (bytes4, BalanceDelta) {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
-        uint256 lastAddedLiquidity = _lastAddedLiquidity[positionKey];
+
+        PoolId id = key.toId();
+        uint128 liquidity = StateLibrary.getPositionLiquidity(poolManager, id, positionKey);
+
+        uint256 lastAddedLiquidity = _lastAddedLiquidity[id][positionKey];
 
         if(block.number - lastAddedLiquidity <= blockNumberOffset) {
             // donate the fees to the pool
 
-            int128 amount0 = delta1.amount0();
-            int128 amount1 = delta1.amount1();
-
-            BalanceDelta deltaHook = _donateFees(key, amount0, amount1);
+            BalanceDelta deltaHook = _donateFeesToPool(key, delta1);
 
             BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
             
@@ -82,25 +94,29 @@ contract AntiJITHook is BaseHook {
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function _donateFees(PoolKey calldata key, int128 amount0, int128 amount1) internal returns (BalanceDelta) {
-        _takeFeesFromPoolManager(key, amount0, amount1);
+    function _donateFeesToPool(PoolKey calldata key, BalanceDelta feeDelta) internal returns (BalanceDelta) {
+        int128 amount0 = feeDelta.amount0();
+        int128 amount1 = feeDelta.amount1();
+
+        (Currency currency0, Currency currency1) = _getCurrencies(key);
+
+        _takeFromPoolManager(currency0, amount0);
+        _takeFromPoolManager(currency1, amount1);
+
         BalanceDelta delta = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), "");
-        _settleFees(key, amount0, amount1);
+
+        _settleOnPoolManager(currency0, amount0);
+        _settleOnPoolManager(currency1, amount1);
+
         return delta;
     }
 
-    function _takeFeesFromPoolManager(PoolKey calldata key, int128 amount0, int128 amount1) internal {
-        (Currency currency0, Currency currency1) = _getCurrencies(key);
-
-        currency0.take(poolManager, address(this), uint256(int256(amount0)), true);
-        currency1.take(poolManager, address(this), uint256(int256(amount1)), true);
+    function _takeFromPoolManager(Currency currency, int128 amount) internal {
+        currency.take(poolManager, address(this), uint256(int256(amount)), true);
     }
 
-    function _settleFees(PoolKey calldata key, int128 amount0, int128 amount1) internal {
-        (Currency currency0, Currency currency1) = _getCurrencies(key);
-
-        currency0.settle(poolManager, address(this), uint256(int256(amount0)), true);
-        currency1.settle(poolManager, address(this), uint256(int256(amount1)), true);
+    function _settleOnPoolManager(Currency currency, int128 amount) internal {
+        currency.settle(poolManager, address(this), uint256(int256(amount)), true);
     }
 
     function _getCurrencies(PoolKey calldata key) internal view returns (Currency currency0, Currency currency1) {
