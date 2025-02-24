@@ -169,7 +169,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
             10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
 
-        nativeHook.setNativeRefund(1);
+        nativeHook.setNativeRefund(10 ether - 1);
 
         nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
 
@@ -323,7 +323,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         assertEq(address(nativeHook).balance, 0);
 
         // Set the native refund to 99.99 ether (i.e. deposit 0.01 ether)
-        nativeHook.setNativeRefund(99.99 ether);
+        nativeHook.setNativeRefund(100 ether - 99.99 ether);
 
         // Add liquidity to trigger refund
         deal(address(this), 100 ether);
@@ -483,10 +483,18 @@ contract BaseCustomAccountingTest is Test, Deployers {
             SQRT_PRICE_1_1
         );
 
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+        deal(address(nativeHook), 10 ether);
+
+        nativeHook.setNativeRefund(20 ether);
+
         vm.expectRevert(BaseCustomAccounting.InvalidNativeValue.selector);
-        nativeHook.addLiquidity{value: 0}(
+        nativeHook.addLiquidity{value: 10 ether}(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
     }

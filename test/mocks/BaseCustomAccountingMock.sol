@@ -33,8 +33,8 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(params.tickLower),
             TickMath.getSqrtPriceAtTick(params.tickUpper),
-            nativeRefund > 0 ? params.amount0Desired - nativeRefund : params.amount0Desired,
-            params.amount1Desired
+            nativeRefund > 0 ? nativeRefund : params.amount0Desired,
+            nativeRefund > 0 ? nativeRefund : params.amount1Desired
         );
 
         return (

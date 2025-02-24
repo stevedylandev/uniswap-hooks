@@ -137,13 +137,9 @@ abstract contract BaseCustomAccounting is BaseHook {
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        // Revert if msg.value is non-zero but currency0 is not native, or if currency0 is native but msg.value doesn't match
+        // Revert if msg.value is non-zero but currency0 is not native
         bool isNative = poolKey.currency0.isAddressZero();
-        if (!isNative) {
-            if (msg.value > 0) revert InvalidNativeValue();
-        } else if (msg.value != params.amount0Desired) {
-            revert InvalidNativeValue();
-        }
+        if (!isNative && msg.value > 0) revert InvalidNativeValue();
 
         // Get the liquidity modification parameters and the amount of liquidity shares to mint
         (bytes memory modifyParams, uint256 shares) = _getAddLiquidity(sqrtPriceX96, params);
@@ -163,9 +159,10 @@ abstract contract BaseCustomAccounting is BaseHook {
             revert TooMuchSlippage();
         }
 
-        // If the currency0 is native, refund any remaining msg.value that wasn't used based when settling the principal delta
+        // If the currency0 is native, refund any remaining msg.value that wasn't used based on the principal delta
         if (isNative) {
             // Check that delta amount was covered by msg.value given that settle would be valid if hook can pay for difference
+            // It also allows hooks to provide more native value than the desired amount
             if (msg.value < amount0) revert InvalidNativeValue();
 
             // Previous check prevents underflow revert
