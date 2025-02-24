@@ -21,7 +21,7 @@ import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/typ
  * {_getUnspecifiedAmount} function to get the amount of tokens to be sent to the receiver. The return delta
  * created from this calculation is then consumed and applied by the `PoolManager`.
  *
- * NOTE: This hook by default does not include a fee mechanism, which can be implemented by inheriting
+ * NOTE: This hook by default does not include fee or salt mechanisms, which can be implemented by inheriting
  * contracts if needed.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do

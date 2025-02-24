@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
@@ -16,12 +15,12 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     using SafeCast for uint256;
     using StateLibrary for IPoolManager;
 
-    bool public nativeRefund;
+    uint256 public nativeRefund;
 
     constructor(IPoolManager _poolManager) BaseCustomAccounting(_poolManager) ERC20("Mock", "MOCK") {}
 
-    function setNativeRefund(bool _nativeRefund) external {
-        nativeRefund = _nativeRefund;
+    function setNativeRefund(uint256 nativeRefundFee) external {
+        nativeRefund = nativeRefundFee;
     }
 
     function _getAddLiquidity(uint160 sqrtPriceX96, AddLiquidityParams memory params)
@@ -34,8 +33,8 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(params.tickLower),
             TickMath.getSqrtPriceAtTick(params.tickUpper),
-            nativeRefund ? params.amount0Desired - 1 : params.amount0Desired,
-            params.amount1Desired
+            nativeRefund > 0 ? nativeRefund : params.amount0Desired,
+            nativeRefund > 0 ? nativeRefund : params.amount1Desired
         );
 
         return (
@@ -44,7 +43,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
                     tickLower: params.tickLower,
                     tickUpper: params.tickUpper,
                     liquidityDelta: liquidity.toInt256(),
-                    salt: 0
+                    salt: params.userInputSalt
                 })
             ),
             liquidity
@@ -65,7 +64,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
                     tickLower: params.tickLower,
                     tickUpper: params.tickUpper,
                     liquidityDelta: -liquidity.toInt256(),
-                    salt: 0
+                    salt: params.userInputSalt
                 })
             ),
             liquidity
@@ -73,7 +72,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     }
 
     function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
-        _mint(params.to, liquidity);
+        _mint(msg.sender, liquidity);
     }
 
     function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {

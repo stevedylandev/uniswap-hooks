@@ -16,6 +16,7 @@ import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {BaseCustomAccountingFeeMock} from "test/mocks/BaseCustomAccountingFeeMock.sol";
 
 contract BaseCustomAccountingTest is Test, Deployers {
     using SafeCast for uint256;
@@ -46,9 +47,12 @@ contract BaseCustomAccountingTest is Test, Deployers {
         deployFreshManagerAndRouters();
 
         hook = BaseCustomAccountingMock(
-            address(
-                uint160(
-                    Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+            payable(
+                address(
+                    uint160(
+                        Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+                            | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+                    )
                 )
             )
         );
@@ -86,7 +90,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         uint256 prevBalance1 = key.currency1.balanceOf(address(this));
 
         BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
-            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
 
         hook.addLiquidity(addLiquidityParams);
@@ -102,7 +106,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
     }
 
     function test_addLiquidity_native_succeeds() public {
-        BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
@@ -123,7 +128,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         uint256 prevBalance1 = key.currency1.balanceOf(address(this));
 
         BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
-            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
 
         nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
@@ -139,7 +144,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
     }
 
     function test_addLiquidity_nativeRefund_succeeds() public {
-        BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
@@ -160,28 +166,182 @@ contract BaseCustomAccountingTest is Test, Deployers {
         uint256 prevBalance1 = key.currency1.balanceOf(address(this));
 
         BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
-            10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
         );
 
-        nativeHook.setNativeRefund(true);
+        nativeHook.setNativeRefund(10 ether - 1);
 
         nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
 
         uint256 liquidityTokenBal = nativeHook.balanceOf(address(this));
 
+        assertEq(address(nativeHook).balance, 0);
         assertEq(manager.getLiquidity(id), liquidityTokenBal);
         assertEq(address(this).balance, prevBalance0 - (10 ether - 1));
         assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - (10 ether - 1));
         assertEq(liquidityTokenBal, 10 ether - 1);
     }
 
+    function test_addLiquidity_partialNativeRefundFeesAccrued_succeeds() public {
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+        deployCodeTo(
+            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+        );
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+
+        // Add liquidity
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        // Update LP fee
+        vm.prank(address(nativeHook));
+        manager.updateDynamicLPFee(key, 500000);
+
+        // Swap to accrue fees
+        deal(address(this), 1 ether);
+
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        PoolSwapTest.TestSettings memory settings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
+
+        assertEq(address(nativeHook).balance, 0);
+
+        // Add liquidity to trigger refund
+        deal(address(this), 10 ether);
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        assertEq(address(nativeHook).balance, 0);
+        assertEq(address(this).balance, 0.5 ether - 1);
+    }
+
+    function test_addLiquidity_fullNativeRefundFeesAccrued_succeeds() public {
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+        deployCodeTo(
+            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+        );
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        // Add liquidity
+        deal(address(this), 10 ether);
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        // Update LP fee
+        vm.prank(address(nativeHook));
+        manager.updateDynamicLPFee(key, 500000);
+
+        // Swap to accrue fees
+        deal(address(this), 1 ether);
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        PoolSwapTest.TestSettings memory settings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
+
+        assertEq(address(nativeHook).balance, 0);
+
+        // Add liquidity to trigger refund
+        deal(address(this), 0.01 ether);
+        addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            0.01 ether, 0.01 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 0.01 ether}(addLiquidityParams);
+
+        assertEq(address(nativeHook).balance, 0);
+    }
+
+    function test_addLiquidity_keepFeesAccrued_succeeds() public {
+        BaseCustomAccountingFeeMock nativeHook =
+            BaseCustomAccountingFeeMock(payable(0x1000000000000000000000000000000000002A00));
+        deployCodeTo(
+            "test/mocks/BaseCustomAccountingFeeMock.sol:BaseCustomAccountingFeeMock",
+            abi.encode(manager),
+            address(nativeHook)
+        );
+        (key, id) = initPool(
+            CurrencyLibrary.ADDRESS_ZERO,
+            currency1,
+            IHooks(address(nativeHook)),
+            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            SQRT_PRICE_1_1
+        );
+
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        // Set the fees accrued fee to 50%
+        nativeHook.setFee(5000);
+
+        // Add liquidity
+        deal(address(this), 10 ether);
+        BaseCustomAccounting.AddLiquidityParams memory addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 10 ether}(addLiquidityParams);
+
+        // Update LP fee
+        vm.prank(address(nativeHook));
+        manager.updateDynamicLPFee(key, 500000);
+
+        // Swap to accrue fees
+        deal(address(this), 1 ether);
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        PoolSwapTest.TestSettings memory settings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
+
+        assertEq(address(nativeHook).balance, 0);
+
+        // Set the native refund to 99.99 ether (i.e. deposit 0.01 ether)
+        nativeHook.setNativeRefund(100 ether - 99.99 ether);
+
+        // Add liquidity to trigger refund
+        deal(address(this), 100 ether);
+        addLiquidityParams = BaseCustomAccounting.AddLiquidityParams(
+            100 ether, 100 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+        );
+        nativeHook.addLiquidity{value: 100 ether}(addLiquidityParams);
+
+        // Hook keeps 25% of the accrued fees and user received fees accrued + refund
+        assertEq(address(nativeHook).balance, 0.25 ether - 1);
+        assertEq(address(this).balance, 99.99 ether + 0.25 ether);
+    }
+
     function test_addLiquidity_fuzz_succeeds(uint112 amount) public {
         vm.assume(amount > 0);
 
         hook.addLiquidity(
-            BaseCustomAccounting.AddLiquidityParams(
-                amount, amount, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
-            )
+            BaseCustomAccounting.AddLiquidityParams(amount, amount, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
         );
 
         uint256 liquidityTokenBal = hook.balanceOf(address(this));
@@ -195,7 +355,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -223,7 +383,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                5 ether, 5 ether, 4 ether, 4 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                5 ether, 5 ether, 4 ether, 4 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -243,7 +403,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -282,7 +442,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                5 ether, 5 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                5 ether, 5 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -296,9 +456,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
     function test_addLiquidity_expired_revert() public {
         vm.expectRevert(BaseCustomAccounting.ExpiredPastDeadline.selector);
         hook.addLiquidity(
-            BaseCustomAccounting.AddLiquidityParams(
-                0, 0, 0, 0, address(this), block.timestamp - 1, MIN_TICK, MAX_TICK, bytes32(0)
-            )
+            BaseCustomAccounting.AddLiquidityParams(0, 0, 0, 0, block.timestamp - 1, MIN_TICK, MAX_TICK, bytes32(0))
         );
     }
 
@@ -306,21 +464,14 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.expectRevert(BaseCustomAccounting.TooMuchSlippage.selector);
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether,
-                10 ether,
-                100000 ether,
-                100000 ether,
-                address(this),
-                MAX_DEADLINE,
-                MIN_TICK,
-                MAX_TICK,
-                bytes32(0)
+                10 ether, 10 ether, 100000 ether, 100000 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
     }
 
     function test_addLiquidity_native_invalidValue_revert() public {
-        BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
@@ -332,10 +483,18 @@ contract BaseCustomAccountingTest is Test, Deployers {
             SQRT_PRICE_1_1
         );
 
+        ERC20(Currency.unwrap(currency1)).approve(address(nativeHook), type(uint256).max);
+        vm.label(address(0), "native");
+
+        deal(address(this), 10 ether);
+        deal(address(nativeHook), 10 ether);
+
+        nativeHook.setNativeRefund(20 ether);
+
         vm.expectRevert(BaseCustomAccounting.InvalidNativeValue.selector);
-        nativeHook.addLiquidity{value: 0}(
+        nativeHook.addLiquidity{value: 10 ether}(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
     }
@@ -344,15 +503,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.expectRevert(BaseCustomAccounting.InvalidNativeValue.selector);
         hook.addLiquidity{value: 1}(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether,
-                10 ether,
-                100000 ether,
-                100000 ether,
-                address(this),
-                MAX_DEADLINE,
-                MIN_TICK,
-                MAX_TICK,
-                bytes32(0)
+                10 ether, 10 ether, 100000 ether, 100000 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
     }
@@ -360,7 +511,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
     function test_removeLiquidity_tooMuchSlippage_reverts() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -381,7 +532,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
     function test_swap_twoSwaps_succeeds() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                2 ether, 2 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                2 ether, 2 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -397,7 +548,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
     function test_removeLiquidity_initialRemove_succeeds() public {
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                100 ether, 100 ether, 99 ether, 99 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                100 ether, 100 ether, 99 ether, 99 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -455,7 +606,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -481,7 +632,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -491,7 +642,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                5 ether, 2.5 ether, 2 ether, 2 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                5 ether, 2.5 ether, 2 ether, 2 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -515,9 +666,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.assume(amount > 0);
 
         hook.addLiquidity(
-            BaseCustomAccounting.AddLiquidityParams(
-                amount, amount, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
-            )
+            BaseCustomAccounting.AddLiquidityParams(amount, amount, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
         );
 
         uint256 liquidityTokenBal = hook.balanceOf(address(this));
@@ -532,7 +681,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
     }
 
     function test_removeLiquidity_native_succeeds() public {
-        BaseCustomAccountingMock nativeHook = BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+        BaseCustomAccountingMock nativeHook =
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
@@ -554,7 +704,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         nativeHook.addLiquidity{value: 10 ether}(
             BaseCustomAccounting.AddLiquidityParams(
-                10 ether, 10 ether, 9 ether, 9 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -594,7 +744,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.prank(address(1));
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                100 ether, 100 ether, 99 ether, 99 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                100 ether, 100 ether, 99 ether, 99 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -602,7 +752,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.prank(address(2));
         hook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                100 ether, 100 ether, 99 ether, 99 ether, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                100 ether, 100 ether, 99 ether, 99 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -614,10 +764,20 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
-        // Test contract removes liquidity, succeeds
+        // address(1) removes liquidity, succeeds
+        vm.startPrank(address(1));
         hook.removeLiquidity(
             BaseCustomAccounting.RemoveLiquidityParams(
-                hook.balanceOf(address(this)), 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                hook.balanceOf(address(1)), 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+        vm.stopPrank();
+
+        // address(2) removes liquidity, succeeds
+        vm.startPrank(address(2));
+        hook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(
+                hook.balanceOf(address(2)), 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
 
@@ -629,9 +789,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.assume(amount > 4);
 
         hook.addLiquidity(
-            BaseCustomAccounting.AddLiquidityParams(
-                amount, amount, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
-            )
+            BaseCustomAccounting.AddLiquidityParams(amount, amount, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
         );
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
@@ -658,7 +816,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
     function test_removeLiquidity_notInitialized_reverts() public {
         BaseCustomAccountingMock uninitializedHook =
-            BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
             abi.encode(manager),
@@ -673,7 +831,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
     function test_addLiquidity_notInitialized_reverts() public {
         BaseCustomAccountingMock uninitializedHook =
-            BaseCustomAccountingMock(0x1000000000000000000000000000000000002A00);
+            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
             "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
             abi.encode(manager),
@@ -683,7 +841,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         vm.expectRevert(BaseCustomAccounting.PoolNotInitialized.selector);
         uninitializedHook.addLiquidity(
             BaseCustomAccounting.AddLiquidityParams(
-                1 ether, 1 ether, 0, 0, address(this), MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+                1 ether, 1 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
             )
         );
     }
