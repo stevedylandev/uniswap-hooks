@@ -237,8 +237,8 @@ abstract contract BaseCustomAccounting is BaseHook, IUnlockCallback {
      */
     function unlockCallback(bytes calldata rawData)
         external
-        override
         virtual
+        override
         onlyPoolManager
         returns (bytes memory returnData)
     {
