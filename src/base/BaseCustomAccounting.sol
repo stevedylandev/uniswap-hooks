@@ -162,7 +162,7 @@ abstract contract BaseCustomAccounting is BaseHook {
         // If the currency0 is native, refund any remaining msg.value that wasn't used based on the principal delta
         if (isNative) {
             // Check that delta amount was covered by msg.value given that settle would be valid if hook can pay for difference
-            // It also allows hooks to provide more native value than the desired amount
+            // It also allows users to provide more native value than the desired amount
             if (msg.value < amount0) revert InvalidNativeValue();
 
             // Previous check prevents underflow revert
@@ -172,8 +172,6 @@ abstract contract BaseCustomAccounting is BaseHook {
 
     /**
      * @notice Removes liquidity from the hook's pool.
-     *
-     * @dev `msg.sender` should have already given the hook allowance of at least liquidity on the pool.
      *
      * NOTE: The `amount0Min` and `amount1Min` parameters are relative to the principal delta, which
      * excludes fees accrued from the liquidity modification delta.
@@ -343,10 +341,6 @@ abstract contract BaseCustomAccounting is BaseHook {
      * @return modify The encoded parameters for the liquidity addition, which must follow the
      * same encoding structure as in `_getRemoveLiquidity` and `_modifyLiquidity`.
      * @return shares The liquidity shares to mint.
-     *
-     * NOTE: The returned `ModifyLiquidityParams` struct encoded in `modify` should never return
-     * parameters which when passed to `PoolManager.modifyLiquidity` cause the `delta.amount0` to be
-     * greater than `params.amount0Desired`.
      *
      * IMPORTANT: The salt returned in `modify` indicates which position of the sender the liquidity
      * modification is applied given that the `unlockCallback` function uses the keccak256 hash of

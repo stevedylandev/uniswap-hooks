@@ -58,6 +58,9 @@ library CurrencySettler {
     function take(Currency currency, IPoolManager poolManager, address recipient, uint256 amount, bool claims)
         internal
     {
+        // Early return when amount is 0 given that some tokens may revert in this case
+        if (amount == 0) return;
+
         claims ? poolManager.mint(recipient, currency.toId(), amount) : poolManager.take(currency, recipient, amount);
     }
 }
