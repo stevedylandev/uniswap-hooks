@@ -70,7 +70,7 @@ contract AntiJITHook is BaseHook {
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta0,
-        BalanceDelta delta1, // fees
+        BalanceDelta feeDelta, // fees
         bytes calldata hookData
     ) internal virtual override returns (bytes4, BalanceDelta) {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
@@ -83,7 +83,7 @@ contract AntiJITHook is BaseHook {
         if(block.number - lastAddedLiquidity <= blockNumberOffset) {
             // donate the fees to the pool
 
-            BalanceDelta deltaHook = _donateFeesToPool(key, delta1);
+            BalanceDelta deltaHook = _donateFeesToPool(key, feeDelta);
 
             BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
             

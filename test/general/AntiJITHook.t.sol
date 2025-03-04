@@ -38,13 +38,7 @@ contract AntiJITHookTest is Test, Deployers {
         vm.label(Currency.unwrap(currency1), "currency1");
     }
 
-    function test_addLiquidity() public {
-
-        console.log("msg sender", msg.sender);
-        console.log("hook address", address(hook));
-        console.log("address(this)", address(this));
-        console.log("modifyLiquidityRouter", address(modifyLiquidityRouter));
-
+    function test_addLiquidity_noSwap() public {
 
         IPoolManager.ModifyLiquidityParams memory addLiquidityParams  = IPoolManager.ModifyLiquidityParams({
             tickLower: -600, 
@@ -53,7 +47,33 @@ contract AntiJITHookTest is Test, Deployers {
             salt: 0
         });
         modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
-        modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
+        modifyLiquidityRouter.modifyLiquidity(noHookKey, addLiquidityParams, "");
+
+        IPoolManager.ModifyLiquidityParams memory removeLiquidityParams = IPoolManager.ModifyLiquidityParams({
+            tickLower: -600, 
+            tickUpper: 600, 
+            liquidityDelta: -1e17, 
+            salt: 0
+        });
+
+        BalanceDelta deltaHook = modifyLiquidityRouter.modifyLiquidity(key, removeLiquidityParams, "");
+        BalanceDelta deltaNoHook = modifyLiquidityRouter.modifyLiquidity(noHookKey, removeLiquidityParams, "");
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
+
+    }
+
+        function test_addLiquidity_SwapZeroForOne() public {
+
+        IPoolManager.ModifyLiquidityParams memory addLiquidityParams  = IPoolManager.ModifyLiquidityParams({
+            tickLower: -600, 
+            tickUpper: 600, 
+            liquidityDelta: 1e18, 
+            salt: 0
+        });
+
+
         modifyLiquidityRouter.modifyLiquidity(key, addLiquidityParams, "");
         modifyLiquidityRouter.modifyLiquidity(noHookKey, addLiquidityParams, "");
 
@@ -78,10 +98,21 @@ contract AntiJITHookTest is Test, Deployers {
         BalanceDelta deltaHook = modifyLiquidityRouter.modifyLiquidity(key, removeLiquidityParams, "");
         BalanceDelta deltaNoHook = modifyLiquidityRouter.modifyLiquidity(noHookKey, removeLiquidityParams, "");
 
-        console.log("balanceOfHook", currency1.balanceOf(address(hook)));
+        console.log("deltaNoHook", BalanceDeltaLibrary.amount0(deltaNoHook));
+        console.log("deltaHook", BalanceDeltaLibrary.amount0(deltaHook));
 
-        // assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
-        // assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
+        console.log("delta no hook amount 1", BalanceDeltaLibrary.amount1(deltaNoHook));
+        console.log("delta hook amount 1", BalanceDeltaLibrary.amount1(deltaHook));
+
+
+        int128 feeExpected = int128(uint128(fee));
+        int128 expectedAmount1 = BalanceDeltaLibrary.amount1(deltaNoHook) - 1e15*feeExpected/1000000;
+
+        console.log("expected amount 1", expectedAmount1);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), expectedAmount1);
+
 
     }
 }
