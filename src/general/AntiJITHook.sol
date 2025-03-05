@@ -40,7 +40,7 @@ contract AntiJITHook is BaseHook {
         address sender, // this is the address of the router
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
-        BalanceDelta delta0,
+        BalanceDelta,
         BalanceDelta, //fees
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
@@ -49,16 +49,11 @@ contract AntiJITHook is BaseHook {
         /// the salt is actually a bytes() of tokenId, which is tokenId of the position minted by the position manager. This way, the token id actually identify 
         /// the position minted to the actual user. It's also good because even if the user transfer the position to another address, the tokenId will still be the same
         /// and the position key will be the same.
-        console.log("sender after add msg.sender", msg.sender);
-
-        console.log("sender after add", sender);
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         PoolId id = key.toId();
         uint128 liquidity = StateLibrary.getPositionLiquidity(poolManager, id, positionKey);
         if (liquidity > 0) {
-            console.log("liquidity after add", liquidity);
-            // CHANGE THAT TO USE A MAPPING OF KEYS TO POSITION KEY TO BLOCK NUMBER
             _lastAddedLiquidity[id][positionKey] = block.number;
         }
 
@@ -69,15 +64,13 @@ contract AntiJITHook is BaseHook {
         address sender,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
-        BalanceDelta delta0,
+        BalanceDelta,
         BalanceDelta feeDelta, // fees
-        bytes calldata hookData
+        bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         PoolId id = key.toId();
-        uint128 liquidity = StateLibrary.getPositionLiquidity(poolManager, id, positionKey);
-
         uint256 lastAddedLiquidity = _lastAddedLiquidity[id][positionKey];
 
         if(block.number - lastAddedLiquidity <= blockNumberOffset) {
@@ -119,7 +112,7 @@ contract AntiJITHook is BaseHook {
         currency.settle(poolManager, address(this), uint256(int256(amount)), true);
     }
 
-    function _getCurrencies(PoolKey calldata key) internal view returns (Currency currency0, Currency currency1) {
+    function _getCurrencies(PoolKey calldata key) internal pure returns (Currency currency0, Currency currency1) {
         currency0 = key.currency0;
         currency1 = key.currency1;
     }
