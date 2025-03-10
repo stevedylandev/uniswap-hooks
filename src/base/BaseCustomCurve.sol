@@ -122,9 +122,16 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
 
-        emit HookSwap(
-            PoolId.unwrap(key.toId()), sender, returnDelta.getSpecifiedDelta(), returnDelta.getUnspecifiedDelta(), 0, 0
-        );
+        // Emit the swap event with the amounts ordered correctly
+        if (specified == key.currency0) {
+            emit HookSwap(
+                PoolId.unwrap(key.toId()), sender, specifiedAmount.toInt128(), unspecifiedAmount.toInt128(), 0, 0
+            );
+        } else {
+            emit HookSwap(
+                PoolId.unwrap(key.toId()), sender, unspecifiedAmount.toInt128(), specifiedAmount.toInt128(), 0, 0
+            );
+        }
 
         return (this.beforeSwap.selector, returnDelta, 0);
     }

@@ -67,7 +67,12 @@ abstract contract BaseAsyncSwap is BaseHook {
             // Mint ERC-6909 claim token for the specified currency and amount
             specified.take(poolManager, address(this), specifiedAmount, true);
 
-            emit HookSwap(PoolId.unwrap(key.toId()), sender, specifiedAmount.toInt128(), 0, 0, 0);
+            // Emit the swap event with the specified amount signifying the amount taken by the hook
+            if (specified == key.currency0) {
+                emit HookSwap(PoolId.unwrap(key.toId()), sender, specifiedAmount.toInt128(), 0, 0, 0);
+            } else {
+                emit HookSwap(PoolId.unwrap(key.toId()), sender, 0, specifiedAmount.toInt128(), 0, 0);
+            }
 
             // Return delta that nets out specified amount to 0.
             return (this.beforeSwap.selector, toBeforeSwapDelta(specifiedAmount.toInt128(), 0), 0);
