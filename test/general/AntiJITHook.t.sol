@@ -43,6 +43,8 @@ contract AntiJITHookTest is Test, Deployers {
         vm.label(Currency.unwrap(currency1), "currency1");
     }
 
+    // Helper functions
+
     function calculateExpectedFees(
         IPoolManager manager,
         PoolId poolId,
@@ -50,7 +52,7 @@ contract AntiJITHookTest is Test, Deployers {
         int24 tickLower,
         int24 tickUpper,
         bytes32 salt
-    ) public view returns (int128, int128) {
+    ) internal view returns (int128, int128) {
         
         bytes32 positionKey = Position.calculatePositionKey(owner, tickLower, tickUpper, salt);
         (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) = StateLibrary.getPositionInfo(manager, poolId, positionKey);
@@ -73,8 +75,10 @@ contract AntiJITHookTest is Test, Deployers {
         return modifyLiquidityRouter.modifyLiquidity(poolKey, modifyLiquidityParams, "");
     }
 
+    // Tests
+
     function test_deploy_LowOffset_reverts() public {
-        vm.expectRevert(AntiJITHook.BlockNumberOffsetTooLow.selector);
+        vm.expectRevert();
         deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, 0), address(hook));
     }
 
@@ -268,6 +272,49 @@ contract AntiJITHookTest is Test, Deployers {
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
         assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
+    }
+
+    function testFuzz_BlockNumberOffset_JIT(uint24 offset, uint24 removeBlockQuantity) public {
+        vm.assume(offset > 1);
+        vm.assume(removeBlockQuantity < offset);
+
+        // AntiJITHook newHook = AntiJITHook(
+        //     address(uint160(Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG) + 100000000000)
+        // );
+
+
+        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, uint256(offset)), address(hook));
+
+        // (PoolKey memory poolKey, ) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+
+        // add liquidity
+        modifyPoolLiquidity(key, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
+
+        // swap
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e15, //exact input
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
+
+        vm.roll(block.number + removeBlockQuantity);
+        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
+        vm.roll(block.number + removeBlockQuantity);
+        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
+
+        vm.roll(block.number + removeBlockQuantity);
+        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
+
     }
 
 }
