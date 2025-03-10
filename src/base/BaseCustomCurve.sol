@@ -10,8 +10,9 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDeltaLibrary, BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
 
 /**
  * @dev Base implementation for custom curves, inheriting from {BaseCustomAccounting}.
@@ -33,6 +34,7 @@ import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/typ
 abstract contract BaseCustomCurve is BaseCustomAccounting {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
+    using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
     struct CallbackDataCustom {
         address sender;
@@ -80,7 +82,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
      * via the {addLiquidity} function.
      */
-    function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
+    function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
@@ -119,6 +121,10 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
 
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
+
+        emit HookSwap(
+            PoolId.unwrap(key.toId()), sender, returnDelta.getSpecifiedDelta(), returnDelta.getUnspecifiedDelta(), 0, 0
+        );
 
         return (this.beforeSwap.selector, returnDelta, 0);
     }
@@ -207,6 +213,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
+
+        emit HookModifyLiquidity(PoolId.unwrap(poolKey.toId()), data.sender, amount0, amount1);
 
         // Return the encoded caller and fees accrued (zero by default) deltas
         return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
