@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/general/AntiJITHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v1.0.0) (src/general/AntiJITHook.sol)
 
 pragma solidity ^0.8.24;
 
@@ -14,7 +14,26 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {console} from "forge-std/console.sol";
+
+
+/**
+ * This hook implements a mechanism to prevent JIT (Just in Time) attacks on liquidity pools.
+ * Specifically, it checks if a liquidity position was added to the pool within a certain block number range
+ * (at least 1 block) and if so, it donates the fees to the pool. This way, the hook effectively tax JIT attackers by
+ * donating their expected profits back to the pool.
+ * 
+ * At constructor, the hook requires a block number offset. This offset is the number of blocks at which the hook will 
+ * donate the fees to the pool. The minimum value is 1.
+ * 
+ * NOTE: The hook donates the fees to the current in range liquidity providers (at the time of liquidity removal).
+ * If the block number offset is much later than the actual block number when the liquidity was added, the liquiditity providers
+ * benefited from the fees will be the ones in range at the time of liquidity removal, not the ones in range at the time of liquidity addition.
+ * 
+ * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+ * not give any warranties and will not be liable for any losses incurred through any use of this code
+ * base.
+ * 
+ */
 
 contract AntiJITHook is BaseHook {
     using CurrencySettler for Currency;
@@ -73,7 +92,7 @@ contract AntiJITHook is BaseHook {
         PoolId id = key.toId();
         uint256 lastAddedLiquidity = _lastAddedLiquidity[id][positionKey];
 
-        if(block.number - lastAddedLiquidity <= blockNumberOffset) {
+        if(block.number - lastAddedLiquidity < blockNumberOffset) {
             // donate the fees to the pool
 
             BalanceDelta deltaHook = _donateFeesToPool(key, feeDelta);
