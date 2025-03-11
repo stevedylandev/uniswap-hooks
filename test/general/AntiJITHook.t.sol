@@ -171,7 +171,7 @@ contract AntiJITHookTest is Test, Deployers {
         console.log("difference", BalanceDeltaLibrary.amount0(deltaHookNextBlock) - BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) - feesExpected0);
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHookNextBlock), BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) + feesExpected0);
-        //assertEq(BalanceDeltaLibrary.amount1(deltaHookNextBlock), BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHookNextBlock), BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1);
     }
 
     function test_addLiquidity_MultipleSwaps_JIT() public {

@@ -41,6 +41,10 @@ contract AntiJITHook is BaseHook {
 
     uint256 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
+    /**
+     * @notice Tracks the last block number when a liquidity position was added to the pool.
+     */
+
     mapping(PoolId id => mapping(bytes32 poisitionKey => uint256 blockNumber)) public _lastAddedLiquidity;
 
 
@@ -74,10 +78,6 @@ contract AntiJITHook is BaseHook {
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
 
-        /// important to note that the sender is not the address of the final user/LP, it's actually the address of the router
-        /// the salt is actually a bytes() of tokenId, which is tokenId of the position minted by the position manager. This way, the token id actually identify 
-        /// the position minted to the actual user. It's also good because even if the user transfer the position to another address, the tokenId will still be the same
-        /// and the position key will be the same.
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         PoolId id = key.toId();
@@ -94,7 +94,6 @@ contract AntiJITHook is BaseHook {
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
-
         PoolId id = key.toId();
         uint256 lastAddedLiquidity = _lastAddedLiquidity[id][positionKey];
 
@@ -103,10 +102,10 @@ contract AntiJITHook is BaseHook {
         // we need to check if the liquidity is greater than 0 because if the remaining liquidity is 0, the donate function will revert.
         if(block.number - lastAddedLiquidity < blockNumberOffset && liquidity > 0) {
 
-            BalanceDelta deltaHook = _donateFeesToPool(key, feeDelta);
-
+            // if the liquidity provider removes liquidity before the block number offset, the hook donates
+            // the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
+            BalanceDelta deltaHook = _donateToPool(key, feeDelta);
             BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
-            
             return (this.afterRemoveLiquidity.selector, deltaSender);
         }
 
@@ -115,16 +114,16 @@ contract AntiJITHook is BaseHook {
     }
 
     /**
-     * @dev Donate the fees to the pool.
+     * @dev Takes the `donation` from the `poolManager` and donates it to in range liquidity providers.
      * 
      * @param key The pool key of the pool.
-     * @param feeDelta The fee delta.
+     * @param donation The BalanceDelta of the donation.
      * 
      * @return delta The BalanceDelta of the donation (from the Hook point of view)
      */
-    function _donateFeesToPool(PoolKey calldata key, BalanceDelta feeDelta) internal returns (BalanceDelta) {
-        int128 amount0 = feeDelta.amount0();
-        int128 amount1 = feeDelta.amount1();
+    function _donateToPool(PoolKey calldata key, BalanceDelta donation) internal returns (BalanceDelta) {
+        int128 amount0 = donation.amount0();
+        int128 amount1 = donation.amount1();
 
         (Currency currency0, Currency currency1) = _getCurrencies(key);
 
@@ -137,7 +136,6 @@ contract AntiJITHook is BaseHook {
         _settleOnPoolManager(currency1, amount1);
 
         return delta;
-
     }
 
     /**
