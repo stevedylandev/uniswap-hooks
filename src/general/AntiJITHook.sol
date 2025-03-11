@@ -39,14 +39,24 @@ contract AntiJITHook is BaseHook {
     using CurrencySettler for Currency;
     using Pool for *;
 
-    mapping(PoolId id => mapping(bytes32 poisitionKey => uint256 blockNumber)) public _lastAddedLiquidity;
-    uint256 public blockNumberOffset;
-
     uint256 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
+    mapping(PoolId id => mapping(bytes32 poisitionKey => uint256 blockNumber)) public _lastAddedLiquidity;
+
+
+    /**
+     * @notice The block number offset before which if the liquidity is removed, the fees will be donated to the pool.
+     */
+    uint256 public blockNumberOffset;
+
+    /**
+     * @dev Hook was attempted to be deployed with a block number offset that is too low.
+    */
     error BlockNumberOffsetTooLow();
 
-
+    /**
+     * @dev Set the `PoolManager` address and the block number offset.
+     */
     constructor(IPoolManager _poolManager, uint256 _blockNumberOffset) BaseHook(_poolManager) {
         if(_blockNumberOffset < MIN_BLOCK_NUMBER_OFFSET) {
             revert BlockNumberOffsetTooLow();
@@ -56,11 +66,11 @@ contract AntiJITHook is BaseHook {
 
 
     function _afterAddLiquidity(
-        address sender, // this is the address of the router
+        address sender,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta,
-        BalanceDelta, //fees
+        BalanceDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
 
@@ -71,11 +81,7 @@ contract AntiJITHook is BaseHook {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         PoolId id = key.toId();
-        uint128 liquidity = StateLibrary.getPositionLiquidity(poolManager, id, positionKey);
-        if (liquidity > 0) {
-            _lastAddedLiquidity[id][positionKey] = block.number;
-        }
-
+        _lastAddedLiquidity[id][positionKey] = block.number;
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
@@ -84,7 +90,7 @@ contract AntiJITHook is BaseHook {
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta,
-        BalanceDelta feeDelta, // fees
+        BalanceDelta feeDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
@@ -92,8 +98,10 @@ contract AntiJITHook is BaseHook {
         PoolId id = key.toId();
         uint256 lastAddedLiquidity = _lastAddedLiquidity[id][positionKey];
 
-        if(block.number - lastAddedLiquidity < blockNumberOffset) {
-            // donate the fees to the pool
+        uint128 liquidity = StateLibrary.getLiquidity(poolManager, id);
+        
+        // we need to check if the liquidity is greater than 0 because if the remaining liquidity is 0, the donate function will revert.
+        if(block.number - lastAddedLiquidity < blockNumberOffset && liquidity > 0) {
 
             BalanceDelta deltaHook = _donateFeesToPool(key, feeDelta);
 
@@ -106,6 +114,14 @@ contract AntiJITHook is BaseHook {
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
+    /**
+     * @dev Donate the fees to the pool.
+     * 
+     * @param key The pool key of the pool.
+     * @param feeDelta The fee delta.
+     * 
+     * @return delta The BalanceDelta of the donation (from the Hook point of view)
+     */
     function _donateFeesToPool(PoolKey calldata key, BalanceDelta feeDelta) internal returns (BalanceDelta) {
         int128 amount0 = feeDelta.amount0();
         int128 amount1 = feeDelta.amount1();
@@ -121,22 +137,47 @@ contract AntiJITHook is BaseHook {
         _settleOnPoolManager(currency1, amount1);
 
         return delta;
+
     }
 
+    /**
+     * @dev Take the `amount` of `currency` from the `poolManager`.
+     * 
+     * @param currency The currency from which to take the amount.
+     * @param amount The amount to take.
+     */
     function _takeFromPoolManager(Currency currency, int128 amount) internal {
         currency.take(poolManager, address(this), uint256(int256(amount)), true);
     }
 
+    /**
+     * @dev Settle the `amount` of `currency` on the `poolManager`.
+     * 
+     * @param currency The currency to settle.
+     * @param amount The amount to settle.
+     */
     function _settleOnPoolManager(Currency currency, int128 amount) internal {
         currency.settle(poolManager, address(this), uint256(int256(amount)), true);
     }
 
+    /**
+     * @dev Get the currencies of the pool.
+     * 
+     * @param key The pool key.
+     * 
+     * @return currency0 The `currency0` of the pool.
+     * @return currency1 The `currency1` of the pool.
+     */
     function _getCurrencies(PoolKey calldata key) internal pure returns (Currency currency0, Currency currency1) {
         currency0 = key.currency0;
         currency1 = key.currency1;
     }
 
-
+    /**
+     * Set the hooks permissions, specifically `afterAddLiquidity`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.
+     * 
+     * @return permissions The permissions for the hook.
+     */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,

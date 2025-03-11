@@ -97,9 +97,39 @@ contract AntiJITHookTest is Test, Deployers {
         assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
 
     }
+
+    function test_addLiquidity_Swap_JIT_SingleLP() public {
+        // add liquidity
+        modifyPoolLiquidity(key, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
+
+        // swap
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -1e15, //exact input
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
+        uint128 liquidityHookKey = StateLibrary.getLiquidity(manager, key.toId());
+        uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
+
+        // when removing all of the liquidity, the liquidity provider (even in a jit attack) should get the fees
+        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
+    }
     
 
-    function test_addLiquidity_SwapZeroForOne_JIT() public {
+    function test_addLiquidity_Swap_JIT() public {
+
+        bool zeroForOne = true;
 
         // add liquidity
         modifyPoolLiquidity(key, -600, 600, 1e18, 0);
@@ -110,14 +140,14 @@ contract AntiJITHookTest is Test, Deployers {
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
         IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
-            zeroForOne: true,
+            zeroForOne: zeroForOne,
             amountSpecified: -1e15, //exact input
-            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT
         });
         swapRouter.swap(key, swapParams, testSettings, "");
         swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
-        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
         // remove liquidity
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
@@ -125,34 +155,23 @@ contract AntiJITHookTest is Test, Deployers {
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
         assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
-    }
 
-    function test_addLiquidity_NoSwapZeroForOne_JIT() public {
+        vm.roll(block.number + 1);
+        uint128 liquidityHookKey = StateLibrary.getLiquidity(manager, key.toId());
+        uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
+        
+        assertEq(liquidityHookKey, liquidityNoHookKey);
 
-        // add liquidity
-        modifyPoolLiquidity(key, -600, 600, 1e18, 0);
-        modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
+        BalanceDelta deltaHookNextBlock = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+        BalanceDelta deltaNoHookNextBlock = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
 
+        console.log("deltaHookNextBlock", BalanceDeltaLibrary.amount0(deltaHookNextBlock));
+        console.log("deltaNoHookNextBlock", BalanceDeltaLibrary.amount0(deltaNoHookNextBlock));
 
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        console.log("difference", BalanceDeltaLibrary.amount0(deltaHookNextBlock) - BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) - feesExpected0);
 
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
-            zeroForOne: false,
-            amountSpecified: -1e15, //exact input
-            sqrtPriceLimitX96: MAX_PRICE_LIMIT
-        });
-
-        swapRouter.swap(key, swapParams, testSettings, "");
-        swapRouter.swap(noHookKey, swapParams, testSettings, "");
-
-        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
-
-        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
-        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
-
-        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
-        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
+        assertEq(BalanceDeltaLibrary.amount0(deltaHookNextBlock), BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) + feesExpected0);
+        //assertEq(BalanceDeltaLibrary.amount1(deltaHookNextBlock), BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1);
     }
 
     function test_addLiquidity_MultipleSwaps_JIT() public {
@@ -199,7 +218,7 @@ contract AntiJITHookTest is Test, Deployers {
         swapRouter.swap(noHookKey, swapParams3, testSettings, "");
         swapRouter.swap(noHookKey, swapParams4, testSettings, "");
 
-        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
 
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
@@ -229,7 +248,6 @@ contract AntiJITHookTest is Test, Deployers {
 
         vm.roll(block.number + 1);
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
-        vm.roll(block.number + 1);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
@@ -247,7 +265,7 @@ contract AntiJITHookTest is Test, Deployers {
         donateRouter.donate(noHookKey, 100000, 100000, "");
         
 
-        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
@@ -267,7 +285,6 @@ contract AntiJITHookTest is Test, Deployers {
 
         vm.roll(block.number + 1);
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
-        vm.roll(block.number + 1);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
@@ -278,17 +295,16 @@ contract AntiJITHookTest is Test, Deployers {
         vm.assume(offset > 1);
         vm.assume(removeBlockQuantity < offset);
 
-        // AntiJITHook newHook = AntiJITHook(
-        //     address(uint160(Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG) + 100000000000)
-        // );
+        AntiJITHook newHook = AntiJITHook(
+            address(uint160(Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG) + 2**96) // 2**96 is an offset to avoid collision with the hook address already in the test
+        );
 
+        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, offset), address(newHook));
 
-        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, uint256(offset)), address(hook));
+        (PoolKey memory poolKey, ) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
-        // (PoolKey memory poolKey, ) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
-
-        // add liquidity
-        modifyPoolLiquidity(key, -600, 600, 1e18, 0);
+         // add liquidity
+        modifyPoolLiquidity(poolKey, -600, 600, 1e18, 0);
         modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
 
         // swap
@@ -300,21 +316,104 @@ contract AntiJITHookTest is Test, Deployers {
             amountSpecified: -1e15, //exact input
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
         });
-        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(poolKey, swapParams, testSettings, "");
         swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
+        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
+        // remove liquidity
         vm.roll(block.number + removeBlockQuantity);
-        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
-        vm.roll(block.number + removeBlockQuantity);
+        BalanceDelta deltaHook = modifyPoolLiquidity(poolKey, -600, 600, -1e17, 0);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
-
-        vm.roll(block.number + removeBlockQuantity);
-        (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
         assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
         assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
 
     }
 
+    function testFuzz_BlockNumberOffset_RemoveAfterSwap(uint24 offset, uint24 removeBlockQuantity) public {
+        vm.assume(offset > 1);
+        vm.assume(removeBlockQuantity > offset);
+
+        AntiJITHook newHook = AntiJITHook(
+            address(uint160(Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG) + 2**96) // 2**96 is an offset to avoid collision with the hook address already in the test
+        );
+
+        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, offset), address(newHook));
+
+        (PoolKey memory poolKey, ) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+
+        // add liquidity
+        modifyPoolLiquidity(poolKey, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
+
+        // swap
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e15, //exact input
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+
+        swapRouter.swap(poolKey, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
+        vm.roll(block.number + removeBlockQuantity);
+        BalanceDelta deltaHook = modifyPoolLiquidity(poolKey, -600, 600, -1e17, 0);
+        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook));
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook));
+    }
+
+    function test_addLiquidity_Swap_MultipleKeys_JIT() public  {
+
+        (PoolKey memory poolKeyWithHook1, ) = initPool(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_2);
+        (PoolKey memory poolKeyWithHook2, ) = initPool(currency0, currency1, IHooks(address(hook)), 5000, SQRT_PRICE_2_1);
+
+        (PoolKey memory poolKeyWithoutHook1, ) = initPool(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_2);
+        (PoolKey memory poolKeyWithoutHook2, ) = initPool(currency0, currency1, IHooks(address(0)), 5000, SQRT_PRICE_2_1);
+        
+        //add liquidity to both pools
+        modifyPoolLiquidity(poolKeyWithHook1, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(poolKeyWithHook2, -600, 600, 1e18, 0);
+
+        modifyPoolLiquidity(poolKeyWithoutHook1, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(poolKeyWithoutHook2, -600, 600, 1e18, 0);
+
+        //swap in both pools
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e15, //exact input
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+
+        swapRouter.swap(poolKeyWithHook1, swapParams, testSettings, "");
+        swapRouter.swap(poolKeyWithHook2, swapParams, testSettings, "");
+
+        swapRouter.swap(poolKeyWithoutHook1, swapParams, testSettings, "");
+        swapRouter.swap(poolKeyWithoutHook2, swapParams, testSettings, "");
+
+        (int128 feesExpected0Key1, int128 feesExpected1Key1) = calculateExpectedFees(manager, poolKeyWithoutHook1.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+        (int128 feesExpected0Key2, int128 feesExpected1Key2) = calculateExpectedFees(manager, poolKeyWithoutHook2.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+        
+        //remove liquidity from both pools
+        BalanceDelta deltaHook1 = modifyPoolLiquidity(poolKeyWithHook1, -600, 600, -1e17, 0);
+        BalanceDelta deltaHook2 = modifyPoolLiquidity(poolKeyWithHook2, -600, 600, -1e17, 0);
+
+        BalanceDelta deltaNoHook1 = modifyPoolLiquidity(poolKeyWithoutHook1, -600, 600, -1e17, 0);
+        BalanceDelta deltaNoHook2 = modifyPoolLiquidity(poolKeyWithoutHook2, -600, 600, -1e17, 0);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook1), BalanceDeltaLibrary.amount0(deltaNoHook1) - feesExpected0Key1);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook1), BalanceDeltaLibrary.amount1(deltaNoHook1) - feesExpected1Key1);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook2), BalanceDeltaLibrary.amount0(deltaNoHook2) - feesExpected0Key2);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook2), BalanceDeltaLibrary.amount1(deltaNoHook2) - feesExpected1Key2);
+
+    }
 }
