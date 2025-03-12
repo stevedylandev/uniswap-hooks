@@ -149,6 +149,9 @@ contract AntiJITHookTest is Test, Deployers {
 
         (int128 feesExpected0, int128 feesExpected1) = calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
+        console.log("feesExpected0", feesExpected0);
+        console.log("feesExpected1", feesExpected1);
+
         // remove liquidity
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
@@ -157,19 +160,18 @@ contract AntiJITHookTest is Test, Deployers {
         assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
 
         vm.roll(block.number + 1);
+        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
         uint128 liquidityHookKey = StateLibrary.getLiquidity(manager, key.toId());
         uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
         
         assertEq(liquidityHookKey, liquidityNoHookKey);
 
+
         BalanceDelta deltaHookNextBlock = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
         BalanceDelta deltaNoHookNextBlock = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
-
-        console.log("deltaHookNextBlock", BalanceDeltaLibrary.amount0(deltaHookNextBlock));
-        console.log("deltaNoHookNextBlock", BalanceDeltaLibrary.amount0(deltaNoHookNextBlock));
-
-        console.log("difference", BalanceDeltaLibrary.amount0(deltaHookNextBlock) - BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) - feesExpected0);
-
+        
         assertEq(BalanceDeltaLibrary.amount0(deltaHookNextBlock), BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) + feesExpected0);
         assertEq(BalanceDeltaLibrary.amount1(deltaHookNextBlock), BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1);
     }
