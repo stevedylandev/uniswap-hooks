@@ -12,6 +12,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 
@@ -108,12 +109,29 @@ contract AntiJITHook is BaseHook {
         if (block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
-            BalanceDelta deltaHook = _donateToPool(key, feeDelta);
-            BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
-            return (this.afterRemoveLiquidity.selector, deltaSender);
+
+
+            (BalanceDelta amountToDonate, BalanceDelta amountToReturn) = _getAmounts(feeDelta, id, positionKey);
+
+            _donateToPool(key, amountToDonate);
+            //BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
+            return (this.afterRemoveLiquidity.selector, amountToReturn);
         }
 
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
+    }
+
+    function _calculateFeeDistribution(BalanceDelta feeDelta, PoolId id, bytes32 positionKey) internal virtual returns (BalanceDelta amountToDonate, BalanceDelta amountToReturn) {
+        int128 amount0FeeDelta = feeDelta.amount0();
+        int128 amount1FeeDelta = feeDelta.amount1();
+
+        // amount0 and amount1 are necesseraly greater than 0, since they are fee rewards
+        uint256 amount0Donate = FullMath.mulDiv(uint256(int256(amount0FeeDelta)), block.number - _lastAddedLiquidity[id][positionKey], blockNumberOffset);
+        uint256 amount1Donate = FullMath.mulDiv(uint256(int256(amount1FeeDelta)), block.number - _lastAddedLiquidity[id][positionKey], blockNumberOffset);
+
+        amountToDonate = toBalanceDelta(int128(int256(amount0Donate)), int128(int256(amount1Donate)));
+
+        amountToReturn = feeDelta - amountToDonate;
     }
 
     /**
