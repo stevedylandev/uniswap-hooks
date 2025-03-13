@@ -78,10 +78,12 @@ contract AntiJITHook is BaseHook {
         BalanceDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
+        // Get the position key
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        PoolId id = key.toId();
-        _lastAddedLiquidity[id][positionKey] = block.number;
+        // Record the block number when the liquidity was added
+        _lastAddedLiquidity[key.toId()][positionKey] = block.number;
+
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
