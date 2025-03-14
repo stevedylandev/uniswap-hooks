@@ -11,6 +11,7 @@ import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
@@ -18,7 +19,6 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {console} from "forge-std/console.sol";
 
 contract AntiJITHookTest is Test, Deployers {
     AntiJITHook hook;
@@ -156,9 +156,6 @@ contract AntiJITHookTest is Test, Deployers {
 
         (int128 feesExpected0, int128 feesExpected1) =
             calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
-
-        console.log("feesExpected0", feesExpected0);
-        console.log("feesExpected1", feesExpected1);
 
         // remove liquidity
         BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e17, 0);
@@ -333,13 +330,18 @@ contract AntiJITHookTest is Test, Deployers {
         (int128 feesExpected0, int128 feesExpected1) =
             calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
 
+        int128 feeDonation0 =
+            SafeCast.toInt128(FullMath.mulDiv(SafeCast.toUint128(feesExpected0), offset - removeBlockQuantity, offset));
+        int128 feeDonation1 =
+            SafeCast.toInt128(FullMath.mulDiv(SafeCast.toUint128(feesExpected1), offset - removeBlockQuantity, offset));
+
         // remove liquidity
         vm.roll(block.number + removeBlockQuantity);
         BalanceDelta deltaHook = modifyPoolLiquidity(poolKey, -600, 600, -1e17, 0);
         BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e17, 0);
 
-        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
-        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feeDonation0);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feeDonation1);
     }
 
     function testFuzz_BlockNumberOffset_RemoveAfterSwap(uint24 offset, uint24 removeBlockQuantity) public {
