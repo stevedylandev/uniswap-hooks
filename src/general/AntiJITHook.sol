@@ -140,7 +140,7 @@ contract AntiJITHook is BaseHook {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
 
-        // amount0 and amount1 are necesseraly greater or equal to 0, since they are fee rewards
+        // amount0 and amount1 are necesseraly greater than or equal to 0, since they are fee rewards
         // This is the implementation of a linear donation of the fees, where the donation decreases linearly from 100% of the fees at the block
         // where liquidity was added to the pool to 0% after the block number offset.
         // The formula is:
