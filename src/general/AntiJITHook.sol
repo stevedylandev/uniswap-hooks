@@ -20,8 +20,10 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 /**
  * @dev This hook implements a mechanism to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
  * it checks if a liquidity position was added to the pool within a certain block number range (at least 1 block)
- * and if so, it donates the fees to the pool. This way, the hook effectively taxes JIT attackers by donating their
+ * and if so, it donates some of the fees to the pool (up to 100% of the fees). This way, the hook effectively taxes JIT attackers by donating their
  * expected profits back to the pool.
+ * The hook calculates the fee donation based on the block number when the liquidity was added
+ * and the block number offset.
  *
  * At constructor, the hook requires a block number offset. This offset is the number of blocks at which the hook
  * will donate the fees to the pool. The minimum value is 1.
