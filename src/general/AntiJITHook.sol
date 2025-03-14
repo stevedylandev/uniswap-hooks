@@ -109,7 +109,7 @@ contract AntiJITHook is BaseHook {
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
         if (block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
-            // the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
+            // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
 
             BalanceDelta feeDonation = _calculateFeeDonation(feeDelta, id, positionKey);
 
