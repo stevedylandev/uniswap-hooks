@@ -123,6 +123,15 @@ contract AntiJITHook is BaseHook {
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
+    /**
+     * @dev Calculates the fee donation when a liquidity position is removed before the block number offset.
+     *
+     * @param feeDelta The `BalanceDelta` of the fees from the position.
+     * @param id The `PoolId` of the pool.
+     * @param positionKey The `bytes32` key of the position.
+     * @return feeDonation The `BalanceDelta` of the donation.
+     *
+     */
     function _calculateFeeDonation(BalanceDelta feeDelta, PoolId id, bytes32 positionKey)
         internal
         virtual
@@ -131,11 +140,13 @@ contract AntiJITHook is BaseHook {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
 
-        // amount0 and amount1 are necesseraly greater than 0, since they are fee rewards
+        // amount0 and amount1 are necesseraly greater or equal to 0, since they are fee rewards
         // This is the implementation of a linear donation of the fees, where the donation decreases linearly from 100% of the fees at the block
         // where liquidity was added to the pool to 0% after the block number offset.
         // The formula is:
         // feeDonation = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
+        // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
+        // block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset
         uint256 amount0FeeDonation = FullMath.mulDiv(
             SafeCast.toUint128(amount0FeeDelta),
             blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
