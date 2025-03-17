@@ -81,16 +81,16 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             //     })
             // );
 
-            Pool.swap(
-                _lastCheckpoint.state,
-                Pool.SwapParams({
-                    tickSpacing: key.tickSpacing,
-                    zeroForOne: params.zeroForOne,
-                    amountSpecified: params.amountSpecified,
-                    sqrtPriceLimitX96: params.sqrtPriceLimitX96,
-                    lpFeeOverride: 0
-                })
-            );
+            // Pool.swap(
+            //     _lastCheckpoint.state,
+            //     Pool.SwapParams({
+            //         tickSpacing: key.tickSpacing,
+            //         zeroForOne: params.zeroForOne,
+            //         amountSpecified: params.amountSpecified,
+            //         sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+            //         lpFeeOverride: 0
+            //     })
+            // );
         }
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
@@ -133,6 +133,32 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
+
+    function _getTargetOutput(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) internal override returns (uint256 targetOutput, bool applyTargetOutput) {
+        Pool.swap(
+            _lastCheckpoint.state,
+            Pool.SwapParams({
+                tickSpacing: key.tickSpacing,
+                zeroForOne: params.zeroForOne,
+                amountSpecified: params.amountSpecified,
+                sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+                lpFeeOverride: 0
+            })
+        );
+    }
+
+    function _afterSwapHandler(
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        uint256 targetOutput,
+        uint256 feeAmount
+    ) internal override {}
 
     /**
      * @dev Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwapReturnDelta`.
