@@ -66,7 +66,7 @@ abstract contract BaseAsyncSwap is BaseHook {
 
             // Mint ERC-6909 claim token for the specified currency and amount
             specified.take(poolManager, address(this), specifiedAmount, true);
-            
+
             // Calculate the fee amount for the swap, paid to LPs
             uint256 feeAmount = _calculateSwapFee(key, specifiedAmount);
 
