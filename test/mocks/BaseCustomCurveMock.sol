@@ -15,7 +15,7 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         internal
         virtual
         override
-        returns (uint256 unspecifiedAmount)
+        returns (uint256 unspecifiedAmount, uint256 feeAmount)
     {
         bool exactInput = params.amountSpecified < 0;
         (Currency specified, Currency unspecified) = (params.zeroForOne == exactInput)
@@ -25,9 +25,12 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         Currency input = exactInput ? specified : unspecified;
         Currency output = exactInput ? unspecified : specified;
 
-        return exactInput
-            ? _getAmountOutFromExactInput(specifiedAmount, input, output, params.zeroForOne)
-            : _getAmountInForExactOutput(specifiedAmount, input, output, params.zeroForOne);
+        return (
+            exactInput
+                ? _getAmountOutFromExactInput(specifiedAmount, input, output, params.zeroForOne)
+                : _getAmountInForExactOutput(specifiedAmount, input, output, params.zeroForOne),
+            0
+        );
     }
 
     function _getAmountOutFromExactInput(uint256 amountIn, Currency, Currency, bool)

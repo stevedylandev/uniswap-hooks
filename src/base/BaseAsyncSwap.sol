@@ -66,12 +66,19 @@ abstract contract BaseAsyncSwap is BaseHook {
 
             // Mint ERC-6909 claim token for the specified currency and amount
             specified.take(poolManager, address(this), specifiedAmount, true);
+            
+            // Calculate the fee amount for the swap, paid to LPs
+            uint256 feeAmount = _calculateSwapFee(key, specifiedAmount);
 
             // Emit the swap event with the specified amount signifying the amount taken by the hook
             if (specified == key.currency0) {
-                emit HookSwap(PoolId.unwrap(key.toId()), sender, specifiedAmount.toInt128(), 0, 0, 0);
+                emit HookSwap(
+                    PoolId.unwrap(key.toId()), sender, specifiedAmount.toInt128(), 0, feeAmount.toUint128(), 0
+                );
             } else {
-                emit HookSwap(PoolId.unwrap(key.toId()), sender, 0, specifiedAmount.toInt128(), 0, 0);
+                emit HookSwap(
+                    PoolId.unwrap(key.toId()), sender, 0, specifiedAmount.toInt128(), 0, feeAmount.toUint128()
+                );
             }
 
             // Return delta that nets out specified amount to 0.
@@ -79,6 +86,22 @@ abstract contract BaseAsyncSwap is BaseHook {
         } else {
             return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
+    }
+
+    /**
+     * @dev Calculate the fee amount for the swap.
+     *
+     * @param key The pool key.
+     * @param specifiedAmount The specified amount of the swap.
+     *
+     * @return feeAmount The fee amount for the swap.
+     */
+    function _calculateSwapFee(PoolKey calldata key, uint256 specifiedAmount)
+        internal
+        virtual
+        returns (uint256 feeAmount)
+    {
+        return 0;
     }
 
     /**
