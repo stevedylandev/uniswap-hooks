@@ -55,7 +55,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
     }
 
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
-    mapping(PoolId => BalanceDelta) private _fairDeltas;
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
@@ -72,24 +71,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         if (_lastCheckpoint.blockNumber != uint32(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
         } else {
-            // constant bid price
-            // if (!params.zeroForOne) {
-            //     _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
-            // }
-
-            //(uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
-
-            // (_fairDeltas[poolId],,,) = Pool.swap(
-            //     _lastCheckpoint.state,
-            //     Pool.SwapParams({
-            //         tickSpacing: key.tickSpacing,
-            //         zeroForOne: params.zeroForOne,
-            //         amountSpecified: params.amountSpecified,
-            //         sqrtPriceLimitX96: params.sqrtPriceLimitX96,
-            //         lpFeeOverride: 0
-            //     })
-            // );
-
             (uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
 
             _targetOutput = targetOutput;
@@ -109,7 +90,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         uint32 blockNumber = uint32(block.number);
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
-
 
         // after the first swap in block, initialize the temporary pool state
         if (_lastCheckpoint.blockNumber != blockNumber) {
@@ -134,38 +114,30 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
         }
+        int128 unspecifiedAmount = (params.amountSpecified < 0 == params.zeroForOne) ? delta.amount1() : delta.amount0();
 
-        BalanceDelta _fairDelta = _fairDeltas[poolId];
-        (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
-            ? (key.currency1, delta.amount1())
-            : (key.currency0, delta.amount0());
-
-        if(unspecifiedAmount < 0) {
+        if (unspecifiedAmount < 0) {
             unspecifiedAmount = -unspecifiedAmount;
         }
 
-        if(_targetOutput > uint256(uint128(unspecifiedAmount))) {
+        if (_targetOutput > uint256(uint128(unspecifiedAmount))) {
             _targetOutput = uint256(uint128(unspecifiedAmount));
         }
-
-        //return (this.afterSwap.selector, feeAmount);
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
 
-    function _getTargetOutput(
-        address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
-    ) internal override returns (uint256 targetOutput, bool applyTargetOutput) {
+    function _getTargetOutput(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
+        internal
+        override
+        returns (uint256 targetOutput, bool applyTargetOutput)
+    {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         if (!params.zeroForOne) {
             _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
         }
-
 
         (BalanceDelta targetDelta,,,) = Pool.swap(
             _lastCheckpoint.state,
@@ -178,82 +150,30 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             })
         );
 
-        console.log("targetDelta.amount0()", targetDelta.amount0());
-        console.log("targetDelta.amount1()", targetDelta.amount1());
-
-        int128 target = (params.amountSpecified < 0 == params.zeroForOne) ? targetDelta.amount1() : targetDelta.amount0();
-
-        if (target < 0) {
-            target = -target;
-        }
+        int128 target =
+            (params.amountSpecified < 0 == params.zeroForOne) ? targetDelta.amount1() : targetDelta.amount0();
 
         targetOutput = uint256(uint128(target));
         applyTargetOutput = true;
     }
 
-    // function _getTargetOutput(
-    //     address sender,
-    //     PoolKey calldata key,
-    //     IPoolManager.SwapParams calldata params,
-    //     bytes calldata hookData
-    // ) internal override returns (uint256 targetOutput, bool applyTargetOutput) {
-
-    //     Checkpoint storage _lastCheckpoint = _lastCheckpoints[key.toId()];
-
-    //     if (!params.zeroForOne) {
-    //         _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
-    //     }
-
-    //     (BalanceDelta outputDelta,,,) = Pool.swap(
-    //         _lastCheckpoint.state,
-    //         Pool.SwapParams({
-    //             tickSpacing: key.tickSpacing,
-    //             zeroForOne: params.zeroForOne,
-    //             amountSpecified: params.amountSpecified,
-    //             sqrtPriceLimitX96: params.sqrtPriceLimitX96,
-    //             lpFeeOverride: 0
-    //         })
-    //     );
-    //     console.log("zeroForOne", params.zeroForOne);
-    //     console.log("amountSpecified", params.amountSpecified);
-    //     console.log("outputDelta.amount1()", outputDelta.amount1());
-    //     console.log("outputDelta.amount0()", outputDelta.amount0());
-
-    //     if(params.zeroForOne) {
-    //         int128 outputAmount = outputDelta.amount1() >= 0 ? outputDelta.amount1() : -outputDelta.amount1();
-    //         targetOutput = uint256(uint128(outputAmount));
-    //     }
-
-    //     console.log("targetOutput", targetOutput);
-
-    //     applyTargetOutput = true;
-    // }
-
     function _afterSwapHandler(
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
-        BalanceDelta delta,
-        uint256 targetOutput,
+        BalanceDelta,
+        uint256,
         uint256 feeAmount
     ) internal override {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
+        (uint256 amount0, uint256 amount1) = unspecified == key.currency0
+            ? (uint256(uint128(feeAmount)), uint256(0))
+            : (uint256(0), uint256(uint128(feeAmount)));
 
-        // (uint256 amount0, uint256 amount1) = unspecified == key.currency0 ? (uint256(uint128(feeAmount)), 0) : (0, uint256(uint128(feeAmount)));
-
-        uint256 amount0 = unspecified == key.currency0 ? uint256(uint128(feeAmount)) : 0;
-        uint256 amount1 = unspecified == key.currency1 ? uint256(uint128(feeAmount)) : 0;
-
-        //unspecified.settle(poolManager, address(this), feeAmount, true);
         poolManager.donate(key, amount0, amount1, "");
+        unspecified.settle(poolManager, address(this), feeAmount, true);
 
         _targetOutput = 0;
         _applyTargetOutput = false;
-
-        unspecified.settle(poolManager, address(this), feeAmount, true);
-
-        // // Burn ERC-6909 and take underlying tokens
-        // unspecified.settle(poolManager, address(this), feeAmount, true);
-        // unspecified.take(poolManager, address(this), feeAmount, false);
     }
 
     /**
