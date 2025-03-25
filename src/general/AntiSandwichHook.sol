@@ -16,7 +16,6 @@ import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @dev Sandwich-resistant hook, based on
@@ -41,7 +40,7 @@ import {console} from "forge-std/console.sol";
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
  *
- * _Available since v0.1.0_
+ * _Available since v1.1.0_
  */
 contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
@@ -71,8 +70,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         if (_lastCheckpoint.blockNumber != uint32(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
         } else {
+            // get target output and apply flag
             (uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
 
+            // update target output and apply flag, only apply if not on the first swap in block
             _targetOutput = targetOutput;
             _applyTargetOutput = applyTargetOutput;
         }
@@ -120,8 +121,9 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             unspecifiedAmount = -unspecifiedAmount;
         }
 
-        if (_targetOutput > uint256(uint128(unspecifiedAmount))) {
-            _targetOutput = uint256(uint128(unspecifiedAmount));
+        // update target output if it exceeds the swap amount
+        if (_targetOutput > uint128(unspecifiedAmount)) {
+            _targetOutput = uint128(unspecifiedAmount);
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
@@ -135,10 +137,13 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
+        // constant bid price
         if (!params.zeroForOne) {
             _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
         }
 
+        // calculate target output
+        // NOTE: this functions does not execute the swap, it only calculates the output of a swap in the given state
         (BalanceDelta targetDelta,,,) = Pool.swap(
             _lastCheckpoint.state,
             Pool.SwapParams({
@@ -169,10 +174,11 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             ? (uint256(uint128(feeAmount)), uint256(0))
             : (uint256(0), uint256(uint128(feeAmount)));
 
+        // settle and donate execess tokens to the pool
         poolManager.donate(key, amount0, amount1, "");
         unspecified.settle(poolManager, address(this), feeAmount, true);
 
-        _targetOutput = 0;
+        // reset apply flag
         _applyTargetOutput = false;
     }
 
