@@ -18,7 +18,8 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 
 /**
- * @dev This hook implements a mechanism to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
+ * @dev This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
+ * The main purpose is to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
  * it checks if a liquidity position was added to the pool within a certain block number range (at least 1 block)
  * and if so, it donates some of the fees to the pool (up to 100% of the fees). This way, the hook effectively taxes JIT attackers by donating their
  * expected profits back to the pool.
@@ -131,11 +132,11 @@ contract LiquidityPenaltyHook is BaseHook {
      * @dev Calculates the fee donation when a liquidity position is removed before the block number offset.
      *
      * @param feeDelta The `BalanceDelta` of the fees from the position.
-     * @param id The `PoolId` of the pool.
+     * @param poolId The `PoolId` of the pool.
      * @param positionKey The `bytes32` key of the position.
      * @return liquidityPenalty The `BalanceDelta` of the liquidity penalty.
      */
-    function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId id, bytes32 positionKey)
+    function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey)
         internal
         virtual
         returns (BalanceDelta liquidityPenalty)
@@ -149,21 +150,21 @@ contract LiquidityPenaltyHook is BaseHook {
         // The formula is:
         // liquidityPenalty = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
         // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
-        // block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset
+        // block.number - _lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
+        // so the subtraction is safe and won't overflow
         uint256 amount0LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount0FeeDelta),
-            blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
+            blockNumberOffset - (block.number - _lastAddedLiquidity[poolId][positionKey]), // wont't overflow, since block.number - _lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
             blockNumberOffset
         );
         uint256 amount1LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount1FeeDelta),
-            blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
+            blockNumberOffset - (block.number - _lastAddedLiquidity[poolId][positionKey]),
             blockNumberOffset
         );
 
         // although the amounts are returned as uint256, they must fit in int128, since they are fee rewards
-        liquidityPenalty =
-            toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
+        liquidityPenalty = toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
     }
 
     /**

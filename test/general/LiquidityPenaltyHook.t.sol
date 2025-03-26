@@ -307,7 +307,9 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook));
+        deployCodeTo(
+            "src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
@@ -357,7 +359,9 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook));
+        deployCodeTo(
+            "src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
