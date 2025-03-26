@@ -41,6 +41,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
  */
 contract AntiJITHook is BaseHook {
     using CurrencySettler for Currency;
+    using StateLibrary for IPoolManager;
 
     /**
      * @notice The minimum block number amount for the offset.
@@ -106,20 +107,20 @@ contract AntiJITHook is BaseHook {
 
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        uint128 liquidity = StateLibrary.getLiquidity(poolManager, id);
+        uint128 liquidity = poolManager.getLiquidity(id);
 
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
         if (block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
 
-            BalanceDelta feeDonation = _calculateFeeDonation(feeDelta, id, positionKey);
+            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
 
-            BalanceDelta deltaHook = _donateToPool(key, feeDonation);
+            BalanceDelta deltaHook = _donateToPool(key, liquidityPenalty);
 
-            BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
+            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
 
-            return (this.afterRemoveLiquidity.selector, deltaSender);
+            return (this.afterRemoveLiquidity.selector, returnDelta);
         }
 
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
@@ -131,13 +132,12 @@ contract AntiJITHook is BaseHook {
      * @param feeDelta The `BalanceDelta` of the fees from the position.
      * @param id The `PoolId` of the pool.
      * @param positionKey The `bytes32` key of the position.
-     * @return feeDonation The `BalanceDelta` of the donation.
-     *
+     * @return liquidityPenalty The `BalanceDelta` of the liquidity penalty.
      */
-    function _calculateFeeDonation(BalanceDelta feeDelta, PoolId id, bytes32 positionKey)
+    function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId id, bytes32 positionKey)
         internal
         virtual
-        returns (BalanceDelta feeDonation)
+        returns (BalanceDelta liquidityPenalty)
     {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
@@ -149,19 +149,20 @@ contract AntiJITHook is BaseHook {
         // feeDonation = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
         // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
         // block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset
-        uint256 amount0FeeDonation = FullMath.mulDiv(
+        uint256 amount0LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount0FeeDelta),
             blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
             blockNumberOffset
         );
-        uint256 amount1FeeDonation = FullMath.mulDiv(
+        uint256 amount1LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount1FeeDelta),
             blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
             blockNumberOffset
         );
 
         // although the amounts are returned as uint256, they must fit in int128, since they are fee rewards
-        feeDonation = toBalanceDelta(SafeCast.toInt128(amount0FeeDonation), SafeCast.toInt128(amount1FeeDonation));
+        liquidityPenalty =
+            toBalanceDelta(SafeCast.toInt128(amount0LiquidityPenalty), SafeCast.toInt128(amount1LiquidityPenalty));
     }
 
     /**
