@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.1) (src/general/AntiJITHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.1) (src/general/LiquidityPenaltyHook.sol)
 
 pragma solidity ^0.8.24;
 
@@ -39,9 +39,10 @@ import {Currency} from "v4-core/src/types/Currency.sol";
  *
  * _Available since v0.1.1_
  */
-contract AntiJITHook is BaseHook {
+contract LiquidityPenaltyHook is BaseHook {
     using CurrencySettler for Currency;
     using StateLibrary for IPoolManager;
+    using SafeCast for uint256;
 
     /**
      * @notice The minimum block number amount for the offset.
@@ -143,10 +144,10 @@ contract AntiJITHook is BaseHook {
         int128 amount1FeeDelta = feeDelta.amount1();
 
         // amount0 and amount1 are necesseraly greater than or equal to 0, since they are fee rewards
-        // This is the implementation of a linear donation of the fees, where the donation decreases linearly from 100% of the fees at the block
+        // This is the implementation of a linear penalty on the fees, where the penalty decreases linearly from 100% of the fees at the block
         // where liquidity was added to the pool to 0% after the block number offset.
         // The formula is:
-        // feeDonation = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
+        // liquidityPenalty = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
         // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
         // block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset
         uint256 amount0LiquidityPenalty = FullMath.mulDiv(
@@ -162,7 +163,7 @@ contract AntiJITHook is BaseHook {
 
         // although the amounts are returned as uint256, they must fit in int128, since they are fee rewards
         liquidityPenalty =
-            toBalanceDelta(SafeCast.toInt128(amount0LiquidityPenalty), SafeCast.toInt128(amount1LiquidityPenalty));
+            toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
     }
 
     /**
