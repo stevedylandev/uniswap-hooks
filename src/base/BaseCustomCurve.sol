@@ -99,7 +99,10 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
         // Get the amount of the unspecified currency to be taken or settled
-        (uint256 unspecifiedAmount, uint256 feeAmount) = _getUnspecifiedAmount(params);
+        (uint256 unspecifiedAmount) = _getUnspecifiedAmount(params);
+
+        // Get the total amount of fees to be paid in the swap
+        uint256 swapFeeAmount = _getSwapFeeAmount(params, unspecifiedAmount);
 
         // New delta must be returned, so store in memory
         BeforeSwapDelta returnDelta;
@@ -111,7 +114,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             // 2. Send the calculated output amount to this contract's balance in the pool
             unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
-            returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
+            returnDelta =
+                toBeforeSwapDelta(specifiedAmount.toInt128() - swapFeeAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
             // For exact output swaps:
             // 1. Take the calculated input amount from this contract's balance in the pool
@@ -119,18 +123,20 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             // 2. Send the specified (user-given) output amount to this contract's balance in the pool
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
-            returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
+            returnDelta =
+                toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128() - swapFeeAmount.toInt128());
         }
 
         // Emit the swap event with the amounts ordered correctly
+        // NOTE: the fee is paid in the input currency
         if (specified == key.currency0) {
             emit HookSwap(
                 PoolId.unwrap(key.toId()),
                 sender,
                 specifiedAmount.toInt128(),
                 unspecifiedAmount.toInt128(),
-                exactInput ? feeAmount.toUint128() : 0,
-                exactInput ? 0 : feeAmount.toUint128()
+                exactInput ? swapFeeAmount.toUint128() : 0, // if specified is currency0 and exactInput = true, the fee is paid in currency0
+                exactInput ? 0 : swapFeeAmount.toUint128() // if specified is currency0 and exactInput = false, the fee is paid in currency1
             );
         } else {
             emit HookSwap(
@@ -138,8 +144,8 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
                 sender,
                 unspecifiedAmount.toInt128(),
                 specifiedAmount.toInt128(),
-                exactInput ? 0 : feeAmount.toUint128(),
-                exactInput ? feeAmount.toUint128() : 0
+                exactInput ? 0 : swapFeeAmount.toUint128(),
+                exactInput ? swapFeeAmount.toUint128() : 0
             );
         }
 
@@ -243,12 +249,23 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      *
      * @param params The swap parameters.
      * @return unspecifiedAmount The amount of the unspecified currency to be taken or settled.
-     * @return feeAmount The amount of fees in the swap to be paid to LPs.
      */
     function _getUnspecifiedAmount(IPoolManager.SwapParams calldata params)
         internal
         virtual
-        returns (uint256 unspecifiedAmount, uint256 feeAmount);
+        returns (uint256 unspecifiedAmount);
+
+    /**
+     * @dev Calculate the amount of fees to be paid to LPs in a swap.
+     *
+     * @param params The swap parameters.
+     * @param unspecifiedAmount The amount of the unspecified currency to be taken or settled.
+     * @return swapFeeAmount The amount of fees to be paid to LPs in the swap (in currency0 and currency1).
+     */
+    function _getSwapFeeAmount(IPoolManager.SwapParams calldata params, uint256 unspecifiedAmount)
+        internal
+        virtual
+        returns (uint256 swapFeeAmount);
 
     /**
      * @dev Calculate the amount of tokens to use and liquidity shares to burn for a remove liquidity request.
