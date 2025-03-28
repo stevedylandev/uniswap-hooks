@@ -12,6 +12,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 
 /**
  * @dev Base implementation for async swaps, which skip the v3-like swap implementation of the `PoolManager`
@@ -37,7 +38,7 @@ import {PoolId} from "v4-core/src/types/PoolId.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseAsyncSwap is BaseHook {
+abstract contract BaseAsyncSwap is BaseHook, IHookEvents {
     using SafeCast for uint256;
     using CurrencySettler for Currency;
 

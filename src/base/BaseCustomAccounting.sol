@@ -13,6 +13,7 @@ import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 
 /**
  * @dev Base implementation for custom accounting and hook-owned liquidity.
@@ -34,7 +35,7 @@ import {PoolId} from "v4-core/src/types/PoolId.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseCustomAccounting is BaseHook, IUnlockCallback {
+abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback {
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
