@@ -114,8 +114,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             // 2. Send the calculated output amount to this contract's balance in the pool
             unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
-            returnDelta =
-                toBeforeSwapDelta(specifiedAmount.toInt128() - swapFeeAmount.toInt128(), -unspecifiedAmount.toInt128());
+            returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
             // For exact output swaps:
             // 1. Take the calculated input amount from this contract's balance in the pool
@@ -123,8 +122,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             // 2. Send the specified (user-given) output amount to this contract's balance in the pool
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
-            returnDelta =
-                toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128() - swapFeeAmount.toInt128());
+            returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
 
         // Emit the swap event with the amounts ordered correctly
