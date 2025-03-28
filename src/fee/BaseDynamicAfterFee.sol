@@ -116,13 +116,9 @@ abstract contract BaseDynamicAfterFee is BaseHook {
 
         // Emit the swap event with the amounts ordered correctly
         if (unspecified == key.currency0) {
-            emit HookSwap(
-                PoolId.unwrap(key.toId()), sender, delta.amount0() - feeAmount.toInt128(), delta.amount1(), 0, 0
-            );
+            emit HookFee(PoolId.unwrap(key.toId()), sender, feeAmount.toUint128(), 0);
         } else {
-            emit HookSwap(
-                PoolId.unwrap(key.toId()), sender, delta.amount0(), delta.amount1() - feeAmount.toInt128(), 0, 0
-            );
+            emit HookFee(PoolId.unwrap(key.toId()), sender, 0, feeAmount.toUint128());
         }
 
         return (this.afterSwap.selector, feeAmount.toInt128());
