@@ -118,7 +118,9 @@ contract LiquidityPenaltyHook is BaseHook {
 
             BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
 
-            BalanceDelta deltaHook = _donateToPool(key, liquidityPenalty);
+            BalanceDelta deltaHook = poolManager.donate(
+                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+            );
 
             BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
 
@@ -165,50 +167,6 @@ contract LiquidityPenaltyHook is BaseHook {
 
         // although the amounts are returned as uint256, they must fit in int128, since they are fee rewards
         liquidityPenalty = toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
-    }
-
-    /**
-     * @dev Donates an amount of fees accrued to in range liquidity positions.
-     *
-     * @param key The key of the pool.
-     * @param donation The `BalanceDelta` of the fees from the position.
-     * @return delta The `BalanceDelta` of the donation.
-     */
-    function _donateToPool(PoolKey calldata key, BalanceDelta donation) internal returns (BalanceDelta delta) {
-        // Get token amounts from the delta
-        int128 amount0 = donation.amount0();
-        int128 amount1 = donation.amount1();
-
-        // Take tokens
-        _takeFromPoolManager(key.currency0, amount0);
-        _takeFromPoolManager(key.currency1, amount1);
-
-        // Donate tokens
-        delta = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), "");
-
-        // Settle tokens
-        _settleOnPoolManager(key.currency0, amount0);
-        _settleOnPoolManager(key.currency1, amount1);
-    }
-
-    /**
-     * @dev Takes `amount` of `currency` from the `PoolManager`.
-     *
-     * @param currency The currency from which to take the amount.
-     * @param amount The amount to take.
-     */
-    function _takeFromPoolManager(Currency currency, int128 amount) internal {
-        currency.take(poolManager, address(this), uint256(int256(amount)), true);
-    }
-
-    /**
-     * @dev Settles the `amount` of `currency` on the `PoolManager`.
-     *
-     * @param currency The currency to settle.
-     * @param amount The amount to settle.
-     */
-    function _settleOnPoolManager(Currency currency, int128 amount) internal {
-        currency.settle(poolManager, address(this), uint256(int256(amount)), true);
     }
 
     /**
