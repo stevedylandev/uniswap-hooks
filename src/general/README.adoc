@@ -5,8 +5,8 @@ NOTE: This document is better viewed on the docs page.
 
 Ready-to-use hooks built on top of the base and fee abstract contracts
 
- * {AntiJITHook}: Hook resistant to just-in-time liquidity attacks
+ * {LiquidityPenaltyHook}: Hook resistant to just-in-time liquidity attacks
 
 == Hooks
 
-{{AntiJITHook}}
+{{LiquidityPenaltyHook}}

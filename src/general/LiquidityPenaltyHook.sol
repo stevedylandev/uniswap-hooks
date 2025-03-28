@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.1) (src/general/AntiJITHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.1) (src/general/LiquidityPenaltyHook.sol)
 
 pragma solidity ^0.8.24;
 
@@ -18,7 +18,8 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 
 /**
- * @dev This hook implements a mechanism to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
+ * @dev This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
+ * The main purpose is to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
  * it checks if a liquidity position was added to the pool within a certain block number range (at least 1 block)
  * and if so, it donates some of the fees to the pool (up to 100% of the fees). This way, the hook effectively taxes JIT attackers by donating their
  * expected profits back to the pool.
@@ -39,8 +40,10 @@ import {Currency} from "v4-core/src/types/Currency.sol";
  *
  * _Available since v0.1.1_
  */
-contract AntiJITHook is BaseHook {
+contract LiquidityPenaltyHook is BaseHook {
     using CurrencySettler for Currency;
+    using StateLibrary for IPoolManager;
+    using SafeCast for uint256;
 
     /**
      * @notice The minimum block number amount for the offset.
@@ -106,20 +109,22 @@ contract AntiJITHook is BaseHook {
 
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        uint128 liquidity = StateLibrary.getLiquidity(poolManager, id);
+        uint128 liquidity = poolManager.getLiquidity(id);
 
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
         if (block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
 
-            BalanceDelta feeDonation = _calculateFeeDonation(feeDelta, id, positionKey);
+            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
 
-            BalanceDelta deltaHook = _donateToPool(key, feeDonation);
+            BalanceDelta deltaHook = poolManager.donate(
+                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+            );
 
-            BalanceDelta deltaSender = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
+            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
 
-            return (this.afterRemoveLiquidity.selector, deltaSender);
+            return (this.afterRemoveLiquidity.selector, returnDelta);
         }
 
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
@@ -129,83 +134,39 @@ contract AntiJITHook is BaseHook {
      * @dev Calculates the fee donation when a liquidity position is removed before the block number offset.
      *
      * @param feeDelta The `BalanceDelta` of the fees from the position.
-     * @param id The `PoolId` of the pool.
+     * @param poolId The `PoolId` of the pool.
      * @param positionKey The `bytes32` key of the position.
-     * @return feeDonation The `BalanceDelta` of the donation.
-     *
+     * @return liquidityPenalty The `BalanceDelta` of the liquidity penalty.
      */
-    function _calculateFeeDonation(BalanceDelta feeDelta, PoolId id, bytes32 positionKey)
+    function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey)
         internal
         virtual
-        returns (BalanceDelta feeDonation)
+        returns (BalanceDelta liquidityPenalty)
     {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
 
         // amount0 and amount1 are necesseraly greater than or equal to 0, since they are fee rewards
-        // This is the implementation of a linear donation of the fees, where the donation decreases linearly from 100% of the fees at the block
+        // This is the implementation of a linear penalty on the fees, where the penalty decreases linearly from 100% of the fees at the block
         // where liquidity was added to the pool to 0% after the block number offset.
         // The formula is:
-        // feeDonation = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
+        // liquidityPenalty = feeDelta * ( 1 - (block.number - _lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
         // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
-        // block.number - _lastAddedLiquidity[id][positionKey] < blockNumberOffset
-        uint256 amount0FeeDonation = FullMath.mulDiv(
+        // block.number - _lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
+        // so the subtraction is safe and won't overflow
+        uint256 amount0LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount0FeeDelta),
-            blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
+            blockNumberOffset - (block.number - _lastAddedLiquidity[poolId][positionKey]), // wont't overflow, since block.number - _lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
             blockNumberOffset
         );
-        uint256 amount1FeeDonation = FullMath.mulDiv(
+        uint256 amount1LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount1FeeDelta),
-            blockNumberOffset - (block.number - _lastAddedLiquidity[id][positionKey]),
+            blockNumberOffset - (block.number - _lastAddedLiquidity[poolId][positionKey]),
             blockNumberOffset
         );
 
         // although the amounts are returned as uint256, they must fit in int128, since they are fee rewards
-        feeDonation = toBalanceDelta(SafeCast.toInt128(amount0FeeDonation), SafeCast.toInt128(amount1FeeDonation));
-    }
-
-    /**
-     * @dev Donates an amount of fees accrued to in range liquidity positions.
-     *
-     * @param key The key of the pool.
-     * @param donation The `BalanceDelta` of the fees from the position.
-     * @return delta The `BalanceDelta` of the donation.
-     */
-    function _donateToPool(PoolKey calldata key, BalanceDelta donation) internal returns (BalanceDelta delta) {
-        // Get token amounts from the delta
-        int128 amount0 = donation.amount0();
-        int128 amount1 = donation.amount1();
-
-        // Take tokens
-        _takeFromPoolManager(key.currency0, amount0);
-        _takeFromPoolManager(key.currency1, amount1);
-
-        // Donate tokens
-        delta = poolManager.donate(key, uint256(int256(amount0)), uint256(int256(amount1)), "");
-
-        // Settle tokens
-        _settleOnPoolManager(key.currency0, amount0);
-        _settleOnPoolManager(key.currency1, amount1);
-    }
-
-    /**
-     * @dev Takes `amount` of `currency` from the `PoolManager`.
-     *
-     * @param currency The currency from which to take the amount.
-     * @param amount The amount to take.
-     */
-    function _takeFromPoolManager(Currency currency, int128 amount) internal {
-        currency.take(poolManager, address(this), uint256(int256(amount)), true);
-    }
-
-    /**
-     * @dev Settles the `amount` of `currency` on the `PoolManager`.
-     *
-     * @param currency The currency to settle.
-     * @param amount The amount to settle.
-     */
-    function _settleOnPoolManager(Currency currency, int128 amount) internal {
-        currency.settle(poolManager, address(this), uint256(int256(amount)), true);
+        liquidityPenalty = toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
     }
 
     /**

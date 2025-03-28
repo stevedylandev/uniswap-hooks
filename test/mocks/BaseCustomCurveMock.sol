@@ -25,9 +25,20 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         Currency input = exactInput ? specified : unspecified;
         Currency output = exactInput ? unspecified : specified;
 
-        return exactInput
-            ? _getAmountOutFromExactInput(specifiedAmount, input, output, params.zeroForOne)
-            : _getAmountInForExactOutput(specifiedAmount, input, output, params.zeroForOne);
+        return (
+            exactInput
+                ? _getAmountOutFromExactInput(specifiedAmount, input, output, params.zeroForOne)
+                : _getAmountInForExactOutput(specifiedAmount, input, output, params.zeroForOne)
+        );
+    }
+
+    function _getSwapFeeAmount(IPoolManager.SwapParams calldata params, uint256 unspecifiedAmount)
+        internal
+        virtual
+        override
+        returns (uint256 swapFeeAmount)
+    {
+        return 0;
     }
 
     function _getAmountOutFromExactInput(uint256 amountIn, Currency, Currency, bool)
