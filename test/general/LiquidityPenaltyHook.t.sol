@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {AntiJITHook} from "src/general/AntiJITHook.sol";
+import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -20,8 +20,8 @@ import {Position} from "v4-core/src/libraries/Position.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 
-contract AntiJITHookTest is Test, Deployers {
-    AntiJITHook hook;
+contract LiquidityPenaltyHookTest is Test, Deployers {
+    LiquidityPenaltyHook hook;
     PoolKey noHookKey;
     uint24 fee = 1000; // 0.1%
 
@@ -29,7 +29,7 @@ contract AntiJITHookTest is Test, Deployers {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = AntiJITHook(
+        hook = LiquidityPenaltyHook(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -37,7 +37,7 @@ contract AntiJITHookTest is Test, Deployers {
                 )
             )
         );
-        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, 1), address(hook));
+        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, 1), address(hook));
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
@@ -91,7 +91,7 @@ contract AntiJITHookTest is Test, Deployers {
 
     function test_deploy_LowOffset_reverts() public {
         vm.expectRevert();
-        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, 0), address(hook));
+        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, 0), address(hook));
     }
 
     function test_addLiquidity_noSwap() public {
@@ -298,7 +298,7 @@ contract AntiJITHookTest is Test, Deployers {
         vm.assume(offset > 1);
         vm.assume(removeBlockQuantity < offset);
 
-        AntiJITHook newHook = AntiJITHook(
+        LiquidityPenaltyHook newHook = LiquidityPenaltyHook(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -307,7 +307,9 @@ contract AntiJITHookTest is Test, Deployers {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, offset), address(newHook));
+        deployCodeTo(
+            "src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
@@ -348,7 +350,7 @@ contract AntiJITHookTest is Test, Deployers {
         vm.assume(offset > 1);
         vm.assume(removeBlockQuantity > offset);
 
-        AntiJITHook newHook = AntiJITHook(
+        LiquidityPenaltyHook newHook = LiquidityPenaltyHook(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -357,7 +359,9 @@ contract AntiJITHookTest is Test, Deployers {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/AntiJITHook.sol:AntiJITHook", abi.encode(manager, offset), address(newHook));
+        deployCodeTo(
+            "src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(manager, offset), address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 

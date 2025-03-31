@@ -10,8 +10,9 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDeltaLibrary, BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
 
 /**
  * @dev Base implementation for custom curves, inheriting from {BaseCustomAccounting}.
@@ -33,6 +34,7 @@ import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/typ
 abstract contract BaseCustomCurve is BaseCustomAccounting {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
+    using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
     struct CallbackDataCustom {
         address sender;
@@ -80,7 +82,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
      * via the {addLiquidity} function.
      */
-    function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
+    function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
@@ -97,7 +99,10 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
         // Get the amount of the unspecified currency to be taken or settled
-        uint256 unspecifiedAmount = _getUnspecifiedAmount(params);
+        (uint256 unspecifiedAmount) = _getUnspecifiedAmount(params);
+
+        // Get the total amount of fees to be paid in the swap
+        uint256 swapFeeAmount = _getSwapFeeAmount(params, unspecifiedAmount);
 
         // New delta must be returned, so store in memory
         BeforeSwapDelta returnDelta;
@@ -118,6 +123,28 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             specified.settle(poolManager, address(this), specifiedAmount, true);
 
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
+        }
+
+        // Emit the swap event with the amounts ordered correctly
+        // NOTE: the fee is paid in the input currency
+        if (specified == key.currency0) {
+            emit HookSwap(
+                PoolId.unwrap(key.toId()),
+                sender,
+                specifiedAmount.toInt128(),
+                unspecifiedAmount.toInt128(),
+                exactInput ? swapFeeAmount.toUint128() : 0, // if specified is currency0 and exactInput = true, the fee is paid in currency0
+                exactInput ? 0 : swapFeeAmount.toUint128() // if specified is currency0 and exactInput = false, the fee is paid in currency1
+            );
+        } else {
+            emit HookSwap(
+                PoolId.unwrap(key.toId()),
+                sender,
+                unspecifiedAmount.toInt128(),
+                specifiedAmount.toInt128(),
+                exactInput ? 0 : swapFeeAmount.toUint128(),
+                exactInput ? swapFeeAmount.toUint128() : 0
+            );
         }
 
         return (this.beforeSwap.selector, returnDelta, 0);
@@ -208,13 +235,15 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             amount1 = -data.amount1;
         }
 
+        emit HookModifyLiquidity(PoolId.unwrap(poolKey.toId()), data.sender, amount0, amount1);
+
         // Return the encoded caller and fees accrued (zero by default) deltas
         return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     /**
      * @dev Calculate the amount of the unspecified currency to be taken or settled from the swapper, depending on the swap
-     * direction.
+     * direction and the fee amount to be paid to LPs.
      *
      * @param params The swap parameters.
      * @return unspecifiedAmount The amount of the unspecified currency to be taken or settled.
@@ -223,6 +252,18 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         internal
         virtual
         returns (uint256 unspecifiedAmount);
+
+    /**
+     * @dev Calculate the amount of fees to be paid to LPs in a swap.
+     *
+     * @param params The swap parameters.
+     * @param unspecifiedAmount The amount of the unspecified currency to be taken or settled.
+     * @return swapFeeAmount The amount of fees to be paid to LPs in the swap (in currency0 and currency1).
+     */
+    function _getSwapFeeAmount(IPoolManager.SwapParams calldata params, uint256 unspecifiedAmount)
+        internal
+        virtual
+        returns (uint256 swapFeeAmount);
 
     /**
      * @dev Calculate the amount of tokens to use and liquidity shares to burn for a remove liquidity request.
