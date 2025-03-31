@@ -42,6 +42,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     error InRange();
     error CrossedRange();
     error AlreadyInitialized();
+    error Filled();
 
     bytes internal constant ZERO_BYTES = bytes("");
 
@@ -66,7 +67,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
     enum Callbacks {
         Place,
-        Fill
+        Kill
     }
 
     // struct CallbackData {
@@ -90,10 +91,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint128 liquidity;
     }
 
-    struct CallbackDataFill {
+    struct CallbackDataKill {
         PoolKey key;
         int24 tickLower;
         int256 liquidityDelta;
+        address to;
+        bool removingAllLiquidity;
     }
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
@@ -169,6 +172,42 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         }
     }
 
+    function kill(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
+        Epoch epoch = getEpoch(key, tickLower, zeroForOne);
+        EpochInfo storage epochInfo = epochInfos[epoch];
+
+        if (epochInfo.filled) revert Filled();
+
+        uint128 liquidity = epochInfo.liquidity[msg.sender];
+
+        if (liquidity == 0) revert ZeroLiquidity();
+
+        delete epochInfo.liquidity[msg.sender];
+
+        (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
+            poolManager.unlock(
+                abi.encode(
+                    CallbackData(
+                        Callbacks.Kill,
+                        abi.encode(
+                            CallbackDataKill(
+                                key, tickLower, -int256(uint256(liquidity)), to, liquidity == epochInfo.liquidityTotal
+                            )
+                        )
+                    )
+                )
+            ),
+            (uint256, uint256)
+        );
+
+        epochInfo.liquidityTotal -= liquidity;
+
+        unchecked {
+            epochInfo.currency0Total += amount0Fee;
+            epochInfo.currency1Total += amount1Fee;
+        }
+    }
+
     function unlockCallback(bytes calldata rawData)
         external
         virtual
@@ -205,12 +244,64 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
                 key.currency1.settle(poolManager, data.owner, uint256(uint128(-delta.amount1())), false);
             }
-        }
-        // } else if (callbackData.callbackType == Callbacks.Fill) {
-        //     CallbackDataFill memory data = abi.decode(callbackData.data, (CallbackDataFill));
+        } else if (callbackData.callbackType == Callbacks.Kill) {
+            CallbackDataKill memory data = abi.decode(callbackData.data, (CallbackDataKill));
 
-        //     BalanceDelta delta = poolManager.modifyLiquidity
-        // }
+            int24 tickUpper = data.tickLower + data.key.tickSpacing;
+
+            uint256 amount0Fee;
+            uint256 amount1Fee;
+
+            // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
+            // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
+            // could be unfairly diluted by a user sychronously placing then killing a limit order to skim off fees.
+            // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
+            if (!data.removingAllLiquidity) {
+                (, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+                    data.key,
+                    IPoolManager.ModifyLiquidityParams({
+                        tickLower: data.tickLower,
+                        tickUpper: tickUpper,
+                        liquidityDelta: 0,
+                        salt: 0
+                    }),
+                    ZERO_BYTES
+                );
+
+                if (feesAccrued.amount0() > 0) {
+                    poolManager.mint(
+                        address(this), data.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
+                    );
+                }
+
+                if (feesAccrued.amount1() > 0) {
+                    poolManager.mint(
+                        address(this), data.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
+                    );
+                }
+            }
+
+            (BalanceDelta delta,) = poolManager.modifyLiquidity(
+                data.key,
+                IPoolManager.ModifyLiquidityParams({
+                    tickLower: data.tickLower,
+                    tickUpper: tickUpper,
+                    liquidityDelta: data.liquidityDelta,
+                    salt: 0
+                }),
+                ZERO_BYTES
+            );
+
+            if (delta.amount0() > 0) {
+                data.key.currency0.take(poolManager, data.to, uint256(uint128(delta.amount0())), false);
+            }
+
+            if (delta.amount1() > 0) {
+                data.key.currency1.take(poolManager, data.to, uint256(uint128(delta.amount1())), false);
+            }
+
+            return abi.encode(amount0Fee, amount1Fee);
+        }
     }
 
     function _fillEpoch(PoolKey calldata key, int24 lower, bool zeroForOne) internal {

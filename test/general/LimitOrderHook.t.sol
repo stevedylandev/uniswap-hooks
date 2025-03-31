@@ -126,11 +126,7 @@ contract TestLimitOrder is Test, Deployers {
         // swapping is free, there's no liquidity in the pool, so we only need to specify 1 wei
         swapRouter.swap(
             key,
-            IPoolManager.SwapParams({
-                zeroForOne: true,
-                amountSpecified: -1 ether,
-                sqrtPriceLimitX96: SQRT_PRICE_1_1 - 1
-            }),
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_1 - 1}),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             bytes("")
         );
@@ -160,16 +156,31 @@ contract TestLimitOrder is Test, Deployers {
         bytes32 positionId = Position.calculatePositionKey(address(hook), tickLower, tickLower + key.tickSpacing, 0);
         assertEq(manager.getPositionLiquidity(key.toId(), positionId), liquidity * 2);
 
-        (bool filled, Currency epochCurrency0, Currency epochCurrency1, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal) = hook.epochInfos(Epoch.wrap(1));
+        (
+            bool filled,
+            Currency epochCurrency0,
+            Currency epochCurrency1,
+            uint256 currency0Total,
+            uint256 currency1Total,
+            uint128 liquidityTotal
+        ) = hook.epochInfos(Epoch.wrap(1));
         assertFalse(filled);
         assertTrue(currency0 == epochCurrency0);
         assertTrue(currency1 == epochCurrency1);
         assertEq(currency0Total, 0);
         assertEq(currency1Total, 0);
-        assertEq(liquidityTotal, liquidity * 2);      
-        assertEq(hook.getEpochLiquidity(Epoch.wrap(1), address(this)), liquidity);  
-        assertEq(hook.getEpochLiquidity(Epoch.wrap(1), vm.addr(1)), liquidity);  
-        
+        assertEq(liquidityTotal, liquidity * 2);
+        assertEq(hook.getEpochLiquidity(Epoch.wrap(1), address(this)), liquidity);
+        assertEq(hook.getEpochLiquidity(Epoch.wrap(1), vm.addr(1)), liquidity);
     }
 
+    function test_kill() public {
+        int24 tickLower = 0;
+        bool zeroForOne = true;
+        uint128 liquidity = 1000000;
+
+        hook.place(key, tickLower, zeroForOne, liquidity);
+
+        hook.kill(key, tickLower, zeroForOne, address(this));
+    }
 }
