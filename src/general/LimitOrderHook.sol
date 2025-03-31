@@ -46,6 +46,18 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     error Filled();
     error NotFilled();
 
+    event Place(
+        address indexed owner, Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+    );
+
+    event Fill(Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne);
+
+    event Kill(
+        address indexed owner, Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+    );
+
+    event Withdraw(address indexed owner, Epoch indexed epoch, uint128 liquidity);
+
     bytes internal constant ZERO_BYTES = bytes("");
 
     Epoch private constant EPOCH_DEFAULT = Epoch.wrap(0);
@@ -72,14 +84,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         Kill,
         Withdraw
     }
-
-    // struct CallbackData {
-    //     uint24 unlockType;
-    //     PoolKey key;
-    //     address owner;
-    //     bool zeroForOne;
-    //     IPoolManager.ModifyLiquidityParams params;
-    // }
 
     struct CallbackData {
         Callbacks callbackType;
@@ -119,10 +123,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     function _afterSwap(
-        address sender,
+        address,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
-        BalanceDelta delta,
+        BalanceDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
         (int24 tickLower, int24 lower, int24 upper) = _getCrossedTicks(key.toId(), key.tickSpacing);
@@ -144,14 +148,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     function place(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
         if (liquidity == 0) revert ZeroLiquidity();
 
-        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
-            tickLower: tick,
-            tickUpper: tick + key.tickSpacing,
-            liquidityDelta: int256(uint256(liquidity)),
-            salt: 0
-        });
-
-        bytes memory data = poolManager.unlock(
+        poolManager.unlock(
             abi.encode(
                 CallbackData(
                     Callbacks.Place, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
@@ -181,6 +178,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             epochInfo.liquidityTotal += liquidity;
             epochInfo.liquidity[msg.sender] += liquidity;
         }
+
+        emit Place(msg.sender, epoch, key, tick, zeroForOne, liquidity);
     }
 
     function kill(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
@@ -217,6 +216,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             epochInfo.currency0Total += amount0Fee;
             epochInfo.currency1Total += amount1Fee;
         }
+
+        emit Kill(msg.sender, epoch, key, tickLower, zeroForOne, liquidity);
     }
 
     function withdraw(Epoch epoch, address to) external returns (uint256 amount0, uint256 amount1) {
@@ -246,6 +247,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 )
             )
         );
+
+        emit Withdraw(msg.sender, epoch, liquidity);
     }
 
     function unlockCallback(bytes calldata rawData)
@@ -368,19 +371,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             uint128 amount0;
             uint128 amount1;
 
-            // (uint256 amount0, uint256 amount1) = abi.decode(
-            //     poolManager.unlock(
-            //         abi.encode(
-            //             CallbackData(
-            //                 Callbacks.Fill,
-            //                 abi.encode(CallbackDataFill(key, lower, -int256(uint256(epochInfo.liquidityTotal))))
-            //             )
-            //         )
-            //     ),
-            //     (uint256, uint256)
-            // );
-
-            (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+            (BalanceDelta delta,) = poolManager.modifyLiquidity(
                 key,
                 IPoolManager.ModifyLiquidityParams({
                     tickLower: lower,

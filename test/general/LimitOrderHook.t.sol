@@ -18,13 +18,9 @@ import {Position} from "v4-core/src/libraries/Position.sol";
 import {LimitOrderHook, Epoch, EpochLibrary} from "src/general/LimitOrderHook.sol";
 
 contract TestLimitOrder is Test, Deployers {
-    LimitOrderHook hook;
-
     using StateLibrary for IPoolManager;
 
-    //uint160 constant SQRT_PRICE_10_1 = 250541448375047931186413801569;
-
-    PoolId id;
+    LimitOrderHook hook;
 
     function setUp() public {
         deployFreshManagerAndRouters();
@@ -43,11 +39,11 @@ contract TestLimitOrder is Test, Deployers {
         vm.label(Currency.unwrap(currency1), "currency1");
     }
 
-    function test_getTickLowerLast() public {
-        assertEq(hook.getTickLowerLast(id), 0);
+    function test_getTickLowerLast() public view {
+        assertEq(hook.getTickLowerLast(key.toId()), 0);
     }
 
-    function test_epochNext() public {
+    function test_epochNext() public view {
         assertTrue(EpochLibrary.equals(hook.epochNext(), Epoch.wrap(1)));
     }
 
@@ -193,13 +189,17 @@ contract TestLimitOrder is Test, Deployers {
 
         swapRouter.swap(
             key,
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -1e18, sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing)}),
+            IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing)
+            }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             ZERO_BYTES
         );
 
         assertEq(hook.getTickLowerLast(key.toId()), tickLower + key.tickSpacing);
-        (,int24 tick,,) = manager.getSlot0(key.toId());
+        (, int24 tick,,) = manager.getSlot0(key.toId());
         assertEq(tick, tickLower + key.tickSpacing);
 
         (bool filled,,, uint256 currency0Total, uint256 currency1Total,) = hook.epochInfos(Epoch.wrap(1));
