@@ -12,16 +12,40 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
+import {console} from "forge-std/console.sol";
 
 type Epoch is uint232;
 
-contract LimitOrderHook is BaseHook {
-    error ZeroLiquidity();
+library EpochLibrary {
+    function equals(Epoch a, Epoch b) internal pure returns (bool) {
+        return Epoch.unwrap(a) == Epoch.unwrap(b);
+    }
 
+    function unsafeIncrement(Epoch a) internal pure returns (Epoch) {
+        unchecked {
+            return Epoch.wrap(Epoch.unwrap(a) + 1);
+        }
+    }
+}
+
+contract LimitOrderHook is BaseHook, IUnlockCallback {
+    using StateLibrary for IPoolManager;
+    using EpochLibrary for Epoch;
+
+    using CurrencySettler for Currency;
+
+    error ZeroLiquidity();
     error InRange();
+    error CrossedRange();
+    error AlreadyInitialized();
 
     bytes internal constant ZERO_BYTES = bytes("");
+
+    Epoch private constant EPOCH_DEFAULT = Epoch.wrap(0);
 
     struct EpochInfo {
         bool filled;
@@ -35,26 +59,256 @@ contract LimitOrderHook is BaseHook {
 
     mapping(PoolId => int24) public tickLowerLasts;
 
+    Epoch public epochNext = Epoch.wrap(1);
+
     mapping(bytes32 => Epoch) public epochs;
     mapping(Epoch => EpochInfo) public epochInfos;
 
+    enum Callbacks {
+        Place,
+        Fill
+    }
+
+    // struct CallbackData {
+    //     uint24 unlockType;
+    //     PoolKey key;
+    //     address owner;
+    //     bool zeroForOne;
+    //     IPoolManager.ModifyLiquidityParams params;
+    // }
+
+    struct CallbackData {
+        Callbacks callbackType;
+        bytes data;
+    }
+
+    struct CallbackDataPlace {
+        PoolKey key;
+        address owner;
+        bool zeroForOne;
+        int24 tickLower;
+        uint128 liquidity;
+    }
+
+    struct CallbackDataFill {
+        PoolKey key;
+        int24 tickLower;
+        int256 liquidityDelta;
+    }
+
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
+        setTickLowerLast(key.toId(), getTickLower(tick, key.tickSpacing));
+
+        return this.afterInitialize.selector;
+    }
+
+    function _afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        bytes calldata
+    ) internal virtual override returns (bytes4, int128) {
+        (int24 tickLower, int24 lower, int24 upper) = _getCrossedTicks(key.toId(), key.tickSpacing);
+
+        if (lower > upper) return (this.afterSwap.selector, 0);
+
+        // note that a zeroForOne swap means that the pool is actually gaining token0, so limit
+        // order fills are the opposite of swap fills, hence the inversion below
+        bool zeroForOne = !params.zeroForOne;
+        for (; lower <= upper; lower += key.tickSpacing) {
+            _fillEpoch(key, lower, zeroForOne);
+        }
+
+        setTickLowerLast(key.toId(), tickLower);
+
+        return (this.afterSwap.selector, 0);
+    }
 
     function place(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
         if (liquidity == 0) revert ZeroLiquidity();
 
-        BalanceDelta delta = poolManager.modifyLiquidity(
-            key,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: tick,
-                tickUpper: tick + key.tickSpacing,
-                liquidityDelta: liquidity,
-                salt: 0
-            }),
-            ZERO_BYTES
+        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+            tickLower: tick,
+            tickUpper: tick + key.tickSpacing,
+            liquidityDelta: int256(uint256(liquidity)),
+            salt: 0
+        });
+
+        bytes memory data = poolManager.unlock(
+            abi.encode(
+                CallbackData(
+                    Callbacks.Place, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+                )
+            )
         );
 
+        EpochInfo storage epochInfo;
 
+        Epoch epoch = getEpoch(key, tick, zeroForOne);
+
+        if (epoch.equals(EPOCH_DEFAULT)) {
+            unchecked {
+                setEpoch(key, tick, zeroForOne, epoch = epochNext);
+
+                epochNext = epochNext.unsafeIncrement();
+            }
+
+            epochInfo = epochInfos[epoch];
+            epochInfo.currency0 = key.currency0;
+            epochInfo.currency1 = key.currency1;
+        } else {
+            epochInfo = epochInfos[epoch];
+        }
+
+        unchecked {
+            epochInfo.liquidityTotal += liquidity;
+            epochInfo.liquidity[msg.sender] += liquidity;
+        }
+    }
+
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        override
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
+        CallbackData memory callbackData = abi.decode(rawData, (CallbackData));
+
+        if (callbackData.callbackType == Callbacks.Place) {
+            CallbackDataPlace memory data = abi.decode(callbackData.data, (CallbackDataPlace));
+
+            PoolKey memory key = data.key;
+
+            (BalanceDelta delta,) = poolManager.modifyLiquidity(
+                key,
+                IPoolManager.ModifyLiquidityParams({
+                    tickLower: data.tickLower,
+                    tickUpper: data.tickLower + key.tickSpacing,
+                    liquidityDelta: int256(uint256(data.liquidity)),
+                    salt: 0
+                }),
+                ZERO_BYTES
+            );
+
+            if (delta.amount0() < 0) {
+                if (delta.amount1() != 0) revert InRange();
+                if (!data.zeroForOne) revert CrossedRange();
+
+                key.currency0.settle(poolManager, data.owner, uint256(uint128(-delta.amount0())), false);
+            } else {
+                if (delta.amount0() != 0) revert InRange();
+                if (data.zeroForOne) revert CrossedRange();
+
+                key.currency1.settle(poolManager, data.owner, uint256(uint128(-delta.amount1())), false);
+            }
+        }
+        // } else if (callbackData.callbackType == Callbacks.Fill) {
+        //     CallbackDataFill memory data = abi.decode(callbackData.data, (CallbackDataFill));
+
+        //     BalanceDelta delta = poolManager.modifyLiquidity
+        // }
+    }
+
+    function _fillEpoch(PoolKey calldata key, int24 lower, bool zeroForOne) internal {
+        Epoch epoch = getEpoch(key, lower, zeroForOne);
+        if (!epoch.equals(EPOCH_DEFAULT)) {
+            EpochInfo storage epochInfo = epochInfos[epoch];
+
+            epochInfo.filled = true;
+
+            uint128 amount0;
+            uint128 amount1;
+
+            // (uint256 amount0, uint256 amount1) = abi.decode(
+            //     poolManager.unlock(
+            //         abi.encode(
+            //             CallbackData(
+            //                 Callbacks.Fill,
+            //                 abi.encode(CallbackDataFill(key, lower, -int256(uint256(epochInfo.liquidityTotal))))
+            //             )
+            //         )
+            //     ),
+            //     (uint256, uint256)
+            // );
+
+            (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+                key,
+                IPoolManager.ModifyLiquidityParams({
+                    tickLower: lower,
+                    tickUpper: lower + key.tickSpacing,
+                    liquidityDelta: -int256(uint256(epochInfo.liquidityTotal)),
+                    salt: 0
+                }),
+                ZERO_BYTES
+            );
+
+            if (delta.amount0() < 0) {
+                poolManager.mint(address(this), key.currency0.toId(), amount0 = uint128(-delta.amount0()));
+            }
+            if (delta.amount1() < 0) {
+                poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(-delta.amount1()));
+            }
+
+            unchecked {
+                epochInfo.currency0Total += amount0;
+                epochInfo.currency1Total += amount1;
+            }
+
+            setEpoch(key, lower, zeroForOne, EPOCH_DEFAULT);
+
+            //emit Fill(epoch, key, lower, zeroForOne);
+        }
+    }
+
+    function _getCrossedTicks(PoolId poolId, int24 tickSpacing)
+        internal
+        view
+        returns (int24 tickLower, int24 lower, int24 upper)
+    {
+        tickLower = getTickLower(getTick(poolId), tickSpacing);
+        int24 tickLowerLast = getTickLowerLast(poolId);
+
+        if (tickLower < tickLowerLast) {
+            lower = tickLower + tickSpacing;
+            upper = tickLowerLast;
+        } else {
+            lower = tickLowerLast;
+            upper = tickLower - tickSpacing;
+        }
+    }
+
+    function getTickLowerLast(PoolId poolId) public view returns (int24) {
+        return tickLowerLasts[poolId];
+    }
+
+    function setTickLowerLast(PoolId poolId, int24 tickLower) private {
+        tickLowerLasts[poolId] = tickLower;
+    }
+
+    function getEpoch(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (Epoch) {
+        return epochs[keccak256(abi.encode(key, tickLower, zeroForOne))];
+    }
+
+    function setEpoch(PoolKey memory key, int24 tickLower, bool zeroForOne, Epoch epoch) private {
+        epochs[keccak256(abi.encode(key, tickLower, zeroForOne))] = epoch;
+    }
+
+    function getTickLower(int24 tick, int24 tickSpacing) private pure returns (int24) {
+        int24 compressed = tick / tickSpacing;
+        if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
+        return compressed * tickSpacing;
+    }
+
+    function getEpochLiquidity(Epoch epoch, address owner) external view returns (uint256) {
+        return epochInfos[epoch].liquidity[owner];
+    }
+
+    function getTick(PoolId poolId) private view returns (int24 tick) {
+        (, tick,,) = poolManager.getSlot0(poolId);
     }
 
     /**
@@ -65,7 +319,7 @@ contract LimitOrderHook is BaseHook {
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
             beforeInitialize: false,
-            afterInitialize: false,
+            afterInitialize: true,
             beforeAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterAddLiquidity: false,
