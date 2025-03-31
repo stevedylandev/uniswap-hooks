@@ -17,7 +17,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {LimitOrderHook, Epoch, EpochLibrary} from "src/general/LimitOrderHook.sol";
 
-contract TestLimitOrder is Test, Deployers {
+contract LimitOrderHookTest is Test, Deployers {
     using StateLibrary for IPoolManager;
 
     LimitOrderHook hook;
