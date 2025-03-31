@@ -12,6 +12,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
@@ -43,6 +44,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     error CrossedRange();
     error AlreadyInitialized();
     error Filled();
+    error NotFilled();
 
     bytes internal constant ZERO_BYTES = bytes("");
 
@@ -67,7 +69,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
     enum Callbacks {
         Place,
-        Kill
+        Kill,
+        Withdraw
     }
 
     // struct CallbackData {
@@ -97,6 +100,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         int256 liquidityDelta;
         address to;
         bool removingAllLiquidity;
+    }
+
+    struct CallbackDataWithdraw {
+        Currency currency0;
+        Currency currency1;
+        uint256 currency0Amount;
+        uint256 currency1Amount;
+        address to;
     }
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
@@ -208,6 +219,35 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         }
     }
 
+    function withdraw(Epoch epoch, address to) external returns (uint256 amount0, uint256 amount1) {
+        EpochInfo storage epochInfo = epochInfos[epoch];
+
+        if (!epochInfo.filled) revert NotFilled();
+
+        uint128 liquidity = epochInfo.liquidity[msg.sender];
+
+        if (liquidity == 0) revert ZeroLiquidity();
+
+        delete epochInfo.liquidity[msg.sender];
+
+        uint128 liquidityTotal = epochInfo.liquidityTotal;
+
+        amount0 = FullMath.mulDiv(epochInfo.currency0Total, liquidity, liquidityTotal);
+        amount1 = FullMath.mulDiv(epochInfo.currency1Total, liquidity, liquidityTotal);
+
+        epochInfo.currency0Total -= amount0;
+        epochInfo.currency1Total -= amount1;
+
+        poolManager.unlock(
+            abi.encode(
+                CallbackData(
+                    Callbacks.Withdraw,
+                    abi.encode(CallbackDataWithdraw(epochInfo.currency0, epochInfo.currency1, amount0, amount1, to))
+                )
+            )
+        );
+    }
+
     function unlockCallback(bytes calldata rawData)
         external
         virtual
@@ -301,6 +341,20 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             }
 
             return abi.encode(amount0Fee, amount1Fee);
+        } else if (callbackData.callbackType == Callbacks.Withdraw) {
+            CallbackDataWithdraw memory data = abi.decode(callbackData.data, (CallbackDataWithdraw));
+
+            if (data.currency0Amount > 0) {
+                poolManager.burn(address(this), data.currency0.toId(), data.currency0Amount);
+                //data.currency0.take(poolManager, data.to, data.currency0Amount, false);
+                poolManager.take(data.currency0, data.to, data.currency0Amount);
+            }
+
+            if (data.currency1Amount > 0) {
+                poolManager.burn(address(this), data.currency1.toId(), data.currency1Amount);
+                //data.currency1.take(poolManager, data.to, data.currency1Amount, false);
+                poolManager.take(data.currency1, data.to, data.currency1Amount);
+            }
         }
     }
 
@@ -337,11 +391,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 ZERO_BYTES
             );
 
-            if (delta.amount0() < 0) {
-                poolManager.mint(address(this), key.currency0.toId(), amount0 = uint128(-delta.amount0()));
+            if (delta.amount0() > 0) {
+                poolManager.mint(address(this), key.currency0.toId(), amount0 = uint128(delta.amount0()));
             }
-            if (delta.amount1() < 0) {
-                poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(-delta.amount1()));
+            if (delta.amount1() > 0) {
+                poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(delta.amount1()));
             }
 
             unchecked {

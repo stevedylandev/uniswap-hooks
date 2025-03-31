@@ -183,4 +183,38 @@ contract TestLimitOrder is Test, Deployers {
 
         hook.kill(key, tickLower, zeroForOne, address(this));
     }
+
+    function test_swapAcrossRange() public {
+        int24 tickLower = 0;
+        bool zeroForOne = true;
+        uint128 liquidity = 1000000;
+
+        hook.place(key, tickLower, zeroForOne, liquidity);
+
+        swapRouter.swap(
+            key,
+            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -1e18, sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing)}),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            ZERO_BYTES
+        );
+
+        assertEq(hook.getTickLowerLast(key.toId()), tickLower + key.tickSpacing);
+        (,int24 tick,,) = manager.getSlot0(key.toId());
+        assertEq(tick, tickLower + key.tickSpacing);
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) = hook.epochInfos(Epoch.wrap(1));
+
+        assertTrue(filled);
+        assertEq(currency0Total, 0);
+        assertEq(currency1Total, 2996 + 17); // 3013, 2 wei of dust
+
+        bytes32 positionId = Position.calculatePositionKey(address(hook), tickLower, tickLower + key.tickSpacing, 0);
+        assertEq(manager.getPositionLiquidity(key.toId(), positionId), 0);
+
+        hook.withdraw(Epoch.wrap(1), address(this));
+
+        (,,, uint256 currency0Amount, uint256 currency1Amount,) = hook.epochInfos(Epoch.wrap(1));
+        assertEq(currency0Amount, 0);
+        assertEq(currency1Amount, 0);
+    }
 }
