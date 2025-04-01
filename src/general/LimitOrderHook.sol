@@ -19,13 +19,32 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {console} from "forge-std/console.sol";
 
+/**
+ * @dev The epoch type.
+ */
 type Epoch is uint232;
 
+/**
+ * @dev The epoch library.
+ */
 library EpochLibrary {
+    /**
+     * @dev Check if two epochs are equal.
+     *
+     * @param a The first epoch.
+     * @param b The second epoch.
+     * @return result The result of the comparison.
+     */
     function equals(Epoch a, Epoch b) internal pure returns (bool) {
         return Epoch.unwrap(a) == Epoch.unwrap(b);
     }
 
+    /**
+     * @dev Increment the epoch.
+     *
+     * @param a The epoch.
+     * @return result The incremented epoch.
+     */
     function unsafeIncrement(Epoch a) internal pure returns (Epoch) {
         unchecked {
             return Epoch.wrap(Epoch.unwrap(a) + 1);
