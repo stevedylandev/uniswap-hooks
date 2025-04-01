@@ -64,7 +64,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @notice enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `unlockCallback`
      */
     enum Callbacks {
-        Place,
+        PlaceOrder,
         Kill,
         Withdraw
     }
@@ -254,7 +254,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         poolManager.unlock(
             abi.encode(
                 CallbackData(
-                    Callbacks.Place, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+                    Callbacks.PlaceOrder, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
                 )
             )
         );
@@ -428,7 +428,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         CallbackData memory callbackData = abi.decode(rawData, (CallbackData));
 
         // handle the callback based on the type
-        if (callbackData.callbackType == Callbacks.Place) {
+        if (callbackData.callbackType == Callbacks.PlaceOrder) {
             // decode the callback data
             CallbackDataPlace memory placeData = abi.decode(callbackData.data, (CallbackDataPlace));
 
