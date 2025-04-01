@@ -552,7 +552,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         }
     }
 
-
     /**
      * @dev Fill the epoch when the price crosses the tick.
      *
