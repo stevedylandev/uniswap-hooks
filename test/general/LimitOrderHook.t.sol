@@ -170,14 +170,14 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(hook.getEpochLiquidity(Epoch.wrap(1), vm.addr(1)), liquidity);
     }
 
-    function test_kill() public {
+    function test_cancelOrder() public {
         int24 tickLower = 0;
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
-        hook.kill(key, tickLower, zeroForOne, address(this));
+        hook.cancelOrder(key, tickLower, zeroForOne, address(this));
     }
 
     function test_swapAcrossRange() public {

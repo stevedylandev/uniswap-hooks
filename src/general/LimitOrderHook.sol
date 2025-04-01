@@ -65,7 +65,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     enum Callbacks {
         PlaceOrder,
-        Kill,
+        CancelOrder,
         Withdraw
     }
 
@@ -89,9 +89,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @notice struct of callback data for the kill callback
+     * @notice struct of callback data for the cancel callback
      */
-    struct CallbackDataKill {
+    struct CallbackDataCancel {
         PoolKey key;
         int24 tickLower;
         int256 liquidityDelta;
@@ -183,9 +183,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     event Fill(Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne);
 
     /**
-     * @dev event emitted when a limit order is killed
+     * @dev event emitted when a limit order is canceled
      */
-    event Kill(
+    event Cancel(
         address indexed owner, Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
     );
 
@@ -296,9 +296,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Kill a limit order.
+     * @dev Cancel a limit order.
      *
-     * @dev The limit order is killed by removing the liquidity from the epoch.
+     * @dev The limit order is canceled by removing the liquidity from the epoch.
      *
      * note that this function will cancel the limit order and return the liquidity added to the `to` address. It is not possible
      * to remove liquidity partially.
@@ -308,7 +308,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
      * @param to The address to send the liquidity removed to.
      */
-    function kill(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
+    function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
         // get the epoch
         Epoch epoch = getEpoch(key, tickLower, zeroForOne);
         EpochInfo storage epochInfo = epochInfos[epoch];
@@ -334,9 +334,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             poolManager.unlock(
                 abi.encode(
                     CallbackData(
-                        Callbacks.Kill,
+                        Callbacks.CancelOrder,
                         abi.encode(
-                            CallbackDataKill(
+                            CallbackDataCancel(
                                 key, tickLower, -int256(uint256(liquidity)), to, liquidity == epochInfo.liquidityTotal
                             )
                         )
@@ -355,8 +355,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             epochInfo.currency1Total += amount1Fee;
         }
 
-        // emit the kill event
-        emit Kill(msg.sender, epoch, key, tickLower, zeroForOne, liquidity);
+        // emit the cancel event
+        emit Cancel(msg.sender, epoch, key, tickLower, zeroForOne, liquidity);
     }
 
     /**
@@ -364,7 +364,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      *
      * @dev This function will return the liquidity added to the `to` address.
      *
-     * @notice This function will revert if the epoch is not filled. To remove liquidity before the epoch is filled, use the `kill` function.
+     * @notice This function will revert if the epoch is not filled. To remove liquidity before the epoch is filled, use the `cancelOrder` function.
      *
      * @param epoch The epoch to withdraw the liquidity from.
      * @param to The address to send the liquidity to.
@@ -412,7 +412,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Callback from the `PoolManager` when an order is placed, killed or withdrawn.
+     * @dev Callback from the `PoolManager` when an order is placed, canceled or withdrawn.
      *
      * @param rawData The encoded `CallbackData` struct.
      * @return returnData The encoded caller and fees accrued deltas.
@@ -433,11 +433,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             CallbackDataPlace memory placeData = abi.decode(callbackData.data, (CallbackDataPlace));
 
             _handlePlaceCallback(placeData);
-        } else if (callbackData.callbackType == Callbacks.Kill) {
+        } else if (callbackData.callbackType == Callbacks.CancelOrder) {
             // decode the callback data
-            CallbackDataKill memory killData = abi.decode(callbackData.data, (CallbackDataKill));
+            CallbackDataCancel memory cancelData = abi.decode(callbackData.data, (CallbackDataCancel));
 
-            (uint256 amount0Fee, uint256 amount1Fee) = _handleKillCallback(killData);
+            (uint256 amount0Fee, uint256 amount1Fee) = _handleCancelCallback(cancelData);
 
             // return the fees accrued by the position encoded in the return data
             return abi.encode(amount0Fee, amount1Fee);
@@ -490,28 +490,28 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Handle the kill callback.
+     * @dev Handle the cancel callback.
      *
-     * @param killData The kill data.
+     * @param cancelData The cancel data.
      * @return amount0Fee The amount of currency0 fees accrued.
      * @return amount1Fee The amount of currency1 fees accrued.
      */
-    function _handleKillCallback(CallbackDataKill memory killData)
+    function _handleCancelCallback(CallbackDataCancel memory cancelData)
         internal
         returns (uint256 amount0Fee, uint256 amount1Fee)
     {
         // get the tick upper
-        int24 tickUpper = killData.tickLower + killData.key.tickSpacing;
+        int24 tickUpper = cancelData.tickLower + cancelData.key.tickSpacing;
 
         // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
         // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
-        // could be unfairly diluted by a user sychronously placing then killing a limit order to skim off fees.
+        // could be unfairly diluted by a user sychronously placing then canceling a limit order to skim off fees.
         // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
-        if (!killData.removingAllLiquidity) {
+        if (!cancelData.removingAllLiquidity) {
             (, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
-                killData.key,
+                cancelData.key,
                 IPoolManager.ModifyLiquidityParams({
-                    tickLower: killData.tickLower,
+                    tickLower: cancelData.tickLower,
                     tickUpper: tickUpper,
                     liquidityDelta: 0,
                     salt: 0
@@ -522,14 +522,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             // if the amount of fees in currency0 is positive, mint currency0 to the hook
             if (feesAccrued.amount0() > 0) {
                 poolManager.mint(
-                    address(this), killData.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
+                    address(this), cancelData.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
                 );
             }
 
             // if the amount of fees in currency1 is positive, mint currency1 to the hook
             if (feesAccrued.amount1() > 0) {
                 poolManager.mint(
-                    address(this), killData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
+                    address(this), cancelData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
                 );
             }
         }
@@ -537,11 +537,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // remove the liquidity from the pool
         // note that since the fees were already removed, we don't have to track feesAccrued again, since they're going to be 0.
         (BalanceDelta delta,) = poolManager.modifyLiquidity(
-            killData.key,
+            cancelData.key,
             IPoolManager.ModifyLiquidityParams({
-                tickLower: killData.tickLower,
+                tickLower: cancelData.tickLower,
                 tickUpper: tickUpper,
-                liquidityDelta: killData.liquidityDelta,
+                liquidityDelta: cancelData.liquidityDelta,
                 salt: 0
             }),
             ZERO_BYTES
@@ -549,12 +549,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
         if (delta.amount0() > 0) {
-            killData.key.currency0.take(poolManager, killData.to, uint256(uint128(delta.amount0())), false);
+            cancelData.key.currency0.take(poolManager, cancelData.to, uint256(uint128(delta.amount0())), false);
         }
 
         // if the amount of currency1 is positive, take the currency1 from the pool
         if (delta.amount1() > 0) {
-            killData.key.currency1.take(poolManager, killData.to, uint256(uint128(delta.amount1())), false);
+            cancelData.key.currency1.take(poolManager, cancelData.to, uint256(uint128(delta.amount1())), false);
         }
     }
 
