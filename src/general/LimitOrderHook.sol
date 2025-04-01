@@ -496,7 +496,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @return amount0Fee The amount of currency0 fees accrued.
      * @return amount1Fee The amount of currency1 fees accrued.
      */
-    function _handleKillCallback(CallbackDataKill memory killData) internal returns (uint256 amount0Fee, uint256 amount1Fee) {
+    function _handleKillCallback(CallbackDataKill memory killData)
+        internal
+        returns (uint256 amount0Fee, uint256 amount1Fee)
+    {
         // get the tick upper
         int24 tickUpper = killData.tickLower + killData.key.tickSpacing;
 
@@ -577,7 +580,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             poolManager.take(withdrawData.currency1, withdrawData.to, withdrawData.currency1Amount);
         }
     }
-
 
     /**
      * @dev Fill the epoch when the price crosses the tick.
