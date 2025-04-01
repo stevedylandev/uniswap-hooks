@@ -430,127 +430,154 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // handle the callback based on the type
         if (callbackData.callbackType == Callbacks.Place) {
             // decode the callback data
-            CallbackDataPlace memory data = abi.decode(callbackData.data, (CallbackDataPlace));
+            CallbackDataPlace memory placeData = abi.decode(callbackData.data, (CallbackDataPlace));
 
-            // get the pool key
-            PoolKey memory key = data.key;
-
-            // add the out of range liquidity to the pool
-            (BalanceDelta delta,) = poolManager.modifyLiquidity(
-                key,
-                IPoolManager.ModifyLiquidityParams({
-                    tickLower: data.tickLower,
-                    tickUpper: data.tickLower + key.tickSpacing,
-                    liquidityDelta: int256(uint256(data.liquidity)),
-                    salt: 0
-                }),
-                ZERO_BYTES
-            );
-
-            // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
-            if (delta.amount0() < 0) {
-                // if the amount of currency1 is not 0, the limit order is in range
-                if (delta.amount1() != 0) revert InRange();
-                // if `zeroForOne` is false, the limit order is wrong side of the range
-                if (!data.zeroForOne) revert CrossedRange();
-
-                // settle the currency0 to the owner
-                key.currency0.settle(poolManager, data.owner, uint256(uint128(-delta.amount0())), false);
-            } else {
-                // if the amount of currency0 is not 0, the limit order is in range
-                if (delta.amount0() != 0) revert InRange();
-                // if `zeroForOne` is true, the limit order is wrong side of the range
-                if (data.zeroForOne) revert CrossedRange();
-
-                // settle the currency1 to the owner
-                key.currency1.settle(poolManager, data.owner, uint256(uint128(-delta.amount1())), false);
-            }
+            _handlePlaceCallback(placeData);
         } else if (callbackData.callbackType == Callbacks.Kill) {
             // decode the callback data
-            CallbackDataKill memory data = abi.decode(callbackData.data, (CallbackDataKill));
+            CallbackDataKill memory killData = abi.decode(callbackData.data, (CallbackDataKill));
 
-            // get the tick upper
-            int24 tickUpper = data.tickLower + data.key.tickSpacing;
-
-            uint256 amount0Fee;
-            uint256 amount1Fee;
-
-            // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
-            // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
-            // could be unfairly diluted by a user sychronously placing then killing a limit order to skim off fees.
-            // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
-            if (!data.removingAllLiquidity) {
-                (, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
-                    data.key,
-                    IPoolManager.ModifyLiquidityParams({
-                        tickLower: data.tickLower,
-                        tickUpper: tickUpper,
-                        liquidityDelta: 0,
-                        salt: 0
-                    }),
-                    ZERO_BYTES
-                );
-
-                // if the amount of fees in currency0 is positive, mint currency0 to the hook
-                if (feesAccrued.amount0() > 0) {
-                    poolManager.mint(
-                        address(this), data.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
-                    );
-                }
-
-                // if the amount of fees in currency1 is positive, mint currency1 to the hook
-                if (feesAccrued.amount1() > 0) {
-                    poolManager.mint(
-                        address(this), data.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
-                    );
-                }
-            }
-
-            // remove the liquidity from the pool
-            // note that since the fees were already removed, we don't have to track feesAccrued again, since they're going to be 0.
-            (BalanceDelta delta,) = poolManager.modifyLiquidity(
-                data.key,
-                IPoolManager.ModifyLiquidityParams({
-                    tickLower: data.tickLower,
-                    tickUpper: tickUpper,
-                    liquidityDelta: data.liquidityDelta,
-                    salt: 0
-                }),
-                ZERO_BYTES
-            );
-
-            // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
-            if (delta.amount0() > 0) {
-                data.key.currency0.take(poolManager, data.to, uint256(uint128(delta.amount0())), false);
-            }
-
-            // if the amount of currency1 is positive, take the currency1 from the pool
-            if (delta.amount1() > 0) {
-                data.key.currency1.take(poolManager, data.to, uint256(uint128(delta.amount1())), false);
-            }
+            (uint256 amount0Fee, uint256 amount1Fee) = _handleKillCallback(killData);
 
             // return the fees accrued by the position encoded in the return data
             return abi.encode(amount0Fee, amount1Fee);
         } else if (callbackData.callbackType == Callbacks.Withdraw) {
-            CallbackDataWithdraw memory data = abi.decode(callbackData.data, (CallbackDataWithdraw));
+            CallbackDataWithdraw memory withdrawData = abi.decode(callbackData.data, (CallbackDataWithdraw));
 
-            // if the amount of currency0 is positive, burn the currency0 from the hook
-            if (data.currency0Amount > 0) {
-                // burn the currency0 from the hook
-                poolManager.burn(address(this), data.currency0.toId(), data.currency0Amount);
-                // take the currency0 from the pool and send it to the `to` address
-                poolManager.take(data.currency0, data.to, data.currency0Amount);
-            }
-
-            // if the amount of currency1 is positive, burn the currency1 from the hook
-            if (data.currency1Amount > 0) {
-                // burn the currency1 from the hook
-                poolManager.burn(address(this), data.currency1.toId(), data.currency1Amount);
-                // take the currency1 from the pool and send it to the `to` address
-                poolManager.take(data.currency1, data.to, data.currency1Amount);
-            }
+            _handleWithdrawCallback(withdrawData);
         }
     }
+
+    /**
+     * @dev Handle the place callback.
+     *
+     * @param placeData The place data.
+     */
+    function _handlePlaceCallback(CallbackDataPlace memory placeData) internal {
+        // get the pool key
+        PoolKey memory key = placeData.key;
+
+        // add the out of range liquidity to the pool
+        (BalanceDelta delta,) = poolManager.modifyLiquidity(
+            key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: placeData.tickLower,
+                tickUpper: placeData.tickLower + key.tickSpacing,
+                liquidityDelta: int256(uint256(placeData.liquidity)),
+                salt: 0
+            }),
+            ZERO_BYTES
+        );
+
+        // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
+        if (delta.amount0() < 0) {
+            // if the amount of currency1 is not 0, the limit order is in range
+            if (delta.amount1() != 0) revert InRange();
+            // if `zeroForOne` is false, the limit order is wrong side of the range
+            if (!placeData.zeroForOne) revert CrossedRange();
+
+            // settle the currency0 to the owner
+            key.currency0.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount0())), false);
+        } else {
+            // if the amount of currency0 is not 0, the limit order is in range
+            if (delta.amount0() != 0) revert InRange();
+            // if `zeroForOne` is true, the limit order is wrong side of the range
+            if (placeData.zeroForOne) revert CrossedRange();
+
+            // settle the currency1 to the owner
+            key.currency1.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount1())), false);
+        }
+    }
+
+    /**
+     * @dev Handle the kill callback.
+     *
+     * @param killData The kill data.
+     * @return amount0Fee The amount of currency0 fees accrued.
+     * @return amount1Fee The amount of currency1 fees accrued.
+     */
+    function _handleKillCallback(CallbackDataKill memory killData) internal returns (uint256 amount0Fee, uint256 amount1Fee) {
+        // get the tick upper
+        int24 tickUpper = killData.tickLower + killData.key.tickSpacing;
+
+        // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
+        // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
+        // could be unfairly diluted by a user sychronously placing then killing a limit order to skim off fees.
+        // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
+        if (!killData.removingAllLiquidity) {
+            (, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+                killData.key,
+                IPoolManager.ModifyLiquidityParams({
+                    tickLower: killData.tickLower,
+                    tickUpper: tickUpper,
+                    liquidityDelta: 0,
+                    salt: 0
+                }),
+                ZERO_BYTES
+            );
+
+            // if the amount of fees in currency0 is positive, mint currency0 to the hook
+            if (feesAccrued.amount0() > 0) {
+                poolManager.mint(
+                    address(this), killData.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
+                );
+            }
+
+            // if the amount of fees in currency1 is positive, mint currency1 to the hook
+            if (feesAccrued.amount1() > 0) {
+                poolManager.mint(
+                    address(this), killData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
+                );
+            }
+        }
+
+        // remove the liquidity from the pool
+        // note that since the fees were already removed, we don't have to track feesAccrued again, since they're going to be 0.
+        (BalanceDelta delta,) = poolManager.modifyLiquidity(
+            killData.key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: killData.tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: killData.liquidityDelta,
+                salt: 0
+            }),
+            ZERO_BYTES
+        );
+
+        // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
+        if (delta.amount0() > 0) {
+            killData.key.currency0.take(poolManager, killData.to, uint256(uint128(delta.amount0())), false);
+        }
+
+        // if the amount of currency1 is positive, take the currency1 from the pool
+        if (delta.amount1() > 0) {
+            killData.key.currency1.take(poolManager, killData.to, uint256(uint128(delta.amount1())), false);
+        }
+    }
+
+    /**
+     * @dev Handle the withdraw callback.
+     *
+     * @param withdrawData The withdraw data.
+     */
+    function _handleWithdrawCallback(CallbackDataWithdraw memory withdrawData) internal {
+        // if the amount of currency0 is positive, burn the currency0 from the hook
+        if (withdrawData.currency0Amount > 0) {
+            // burn the currency0 from the hook
+            poolManager.burn(address(this), withdrawData.currency0.toId(), withdrawData.currency0Amount);
+            // take the currency0 from the pool and send it to the `to` address
+            poolManager.take(withdrawData.currency0, withdrawData.to, withdrawData.currency0Amount);
+        }
+
+        // if the amount of currency1 is positive, burn the currency1 from the hook
+        if (withdrawData.currency1Amount > 0) {
+            // burn the currency1 from the hook
+            poolManager.burn(address(this), withdrawData.currency1.toId(), withdrawData.currency1Amount);
+            // take the currency1 from the pool and send it to the `to` address
+            poolManager.take(withdrawData.currency1, withdrawData.to, withdrawData.currency1Amount);
+        }
+    }
+
 
     /**
      * @dev Fill the epoch when the price crosses the tick.
