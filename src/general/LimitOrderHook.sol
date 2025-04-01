@@ -60,6 +60,15 @@ library EpochLibrary {
  * The hook implements the placing of orders by adding liquidity to the pool in a tick range out of range of the current price.
  * Note that, given the way v4 pools work, if one adds liquidity out of range, the liquidity added will be in a single currency,
  * instead of both, as in an in-range addition.
+ *
+ * Users can cancel their limit orders at any time until it is filled and liquidity is removed from the pool. Users can also withdraw
+ * their liquidity after the limit order is filled.
+ *
+ * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+ * not give any warranties and will not be liable for any losses incurred through any use of this code
+ * base.
+ *
+ * _Available since v0.1.1_
  */
 contract LimitOrderHook is BaseHook, IUnlockCallback {
     using StateLibrary for IPoolManager;
