@@ -49,7 +49,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
     function test_zeroLiquidityRevert() public {
         vm.expectRevert(LimitOrderHook.ZeroLiquidity.selector);
-        hook.place(key, 0, true, 0);
+        hook.placeOrder(key, 0, true, 0);
     }
 
     function test_zeroForOneRightBoundaryOfCurrentRange() public {
@@ -57,7 +57,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         assertTrue(EpochLibrary.equals(hook.getEpoch(key, tickLower, zeroForOne), Epoch.wrap(1)));
 
@@ -70,7 +70,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         assertTrue(EpochLibrary.equals(hook.getEpoch(key, tickLower, zeroForOne), Epoch.wrap(1)));
 
@@ -80,7 +80,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
     function test_zeroForOneCrossedRangeRevert() public {
         vm.expectRevert(LimitOrderHook.CrossedRange.selector);
-        hook.place(key, -60, true, 1000000);
+        hook.placeOrder(key, -60, true, 1000000);
     }
 
     function test_zeroForOneInRangeRevert() public {
@@ -97,7 +97,7 @@ contract LimitOrderHookTest is Test, Deployers {
         );
 
         vm.expectRevert(LimitOrderHook.InRange.selector);
-        hook.place(key, 0, true, 1000000);
+        hook.placeOrder(key, 0, true, 1000000);
     }
 
     function test_notZeroForOneLeftBoundaryOfCurrentRange() public {
@@ -105,7 +105,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = false;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         assertTrue(EpochLibrary.equals(hook.getEpoch(key, tickLower, zeroForOne), Epoch.wrap(1)));
 
@@ -115,7 +115,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
     function test_notZeroForOneCrossedRangeRevert() public {
         vm.expectRevert(LimitOrderHook.CrossedRange.selector);
-        hook.place(key, 0, false, 1000000);
+        hook.placeOrder(key, 0, false, 1000000);
     }
 
     function test_notZeroForOneInRangeRevert() public {
@@ -128,7 +128,7 @@ contract LimitOrderHookTest is Test, Deployers {
         );
 
         vm.expectRevert(LimitOrderHook.InRange.selector);
-        hook.place(key, -60, false, 1000000);
+        hook.placeOrder(key, -60, false, 1000000);
     }
 
     function test_multipleLPs() public {
@@ -136,7 +136,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         currency0.transfer(vm.addr(1), 1e18);
         currency1.transfer(vm.addr(2), 1e18);
@@ -144,7 +144,7 @@ contract LimitOrderHookTest is Test, Deployers {
         vm.startPrank(vm.addr(1));
         IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), 1e18);
         IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), 1e18);
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
         vm.stopPrank();
 
         assertTrue(EpochLibrary.equals(hook.getEpoch(key, tickLower, zeroForOne), Epoch.wrap(1)));
@@ -175,7 +175,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         hook.kill(key, tickLower, zeroForOne, address(this));
     }
@@ -185,7 +185,7 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
-        hook.place(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         swapRouter.swap(
             key,

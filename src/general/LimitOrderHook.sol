@@ -244,7 +244,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
      * @param liquidity The liquidity to place.
      */
-    function place(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
+    function placeOrder(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
         // revert if liquidity is 0
         if (liquidity == 0) revert ZeroLiquidity();
 
