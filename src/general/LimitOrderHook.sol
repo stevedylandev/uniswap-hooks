@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/general/LimitOrderHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v1.1.0) (src/general/LimitOrderHook.sol)
 
 pragma solidity ^0.8.24;
 
@@ -7,6 +7,7 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
@@ -67,7 +68,7 @@ library EpochLibrary {
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
  *
- * _Available since v0.1.1_
+ * _Available since v1.1.0_
  */
 contract LimitOrderHook is BaseHook, IUnlockCallback {
     using StateLibrary for IPoolManager;
@@ -172,7 +173,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     error ZeroLiquidity();
 
-    /* 
+    /** 
      * @dev Limit order was placed in range
     */
     error InRange();
@@ -767,7 +768,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @return tick The tick.
      */
     function getTick(PoolId poolId) private view returns (int24 tick) {
-        (, tick,,) = poolManager.getSlot0(poolId);
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
     }
 
     /**
