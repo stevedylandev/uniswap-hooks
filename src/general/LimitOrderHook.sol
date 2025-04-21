@@ -231,7 +231,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
      */
     function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
-        setTickLowerLast(key.toId(), getTickLower(tick, key.tickSpacing));
+        // set the last tick lower for the pool
+        tickLowerLasts[key.toId()] = getTickLower(tick, key.tickSpacing);
 
         return this.afterInitialize.selector;
     }
@@ -257,7 +258,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             _fillEpoch(key, lower, zeroForOne);
         }
 
-        setTickLowerLast(key.toId(), tickLower);
+        // set the last tick lower for the pool
+        tickLowerLasts[key.toId()] = tickLower;
 
         return (this.afterSwap.selector, 0);
     }
@@ -699,16 +701,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     function getTickLowerLast(PoolId poolId) public view returns (int24) {
         return tickLowerLasts[poolId];
-    }
-
-    /**
-     * @dev Set the last tick lower.
-     *
-     * @param poolId The pool id.
-     * @param tickLower The tick lower.
-     */
-    function setTickLowerLast(PoolId poolId, int24 tickLower) private {
-        tickLowerLasts[poolId] = tickLower;
     }
 
     /**
