@@ -173,9 +173,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     error ZeroLiquidity();
 
-    /** 
+    /**
      * @dev Limit order was placed in range
-    */
+     */
     error InRange();
 
     /**
@@ -531,22 +531,25 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // get the tick upper
         int24 tickUpper = cancelData.tickLower + cancelData.key.tickSpacing;
 
+        // remove the liquidity from the pool. The fees accrued by the position are included in the `cancelDelta`
+        (BalanceDelta cancelDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+            cancelData.key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: cancelData.tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: cancelData.liquidityDelta,
+                salt: 0
+            }),
+            ZERO_BYTES
+        );
+
+        BalanceDelta principalDelta;
+
         // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
         // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
         // could be unfairly diluted by a user sychronously placing then canceling a limit order to skim off fees.
         // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
         if (!cancelData.removingAllLiquidity) {
-            (, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
-                cancelData.key,
-                IPoolManager.ModifyLiquidityParams({
-                    tickLower: cancelData.tickLower,
-                    tickUpper: tickUpper,
-                    liquidityDelta: 0,
-                    salt: 0
-                }),
-                ZERO_BYTES
-            );
-
             // if the amount of fees in currency0 is positive, mint currency0 to the hook
             if (feesAccrued.amount0() > 0) {
                 poolManager.mint(
@@ -560,29 +563,24 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                     address(this), cancelData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
                 );
             }
-        }
 
-        // remove the liquidity from the pool
-        // note that since the fees were already removed, we don't have to track feesAccrued again, since they're going to be 0.
-        (BalanceDelta delta,) = poolManager.modifyLiquidity(
-            cancelData.key,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: cancelData.tickLower,
-                tickUpper: tickUpper,
-                liquidityDelta: cancelData.liquidityDelta,
-                salt: 0
-            }),
-            ZERO_BYTES
-        );
+            // if the `removingAllLiquidity` flag is false, the fees accrued will be allocated to the remaining limit order placers
+            // so we need to subtract the fees from the `cancelDelta` to get the principal delta
+            principalDelta = cancelDelta - feesAccrued;
+        } else {
+            // if the `removingAllLiquidity` flag is true, the fees accrued will be allocated to the placer of the last limit order being cancelled
+            // so we can just use the `cancelDelta` as the principal delta
+            principalDelta = cancelDelta;
+        }
 
         // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
-        if (delta.amount0() > 0) {
-            cancelData.key.currency0.take(poolManager, cancelData.to, uint256(uint128(delta.amount0())), false);
+        if (principalDelta.amount0() > 0) {
+            cancelData.key.currency0.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount0())), false);
         }
 
-        // if the amount of currency1 is positive, take the currency1 from the pool
-        if (delta.amount1() > 0) {
-            cancelData.key.currency1.take(poolManager, cancelData.to, uint256(uint128(delta.amount1())), false);
+        // if the amount of currency1 is positive, take the currency1 from the pool and send it to the `to` address
+        if (principalDelta.amount1() > 0) {
+            cancelData.key.currency1.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount1())), false);
         }
     }
 
