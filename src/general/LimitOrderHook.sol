@@ -17,37 +17,36 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {BaseHook} from "src/base/BaseHook.sol";
-import {console} from "forge-std/console.sol";
 
 /**
- * @dev The epoch type.
+ * @dev The order id type.
  */
-type Epoch is uint232;
+type OrderId is uint232;
 
 /**
- * @dev The epoch library.
+ * @dev The order id library.
  */
-library EpochLibrary {
+library OrderIdLibrary {
     /**
-     * @dev Check if two epochs are equal.
+     * @dev Check if two order ids are equal.
      *
-     * @param a The first epoch.
-     * @param b The second epoch.
+     * @param a The first order id.
+     * @param b The second order id.
      * @return result The result of the comparison.
      */
-    function equals(Epoch a, Epoch b) internal pure returns (bool) {
-        return Epoch.unwrap(a) == Epoch.unwrap(b);
+    function equals(OrderId a, OrderId b) internal pure returns (bool) {
+        return OrderId.unwrap(a) == OrderId.unwrap(b);
     }
 
     /**
-     * @dev Increment the epoch.
+     * @dev Increment the order id.
      *
-     * @param a The epoch.
-     * @return result The incremented epoch.
+     * @param a The order id.
+     * @return result The incremented order id.
      */
-    function unsafeIncrement(Epoch a) internal pure returns (Epoch) {
+    function unsafeIncrement(OrderId a) internal pure returns (OrderId) {
         unchecked {
-            return Epoch.wrap(Epoch.unwrap(a) + 1);
+            return OrderId.wrap(OrderId.unwrap(a) + 1);
         }
     }
 }
@@ -72,13 +71,13 @@ library EpochLibrary {
  */
 contract LimitOrderHook is BaseHook, IUnlockCallback {
     using StateLibrary for IPoolManager;
-    using EpochLibrary for Epoch;
+    using OrderIdLibrary for OrderId;
     using CurrencySettler for Currency;
 
     /**
-     * @notice The epoch info for each epoch.
+     * @notice The info for each order id.
      */
-    struct EpochInfo {
+    struct OrderInfo {
         bool filled;
         Currency currency0;
         Currency currency1;
@@ -144,14 +143,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     bytes internal constant ZERO_BYTES = bytes("");
 
     /**
-     * @notice The default epoch, used to indicate that an epoch is not yet initialized.
+     * @notice The default order id, used to indicate that an order is not yet initialized.
      */
-    Epoch private constant EPOCH_DEFAULT = Epoch.wrap(0);
+    OrderId private constant ORDER_ID_DEFAULT = OrderId.wrap(0);
 
     /**
-     * @notice The next epoch to be used.
+     * @notice The next order id to be used.
      */
-    Epoch public epochNext = Epoch.wrap(1);
+    OrderId public orderIdNext = OrderId.wrap(1);
 
     /**
      * @notice The last tick lower for each pool.
@@ -159,14 +158,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     mapping(PoolId => int24) public tickLowerLasts;
 
     /**
-     * @notice Tracks each epoch for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
+     * @notice Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
      */
-    mapping(bytes32 => Epoch) public epochs;
+    mapping(bytes32 => OrderId) public orders;
 
     /**
-     * @notice Tracks the epoch info for each epoch.
+     * @notice Tracks the order info for each order id.
      */
-    mapping(Epoch => EpochInfo) public epochInfos;
+    mapping(OrderId => OrderInfo) public orderInfos;
 
     /**
      * @dev Zero liquidity was attempted to be added or removed.
@@ -202,25 +201,25 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev event emitted when a limit order is placed
      */
     event Place(
-        address indexed owner, Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+        address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
     );
 
     /**
      * @dev event emitted when a limit order is filled
      */
-    event Fill(Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne);
+    event Fill(OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne);
 
     /**
      * @dev event emitted when a limit order is canceled
      */
     event Cancel(
-        address indexed owner, Epoch indexed epoch, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+        address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
     );
 
     /**
      * @dev event emitted when a limit order is withdrawn
      */
-    event Withdraw(address indexed owner, Epoch indexed epoch, uint128 liquidity);
+    event Withdraw(address indexed owner, OrderId indexed orderId, uint128 liquidity);
 
     /**
      * @dev Set the `PoolManager` address.
@@ -238,7 +237,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the epochs that are crossed, filling the limit orders.
+     * @dev Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
      */
     function _afterSwap(
         address,
@@ -255,7 +254,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // order fills are the opposite of swap fills, hence the inversion below
         bool zeroForOne = !params.zeroForOne;
         for (; lower <= upper; lower += key.tickSpacing) {
-            _fillEpoch(key, lower, zeroForOne);
+            _fillOrder(key, lower, zeroForOne);
         }
 
         // set the last tick lower for the pool
@@ -289,46 +288,46 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             )
         );
 
-        EpochInfo storage epochInfo;
+        OrderInfo storage orderInfo;
 
-        // get the epoch for the limit order
-        Epoch epoch = getEpoch(key, tick, zeroForOne);
+        // get the order for the limit order
+        OrderId orderId = getOrderId(key, tick, zeroForOne);
 
-        // if the epoch is not initialized, initialize it
-        if (epoch.equals(EPOCH_DEFAULT)) {
-            // initialize the epoch to the next epoch
+        // if the order is not initialized, initialize it
+        if (orderId.equals(ORDER_ID_DEFAULT)) {
+            // initialize the order to the next order
             unchecked {
-                setEpoch(key, tick, zeroForOne, epoch = epochNext);
+                setOrderId(key, tick, zeroForOne, orderId = orderIdNext);
 
-                // increment the epoch number
-                epochNext = epochNext.unsafeIncrement();
+                // increment the order id
+                orderIdNext = orderIdNext.unsafeIncrement();
             }
 
-            // get the epoch info
-            epochInfo = epochInfos[epoch];
+            // get the order info
+            orderInfo = orderInfos[orderId];
 
             // set the currency0 and currency1
-            epochInfo.currency0 = key.currency0;
-            epochInfo.currency1 = key.currency1;
+            orderInfo.currency0 = key.currency0;
+            orderInfo.currency1 = key.currency1;
         } else {
-            // get the epoch info
-            epochInfo = epochInfos[epoch];
+            // get the order info
+            orderInfo = orderInfos[orderId];
         }
 
-        // add the liquidity to the epoch
+        // add the liquidity to the order
         unchecked {
-            epochInfo.liquidityTotal += liquidity;
-            epochInfo.liquidity[msg.sender] += liquidity;
+            orderInfo.liquidityTotal += liquidity;
+            orderInfo.liquidity[msg.sender] += liquidity;
         }
 
         // emit the place event
-        emit Place(msg.sender, epoch, key, tick, zeroForOne, liquidity);
+        emit Place(msg.sender, orderId, key, tick, zeroForOne, liquidity);
     }
 
     /**
      * @dev Cancel a limit order.
      *
-     * @dev The limit order is canceled by removing the liquidity from the epoch.
+     * @dev The limit order is canceled by removing the liquidity.
      *
      * note that this function will cancel the limit order and return the liquidity added to the `to` address. It is not possible
      * to remove liquidity partially.
@@ -339,27 +338,27 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @param to The address to send the liquidity removed to.
      */
     function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
-        // get the epoch
-        Epoch epoch = getEpoch(key, tickLower, zeroForOne);
-        EpochInfo storage epochInfo = epochInfos[epoch];
+        // get the order
+        OrderId orderId = getOrderId(key, tickLower, zeroForOne);
+        OrderInfo storage orderInfo = orderInfos[orderId];
 
-        // revert if the epoch is already filled
-        if (epochInfo.filled) revert Filled();
+        // revert if the order is already filled
+        if (orderInfo.filled) revert Filled();
 
         // get the liquidity added by the msg.sender
-        uint128 liquidity = epochInfo.liquidity[msg.sender];
+        uint128 liquidity = orderInfo.liquidity[msg.sender];
 
         // revert if the liquidity is 0
         if (liquidity == 0) revert ZeroLiquidity();
 
-        // delete the liquidity from the epoch
-        delete epochInfo.liquidity[msg.sender];
+        // delete the liquidity from the order
+        delete orderInfo.liquidity[msg.sender];
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and remove the liquidity from the pool. Note that this funciton will return the fees accrued
         // by the position, since the limit order is a liquidity addition.
         // Note that `amount0Fee` and `amount1Fee` are the fees accrued by the position and will not be transferred to
-        // the `to` address. Instead, they will be added to the epoch info (benefiting the remaining limit order placers).
+        // the `to` address. Instead, they will be added to the order info (benefiting the remaining limit order placers).
         (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
             poolManager.unlock(
                 abi.encode(
@@ -367,7 +366,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                         Callbacks.CancelOrder,
                         abi.encode(
                             CallbackDataCancel(
-                                key, tickLower, -int256(uint256(liquidity)), to, liquidity == epochInfo.liquidityTotal
+                                key, tickLower, -int256(uint256(liquidity)), to, liquidity == orderInfo.liquidityTotal
                             )
                         )
                     )
@@ -377,54 +376,54 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         );
 
         // subtract the liquidity from the total liquidity
-        epochInfo.liquidityTotal -= liquidity;
+        orderInfo.liquidityTotal -= liquidity;
 
-        // add the fees to the epoch info
+        // add the fees to the order info
         unchecked {
-            epochInfo.currency0Total += amount0Fee;
-            epochInfo.currency1Total += amount1Fee;
+            orderInfo.currency0Total += amount0Fee;
+            orderInfo.currency1Total += amount1Fee;
         }
 
         // emit the cancel event
-        emit Cancel(msg.sender, epoch, key, tickLower, zeroForOne, liquidity);
+        emit Cancel(msg.sender, orderId, key, tickLower, zeroForOne, liquidity);
     }
 
     /**
-     * @dev Withdraw the liquidity from the epoch.
+     * @dev Withdraw the liquidity from the order.
      *
      * @dev This function will return the liquidity added to the `to` address.
      *
-     * @notice This function will revert if the epoch is not filled. To remove liquidity before the epoch is filled, use the `cancelOrder` function.
+     * @notice This function will revert if the order is not filled. To remove liquidity before the order is filled, use the `cancelOrder` function.
      *
-     * @param epoch The epoch to withdraw the liquidity from.
+     * @param orderId The order id to withdraw the liquidity from.
      * @param to The address to send the liquidity to.
      */
-    function withdraw(Epoch epoch, address to) external returns (uint256 amount0, uint256 amount1) {
-        // get the epoch info
-        EpochInfo storage epochInfo = epochInfos[epoch];
+    function withdraw(OrderId orderId, address to) external returns (uint256 amount0, uint256 amount1) {
+        // get the order info
+        OrderInfo storage orderInfo = orderInfos[orderId];
 
-        // revert if the epoch is not filled
-        if (!epochInfo.filled) revert NotFilled();
+        // revert if the order is not filled
+        if (!orderInfo.filled) revert NotFilled();
 
         // get the liquidity added by the msg.sender
-        uint128 liquidity = epochInfo.liquidity[msg.sender];
+        uint128 liquidity = orderInfo.liquidity[msg.sender];
 
         // revert if the liquidity is 0
         if (liquidity == 0) revert ZeroLiquidity();
 
-        // delete the liquidity from the epoch
-        delete epochInfo.liquidity[msg.sender];
+        // delete the liquidity from the order
+        delete orderInfo.liquidity[msg.sender];
 
-        // get the total liquidity in the epoch
-        uint128 liquidityTotal = epochInfo.liquidityTotal;
+        // get the total liquidity in the order
+        uint128 liquidityTotal = orderInfo.liquidityTotal;
 
         // calculate the amount of currency0 and currency1 owed to the msg.sender
-        amount0 = FullMath.mulDiv(epochInfo.currency0Total, liquidity, liquidityTotal);
-        amount1 = FullMath.mulDiv(epochInfo.currency1Total, liquidity, liquidityTotal);
+        amount0 = FullMath.mulDiv(orderInfo.currency0Total, liquidity, liquidityTotal);
+        amount1 = FullMath.mulDiv(orderInfo.currency1Total, liquidity, liquidityTotal);
 
-        // subtract the amount of currency0 and currency1 from the epoch info
-        epochInfo.currency0Total -= amount0;
-        epochInfo.currency1Total -= amount1;
+        // subtract the amount of currency0 and currency1 from the order info
+        orderInfo.currency0Total -= amount0;
+        orderInfo.currency1Total -= amount1;
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and return the liquidity to the `to` address.
@@ -432,13 +431,13 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             abi.encode(
                 CallbackData(
                     Callbacks.Withdraw,
-                    abi.encode(CallbackDataWithdraw(epochInfo.currency0, epochInfo.currency1, amount0, amount1, to))
+                    abi.encode(CallbackDataWithdraw(orderInfo.currency0, orderInfo.currency1, amount0, amount1, to))
                 )
             )
         );
 
         // emit the withdraw event
-        emit Withdraw(msg.sender, epoch, liquidity);
+        emit Withdraw(msg.sender, orderId, liquidity);
     }
 
     /**
@@ -610,34 +609,34 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Fill the epoch when the price crosses the tick.
+     * @dev Fill the order when the price crosses the tick.
      *
      * @param key The pool key.
      * @param tickLower The lower tick.
      * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
      */
-    function _fillEpoch(PoolKey calldata key, int24 tickLower, bool zeroForOne) internal {
-        // get the epoch
-        Epoch epoch = getEpoch(key, tickLower, zeroForOne);
+    function _fillOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne) internal {
+        // get the order
+        OrderId orderId = getOrderId(key, tickLower, zeroForOne);
 
-        // if the epoch is not default (not initialized), fill it
-        if (!epoch.equals(EPOCH_DEFAULT)) {
-            // get the epoch info
-            EpochInfo storage epochInfo = epochInfos[epoch];
+        // if the order is not default (not initialized), fill it
+        if (!orderId.equals(ORDER_ID_DEFAULT)) {
+            // get the order info
+            OrderInfo storage orderInfo = orderInfos[orderId];
 
-            // set the epoch as filled
-            epochInfo.filled = true;
+            // set the order as filled
+            orderInfo.filled = true;
 
             uint128 amount0;
             uint128 amount1;
 
-            // modify the liquidity to remove the epoch liquidity from the pool
+            // modify the liquidity to remove the order liquidity from the pool
             (BalanceDelta delta,) = poolManager.modifyLiquidity(
                 key,
                 IPoolManager.ModifyLiquidityParams({
                     tickLower: tickLower,
                     tickUpper: tickLower + key.tickSpacing,
-                    liquidityDelta: -int256(uint256(epochInfo.liquidityTotal)),
+                    liquidityDelta: -int256(uint256(orderInfo.liquidityTotal)),
                     salt: 0
                 }),
                 ZERO_BYTES
@@ -653,17 +652,17 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(delta.amount1()));
             }
 
-            // add the amount of currency0 and currency1 to the epoch info
+            // add the amount of currency0 and currency1 to the order info
             unchecked {
-                epochInfo.currency0Total += amount0;
-                epochInfo.currency1Total += amount1;
+                orderInfo.currency0Total += amount0;
+                orderInfo.currency1Total += amount1;
             }
 
-            // set the epoch as default (inactive)
-            setEpoch(key, tickLower, zeroForOne, EPOCH_DEFAULT);
+            // set the order as default (inactive)
+            setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
 
             // emit the fill event
-            emit Fill(epoch, key, tickLower, zeroForOne);
+            emit Fill(orderId, key, tickLower, zeroForOne);
         }
     }
 
@@ -704,27 +703,27 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the epoch for a given pool and tick.
+     * @dev Get the order for a given pool and tick.
      *
      * @param key The pool key.
      * @param tickLower The lower tick.
      * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @return epoch The epoch.
+     * @return orderId The order id.
      */
-    function getEpoch(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (Epoch) {
-        return epochs[keccak256(abi.encode(key, tickLower, zeroForOne))];
+    function getOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (OrderId) {
+        return orders[keccak256(abi.encode(key, tickLower, zeroForOne))];
     }
 
     /**
-     * @dev Set the epoch for a given pool and tick.
+     * @dev Set the order id for a given pool and tick.
      *
      * @param key The pool key.
      * @param tickLower The lower tick.
      * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @param epoch The epoch.
+     * @param orderId The order id.
      */
-    function setEpoch(PoolKey memory key, int24 tickLower, bool zeroForOne, Epoch epoch) private {
-        epochs[keccak256(abi.encode(key, tickLower, zeroForOne))] = epoch;
+    function setOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne, OrderId orderId) private {
+        orders[keccak256(abi.encode(key, tickLower, zeroForOne))] = orderId;
     }
 
     /**
@@ -741,14 +740,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the epoch liquidity for a given epoch and owner.
+     * @dev Get the order liquidity for a given order id and owner.
      *
-     * @param epoch The epoch.
+     * @param orderId The order id.
      * @param owner The owner.
      * @return liquidity The liquidity.
      */
-    function getEpochLiquidity(Epoch epoch, address owner) external view returns (uint256) {
-        return epochInfos[epoch].liquidity[owner];
+    function getOrderLiquidity(OrderId orderId, address owner) external view returns (uint256) {
+        return orderInfos[orderId].liquidity[owner];
     }
 
     /**
