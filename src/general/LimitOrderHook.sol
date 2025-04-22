@@ -734,6 +734,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @return tickLower The lower tick.
      */
     function getTickLower(int24 tick, int24 tickSpacing) private pure returns (int24) {
+        // slither-disable-next-line divide-before-multiply
         int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
         return compressed * tickSpacing;
