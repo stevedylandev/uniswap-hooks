@@ -354,6 +354,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // delete the liquidity from the order
         delete orderInfo.liquidity[msg.sender];
 
+        // subtract the liquidity from the total liquidity
+        orderInfo.liquidityTotal -= liquidity;
+
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and remove the liquidity from the pool. Note that this funciton will return the fees accrued
         // by the position, since the limit order is a liquidity addition.
@@ -374,9 +377,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             ),
             (uint256, uint256)
         );
-
-        // subtract the liquidity from the total liquidity
-        orderInfo.liquidityTotal -= liquidity;
 
         // add the fees to the order info
         unchecked {
