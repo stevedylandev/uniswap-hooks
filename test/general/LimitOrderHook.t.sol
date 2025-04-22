@@ -16,6 +16,7 @@ import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {LimitOrderHook, OrderId, OrderIdLibrary} from "src/general/LimitOrderHook.sol";
+import {console} from "forge-std/console.sol";
 
 contract LimitOrderHookTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -175,9 +176,15 @@ contract LimitOrderHookTest is Test, Deployers {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
 
+        uint256 balanceBefore = currency0.balanceOf(address(this));
+
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         hook.cancelOrder(key, tickLower, zeroForOne, address(this));
+
+        uint256 balanceAfterCancel = currency0.balanceOf(address(this));
+
+        assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
     }
 
     function test_swapAcrossRange() public {
