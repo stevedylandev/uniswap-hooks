@@ -659,9 +659,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             // note that the currency totals must be updated after poolManager calls as they depend on the returned values.
             // This is safe as these functions are only callable by the trusted poolManager
             unchecked {
-                // slither-disable-next-line reentrancy-benign
+                // slither-disable-next-line reentrancy-no-eth
                 orderInfo.currency0Total += amount0;
-                // slither-disable-next-line reentrancy-benign
+                // slither-disable-next-line reentrancy-no-eth
                 orderInfo.currency1Total += amount1;
             }
 
