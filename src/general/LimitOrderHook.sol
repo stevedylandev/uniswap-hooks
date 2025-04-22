@@ -250,15 +250,15 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         if (lower > upper) return (this.afterSwap.selector, 0);
 
+        // set the last tick lower for the pool
+        tickLowerLasts[key.toId()] = tickLower;
+
         // note that a zeroForOne swap means that the pool is actually gaining token0, so limit
         // order fills are the opposite of swap fills, hence the inversion below
         bool zeroForOne = !params.zeroForOne;
         for (; lower <= upper; lower += key.tickSpacing) {
             _fillOrder(key, lower, zeroForOne);
         }
-
-        // set the last tick lower for the pool
-        tickLowerLasts[key.toId()] = tickLower;
 
         return (this.afterSwap.selector, 0);
     }
@@ -627,8 +627,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             // set the order as filled
             orderInfo.filled = true;
 
-            uint128 amount0;
-            uint128 amount1;
+            // set the order as default (inactive)
+            setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
 
             // modify the liquidity to remove the order liquidity from the pool
             (BalanceDelta delta,) = poolManager.modifyLiquidity(
@@ -641,6 +641,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 }),
                 ZERO_BYTES
             );
+
+            uint128 amount0;
+            uint128 amount1;
 
             // if the amount of currency0 is positive, mint the currency0 to the hook
             if (delta.amount0() > 0) {
@@ -657,9 +660,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 orderInfo.currency0Total += amount0;
                 orderInfo.currency1Total += amount1;
             }
-
-            // set the order as default (inactive)
-            setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
 
             // emit the fill event
             emit Fill(orderId, key, tickLower, zeroForOne);
