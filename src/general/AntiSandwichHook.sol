@@ -177,12 +177,12 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             ? (uint256(uint128(feeAmount)), uint256(0))
             : (uint256(0), uint256(uint128(feeAmount)));
 
+        // reset apply flag
+        _applyTargetOutput = false;
+
         // settle and donate execess tokens to the pool
         poolManager.donate(key, amount0, amount1, "");
         unspecified.settle(poolManager, address(this), feeAmount, true);
-
-        // reset apply flag
-        _applyTargetOutput = false;
     }
 
     /**
