@@ -3,8 +3,12 @@
 
 pragma solidity ^0.8.24;
 
-import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
-import {BaseHook} from "src/base/BaseHook.sol";
+// Internal imports
+import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+
+// External imports
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
@@ -15,7 +19,6 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev Sandwich-resistant hook, based on
