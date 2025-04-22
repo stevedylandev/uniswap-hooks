@@ -37,7 +37,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
  * decreasing the offer price according to xy=k.
  *
  * NOTE: Swaps in the other direction do not get the positive price difference
- * compared to the initial price before the first block swap.
+ * compared to the initial price before the first swap in the block.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
