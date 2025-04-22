@@ -642,8 +642,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 ZERO_BYTES
             );
 
-            uint128 amount0;
-            uint128 amount1;
+            uint128 amount0 = 0;
+            uint128 amount1 = 0;
 
             // if the amount of currency0 is positive, mint the currency0 to the hook
             if (delta.amount0() > 0) {
@@ -656,6 +656,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             }
 
             // add the amount of currency0 and currency1 to the order info
+            // note that the amounts come from the poolManager interaction, so we need to update them after the interaction
+            // slither-disable-next-line reentrancy-benign
             unchecked {
                 orderInfo.currency0Total += amount0;
                 orderInfo.currency1Total += amount1;
