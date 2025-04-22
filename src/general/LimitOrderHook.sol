@@ -277,17 +277,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // revert if liquidity is 0
         if (liquidity == 0) revert ZeroLiquidity();
 
-        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
-        // note that multiple functions trigger `unlockCallback`, so the callbackData.callbackType will determine what happens
-        // in `unlockCallback`. In this case, it will add liquiidty out of range.
-        poolManager.unlock(
-            abi.encode(
-                CallbackData(
-                    Callbacks.PlaceOrder, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
-                )
-            )
-        );
-
         OrderInfo storage orderInfo;
 
         // get the order for the limit order
@@ -319,6 +308,17 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             orderInfo.liquidityTotal += liquidity;
             orderInfo.liquidity[msg.sender] += liquidity;
         }
+
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
+        // note that multiple functions trigger `unlockCallback`, so the callbackData.callbackType will determine what happens
+        // in `unlockCallback`. In this case, it will add liquiidty out of range.
+        poolManager.unlock(
+            abi.encode(
+                CallbackData(
+                    Callbacks.PlaceOrder, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+                )
+            )
+        );
 
         // emit the place event
         emit Place(msg.sender, orderId, key, tick, zeroForOne, liquidity);
