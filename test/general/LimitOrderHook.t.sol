@@ -209,7 +209,8 @@ contract LimitOrderHookTest is Test, Deployers {
         (, int24 tick,,) = manager.getSlot0(key.toId());
         assertEq(tick, tickLower + key.tickSpacing);
 
-        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertTrue(filled);
         assertEq(currency0Total, 0);

@@ -152,7 +152,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
     /// @dev Event emitted when a limit order is placed.
     event Place(
-        address indexed owner, OrderIdLibrary.OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+        address indexed owner,
+        OrderIdLibrary.OrderId indexed orderId,
+        PoolKey key,
+        int24 tickLower,
+        bool zeroForOne,
+        uint128 liquidity
     );
 
     /// @dev Event emitted when a limit order is filled.
@@ -160,7 +165,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
     /// @dev Event emitted when a limit order is canceled.
     event Cancel(
-        address indexed owner, OrderIdLibrary.OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+        address indexed owner,
+        OrderIdLibrary.OrderId indexed orderId,
+        PoolKey key,
+        int24 tickLower,
+        bool zeroForOne,
+        uint128 liquidity
     );
 
     /// @dev Event emitted when a limit order is withdrawn.
@@ -628,7 +638,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * `zeroForOne` indicating whether it's buying currency0 or currency1. Returns the {OrderId} associated with this
      * position, or the default order id if no order exists.
      */
-    function getOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (OrderIdLibrary.OrderId) {
+    function getOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne)
+        public
+        view
+        returns (OrderIdLibrary.OrderId)
+    {
         return orders[keccak256(abi.encode(key, tickLower, zeroForOne))];
     }
 
