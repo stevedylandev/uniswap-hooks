@@ -9,7 +9,6 @@ import {BaseHook} from "../base/BaseHook.sol";
 
 // External imports
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
@@ -20,32 +19,20 @@ import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 
-/**
- * @dev The order id type.
- */
+/// @dev The order id type.
 type OrderId is uint232;
 
-/**
- * @dev The order id library.
- */
+/// @dev The order id library.
 library OrderIdLibrary {
     /**
-     * @dev Check if two order ids are equal.
-     *
-     * @param a The first order id.
-     * @param b The second order id.
-     * @return result The result of the comparison.
+     * @dev Compare two order ids for equality. Takes two `OrderId` values `a` and `b` and returns whether
+     * their underlying values are equal.
      */
     function equals(OrderId a, OrderId b) internal pure returns (bool) {
         return OrderId.unwrap(a) == OrderId.unwrap(b);
     }
 
-    /**
-     * @dev Increment the order id.
-     *
-     * @param a The order id.
-     * @return result The incremented order id.
-     */
+    /// @dev Increment the order id `a`. Might overflow.
     function unsafeIncrement(OrderId a) internal pure returns (OrderId) {
         unchecked {
             return OrderId.wrap(OrderId.unwrap(a) + 1);
@@ -76,9 +63,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     using OrderIdLibrary for OrderId;
     using CurrencySettler for Currency;
 
-    /**
-     * @notice The info for each order id.
-     */
+    /// @dev The info for each order id.
     struct OrderInfo {
         bool filled;
         Currency currency0;
@@ -89,26 +74,20 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         mapping(address => uint128) liquidity;
     }
 
-    /**
-     * @notice enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `unlockCallback`
-     */
+    /// @notice enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `unlockCallback`
     enum Callbacks {
         PlaceOrder,
         CancelOrder,
         Withdraw
     }
 
-    /**
-     * @notice struct of callback data (sent from the poolManager to `unlockCallback`)
-     */
+    /// @notice struct of callback data (sent from the poolManager to `unlockCallback`)
     struct CallbackData {
         Callbacks callbackType;
         bytes data;
     }
 
-    /**
-     * @notice struct of callback data for the place callback
-     */
+    /// @notice struct of callback data for the place callback
     struct CallbackDataPlace {
         PoolKey key;
         address owner;
@@ -117,9 +96,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint128 liquidity;
     }
 
-    /**
-     * @notice struct of callback data for the cancel callback
-     */
+    /// @notice struct of callback data for the cancel callback
     struct CallbackDataCancel {
         PoolKey key;
         int24 tickLower;
@@ -128,9 +105,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         bool removingAllLiquidity;
     }
 
-    /**
-     * @notice struct of callback data for the withdraw callback
-     */
+    /// @notice struct of callback data for the withdraw callback
     struct CallbackDataWithdraw {
         Currency currency0;
         Currency currency1;
@@ -139,98 +114,62 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         address to;
     }
 
-    /**
-     * @notice The zero bytes.
-     */
+    /// @notice The zero bytes.
     bytes internal constant ZERO_BYTES = bytes("");
 
-    /**
-     * @notice The default order id, used to indicate that an order is not yet initialized.
-     */
+    /// @notice The default order id, used to indicate that an order is not yet initialized.
     OrderId private constant ORDER_ID_DEFAULT = OrderId.wrap(0);
 
-    /**
-     * @notice The next order id to be used.
-     */
+    /// @notice The next order id to be used.
     OrderId public orderIdNext = OrderId.wrap(1);
 
-    /**
-     * @notice The last tick lower for each pool.
-     */
+    /// @notice The last tick lower for each pool.
     mapping(PoolId => int24) public tickLowerLasts;
 
-    /**
-     * @notice Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
-     */
+    /// @notice Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
     mapping(bytes32 => OrderId) public orders;
 
-    /**
-     * @notice Tracks the order info for each order id.
-     */
+    /// @notice Tracks the order info for each order id.
     mapping(OrderId => OrderInfo) public orderInfos;
 
-    /**
-     * @dev Zero liquidity was attempted to be added or removed.
-     */
+    /// @dev Zero liquidity was attempted to be added or removed.
     error ZeroLiquidity();
 
-    /**
-     * @dev Limit order was placed in range
-     */
+    /// @dev Limit order was placed in range
     error InRange();
 
-    /**
-     * @dev Limit order placed on the wrong side of the range
-     */
+    /// @dev Limit order placed on the wrong side of the range
     error CrossedRange();
 
-    /**
-     * @dev Hook was already initialized.
-     */
+    /// @dev Hook was already initialized.
     error AlreadyInitialized();
 
-    /**
-     * @dev Limit order was already filled.
-     */
+    /// @dev Limit order was already filled.
     error Filled();
 
-    /**
-     * @dev Limit order is not filled.
-     */
+    /// @dev Limit order is not filled.
     error NotFilled();
 
-    /**
-     * @dev event emitted when a limit order is placed
-     */
+    /// @dev event emitted when a limit order is placed
     event Place(
         address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
     );
 
-    /**
-     * @dev event emitted when a limit order is filled
-     */
+    /// @dev event emitted when a limit order is filled
     event Fill(OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne);
 
-    /**
-     * @dev event emitted when a limit order is canceled
-     */
+    /// @dev event emitted when a limit order is canceled
     event Cancel(
         address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
     );
 
-    /**
-     * @dev event emitted when a limit order is withdrawn
-     */
+    /// @dev event emitted when a limit order is withdrawn
     event Withdraw(address indexed owner, OrderId indexed orderId, uint128 liquidity);
 
-    /**
-     * @dev Set the `PoolManager` address.
-     */
+    /// @dev Set the `PoolManager` address.
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    /**
-     * @dev Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
-     */
+    /// @dev Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
     function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
         // set the last tick lower for the pool
         tickLowerLasts[key.toId()] = getTickLower(tick, key.tickSpacing);
@@ -238,9 +177,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         return this.afterInitialize.selector;
     }
 
-    /**
-     * @dev Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
-     */
+    /// @dev Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
     function _afterSwap(
         address,
         PoolKey calldata key,
@@ -266,14 +203,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Place a limit order.
-     *
-     * @dev The limit order is placed as a liquidity addition out of range, so it will be filled if the price crosses the tick.
-     *
-     * @param key The pool key.
-     * @param tick The tick to place the limit order at.
-     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @param liquidity The liquidity to place.
+     * @dev Places a limit order by adding liquidity out of range at a specific tick. The order will be filled when the
+     * pool price crosses the specified `tick`. Takes a `PoolKey` `key`, target `tick`, direction `zeroForOne` indicating
+     * whether to buy currency0 or currency1, and amount of `liquidity` to place.
      */
     function placeOrder(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
         // revert if liquidity is 0
@@ -327,17 +259,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Cancel a limit order.
-     *
-     * @dev The limit order is canceled by removing the liquidity.
-     *
-     * note that this function will cancel the limit order and return the liquidity added to the `to` address. It is not possible
-     * to remove liquidity partially.
-     *
-     * @param key The pool key.
-     * @param tickLower The tick lower of the limit order.
-     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @param to The address to send the liquidity removed to.
+     * @dev Cancels a limit order by removing liquidity from the pool. Takes a `PoolKey` `key`, `tickLower` of the order,
+     * direction `zeroForOne` indicating whether it was buying currency0 or currency1, and recipient address `to` for the
+     * removed liquidity. Note that partial cancellation is not supported - the entire liquidity added by the msg.sender will be removed.
+     * Note also that cancelling an order will cancel the order placed by the msg.sender, not orders placed by other users in the same tick range.
      */
     function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
         // get the order
@@ -395,14 +320,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Withdraw the liquidity from the order.
-     *
-     * @dev This function will return the liquidity added to the `to` address.
-     *
-     * @notice This function will revert if the order is not filled. To remove liquidity before the order is filled, use the `cancelOrder` function.
-     *
-     * @param orderId The order id to withdraw the liquidity from.
-     * @param to The address to send the liquidity to.
+     * @dev Withdraws liquidity from a filled order, sending it to address `to`. Takes an `OrderId` `orderId` of the filled
+     * order to withdraw from. Returns the withdrawn amounts as `(amount0, amount1)`. Can only be called after the order is
+     * filled - use `cancelOrder` to remove liquidity from unfilled orders.
      */
     function withdraw(OrderId orderId, address to) external returns (uint256 amount0, uint256 amount1) {
         // get the order info
@@ -447,10 +367,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Callback from the `PoolManager` when an order is placed, canceled or withdrawn.
-     *
-     * @param rawData The encoded `CallbackData` struct.
-     * @return returnData The encoded caller and fees accrued deltas.
+     * @dev Handles callbacks from the `PoolManager` for order operations. Takes encoded `rawData` containing the callback type
+     * and operation-specific data. Returns encoded data containing fees accrued for cancel operations, or empty bytes
+     * otherwise. Only callable by the PoolManager.
      */
     function unlockCallback(bytes calldata rawData)
         external
@@ -484,9 +403,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Handle the place callback.
-     *
-     * @param placeData The place data.
+     * @dev Internal handler for place order callbacks. Takes `placeData` containing the order details and adds the
+     * specified liquidity to the pool out of range. Reverts if the order would be placed in range or on the wrong
+     * side of the range.
      */
     function _handlePlaceCallback(CallbackDataPlace memory placeData) internal {
         // get the pool key
@@ -525,11 +444,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Handle the cancel callback.
-     *
-     * @param cancelData The cancel data.
-     * @return amount0Fee The amount of currency0 fees accrued.
-     * @return amount1Fee The amount of currency1 fees accrued.
+     * @dev Internal handler for cancel order callbacks. Takes `cancelData` containing the cancellation details and
+     * removes liquidity from the pool. Returns accrued fees `(amount0Fee, amount1Fee)` which are allocated to remaining
+     * limit order placers, or to the cancelling user if they're removing all liquidity.
      */
     function _handleCancelCallback(CallbackDataCancel memory cancelData)
         internal
@@ -592,9 +509,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Handle the withdraw callback.
-     *
-     * @param withdrawData The withdraw data.
+     * @dev Internal handler for withdraw callbacks. Takes `withdrawData` containing withdrawal amounts and recipient,
+     * burns the specified currency amounts from the hook, and transfers them to the recipient address.
      */
     function _handleWithdrawCallback(CallbackDataWithdraw memory withdrawData) internal {
         // if the amount of currency0 is positive, burn the currency0 from the hook
@@ -615,11 +531,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Fill the order when the price crosses the tick.
-     *
-     * @param key The pool key.
-     * @param tickLower The lower tick.
-     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     * @dev Internal handler for filling limit orders when price crosses a tick. Takes a `PoolKey` `key`, target `tickLower`,
+     * and direction `zeroForOne`. Removes liquidity from filled orders, mints the received currencies to the hook, and
+     * updates order state to track filled amounts.
      */
     function _fillOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne) internal {
         // get the order
@@ -677,13 +591,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the crossed ticks for a given pool after a price change.
-     *
-     * @param poolId The pool id.
-     * @param tickSpacing The tick spacing.
-     * @return tickLower The lower tick.
-     * @return lower The lower tick.
-     * @return upper The upper tick.
+     * @dev Internal helper that calculates the range of ticks crossed during a price change. Takes a `PoolId` `poolId`
+     * and `tickSpacing`, returns the current `tickLower` and the range of ticks crossed (`lower`, `upper`) that need
+     * to be checked for limit orders.
      */
     function _getCrossedTicks(PoolId poolId, int24 tickSpacing)
         internal
@@ -703,45 +613,33 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the last tick lower.
-     *
-     * @param poolId The pool id.
-     * @return tickLowerLast The last tick lower.
+     * @dev Returns the last recorded lower tick for a given pool. Takes a `PoolId` `poolId` and returns the
+     * stored `tickLowerLast` value.
      */
     function getTickLowerLast(PoolId poolId) public view returns (int24) {
         return tickLowerLasts[poolId];
     }
 
     /**
-     * @dev Get the order for a given pool and tick.
-     *
-     * @param key The pool key.
-     * @param tickLower The lower tick.
-     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @return orderId The order id.
+     * @dev Retrieves the order id for a given pool position. Takes a `PoolKey` `key`, target `tickLower`, and direction
+     * `zeroForOne` indicating whether it's buying currency0 or currency1. Returns the {OrderId} associated with this
+     * position, or the default order id if no order exists.
      */
     function getOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (OrderId) {
         return orders[keccak256(abi.encode(key, tickLower, zeroForOne))];
     }
 
     /**
-     * @dev Set the order id for a given pool and tick.
-     *
-     * @param key The pool key.
-     * @param tickLower The lower tick.
-     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
-     * @param orderId The order id.
+     * @dev Internal helper that updates the order ID mapping. Takes a `PoolKey` `key`, target `tickLower`, direction
+     * `zeroForOne`, and `orderId` to store. Associates the given order id with the pool position's hash.
      */
     function setOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne, OrderId orderId) private {
         orders[keccak256(abi.encode(key, tickLower, zeroForOne))] = orderId;
     }
 
     /**
-     * @dev Get the tick lower.
-     *
-     * @param tick The tick.
-     * @param tickSpacing The tick spacing.
-     * @return tickLower The lower tick.
+     * @dev Get the tick lower. Takes a `tick` and `tickSpacing` and returns the nearest valid tick boundary
+     * at or below the input tick, accounting for negative tick handling.
      */
     function getTickLower(int24 tick, int24 tickSpacing) private pure returns (int24) {
         // slither-disable-next-line divide-before-multiply
@@ -751,21 +649,16 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the order liquidity for a given order id and owner.
-     *
-     * @param orderId The order id.
-     * @param owner The owner.
-     * @return liquidity The liquidity.
+     * @dev Get the liquidity of an order for a given order id and owner. Takes an {OrderId} `orderId` and `owner` address
+     * and returns the amount of liquidity the owner has contributed to the order.
      */
     function getOrderLiquidity(OrderId orderId, address owner) external view returns (uint256) {
         return orderInfos[orderId].liquidity[owner];
     }
 
     /**
-     * @dev Get the tick for a given pool.
-     *
-     * @param poolId The pool id.
-     * @return tick The tick.
+     * @dev Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
+     * from the pool's current sqrt price.
      */
     function getTick(PoolId poolId) private view returns (int24 tick) {
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
@@ -773,9 +666,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Set the hook permissions, specifically `afterInitialize` and `afterSwap`.
-     *
-     * @return permissions The hook permissions.
+     * @dev Get the hook permissions for this contract. Returns a `Hooks.Permissions` struct configured to enable
+     * `afterInitialize` and `afterSwap` hooks while disabling all other hooks.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
