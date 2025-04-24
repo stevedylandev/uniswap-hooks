@@ -123,8 +123,11 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
                     uint256 feeGrowthOutside0X128,
                     uint256 feeGrowthOutside1X128
                 ) = poolManager.getTickInfo(poolId, tick);
-                _lastCheckpoint.state.ticks[tick] =
-                    Pool.TickInfo(liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128);
+
+                _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+                _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+                _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+                _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
             }
 
             // deep copy only values that are used and change in fair delta calculation
