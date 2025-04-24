@@ -71,11 +71,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != uint32(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
-        } else {
-            return super._beforeSwap(sender, key, params, hookData);
+            return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
 
-        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+        return super._beforeSwap(sender, key, params, hookData);
     }
 
     function _afterSwap(
