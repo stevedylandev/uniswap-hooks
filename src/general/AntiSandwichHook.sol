@@ -59,6 +59,17 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
+    /**
+     * @dev Handles the before swap hook, setting up checkpoints at the beginning of blocks
+     * and calculating target outputs for subsequent swaps.
+     *
+     * For the first swap in a block:
+     * - Saves the current pool state as a checkpoint
+     *
+     * For subsequent swaps in the same block:
+     * - Calculates a target output based on the beginning-of-block state
+     * - Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
+     */
     function _beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -77,6 +88,17 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         return super._beforeSwap(sender, key, params, hookData);
     }
 
+    /**
+     * @dev Handles the after swap hook, initializing the full pool state checkpoint for the first
+     * swap in a block and updating the target output if needed.
+     *
+     * For the first swap in a block:
+     * - Saves a detailed checkpoint of the pool state including liquidity and tick information
+     * - This checkpoint will be used for subsequent swaps to calculate fair execution prices
+     *
+     * For all swaps:
+     * - Caps the target output to the actual swap amount to prevent excessive fee collection
+     */
     function _afterSwap(
         address sender,
         PoolKey calldata key,
@@ -125,6 +147,16 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         return super._afterSwap(sender, key, params, delta, hookData);
     }
 
+    /**
+     * @dev Calculates the fair output amount based on the pool state at the beginning of the block.
+     * This prevents sandwich attacks by ensuring trades can't get better prices than what was available
+     * at the start of the block.
+     *
+     * The anti-sandwich mechanism works by:
+     * * For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve
+     * * For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
+     *   price, which prevents attackers from manipulating the price within a block
+     */
     function _getTargetOutput(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         override
@@ -158,6 +190,12 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         applyTargetOutput = true;
     }
 
+    /**
+     * @dev Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
+     * When a swap executes at a worse price than what's currently available in the pool (due to
+     * enforcing the beginning-of-block price), the excess tokens are donated back to the pool
+     * to benefit all liquidity providers.
+     */
     function _afterSwapHandler(
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
