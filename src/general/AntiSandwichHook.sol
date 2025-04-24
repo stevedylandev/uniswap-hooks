@@ -49,6 +49,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
 
+    /// @dev Represents a checkpoint of the pool state at the beginning of a block.
     struct Checkpoint {
         uint32 blockNumber;
         Slot0 slot0;
