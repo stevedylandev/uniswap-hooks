@@ -1,0 +1,796 @@
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v1.1.0) (src/general/LimitOrderHook.sol)
+
+pragma solidity ^0.8.24;
+
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
+import {CurrencySettler} from "src/utils/CurrencySettler.sol";
+import {BaseHook} from "src/base/BaseHook.sol";
+
+/**
+ * @dev The order id type.
+ */
+type OrderId is uint232;
+
+/**
+ * @dev The order id library.
+ */
+library OrderIdLibrary {
+    /**
+     * @dev Check if two order ids are equal.
+     *
+     * @param a The first order id.
+     * @param b The second order id.
+     * @return result The result of the comparison.
+     */
+    function equals(OrderId a, OrderId b) internal pure returns (bool) {
+        return OrderId.unwrap(a) == OrderId.unwrap(b);
+    }
+
+    /**
+     * @dev Increment the order id.
+     *
+     * @param a The order id.
+     * @return result The incremented order id.
+     */
+    function unsafeIncrement(OrderId a) internal pure returns (OrderId) {
+        unchecked {
+            return OrderId.wrap(OrderId.unwrap(a) + 1);
+        }
+    }
+}
+
+/**
+ * @dev This hook implements a mechanism to place limit orders on a liquidity pool. Specifically,
+ * it allows users to place limit orders at a specific tick, which will be filled if the price of the pool
+ * crosses the tick.
+ *
+ * The hook implements the placing of orders by adding liquidity to the pool in a tick range out of range of the current price.
+ * Note that, given the way v4 pools work, if one adds liquidity out of range, the liquidity added will be in a single currency,
+ * instead of both, as in an in-range addition.
+ *
+ * Users can cancel their limit orders at any time until it is filled and liquidity is removed from the pool. Users can also withdraw
+ * their liquidity after the limit order is filled.
+ *
+ * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+ * not give any warranties and will not be liable for any losses incurred through any use of this code
+ * base.
+ *
+ * _Available since v1.1.0_
+ */
+contract LimitOrderHook is BaseHook, IUnlockCallback {
+    using StateLibrary for IPoolManager;
+    using OrderIdLibrary for OrderId;
+    using CurrencySettler for Currency;
+
+    /**
+     * @notice The info for each order id.
+     */
+    struct OrderInfo {
+        bool filled;
+        Currency currency0;
+        Currency currency1;
+        uint256 currency0Total;
+        uint256 currency1Total;
+        uint128 liquidityTotal;
+        mapping(address => uint128) liquidity;
+    }
+
+    /**
+     * @notice enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `unlockCallback`
+     */
+    enum Callbacks {
+        PlaceOrder,
+        CancelOrder,
+        Withdraw
+    }
+
+    /**
+     * @notice struct of callback data (sent from the poolManager to `unlockCallback`)
+     */
+    struct CallbackData {
+        Callbacks callbackType;
+        bytes data;
+    }
+
+    /**
+     * @notice struct of callback data for the place callback
+     */
+    struct CallbackDataPlace {
+        PoolKey key;
+        address owner;
+        bool zeroForOne;
+        int24 tickLower;
+        uint128 liquidity;
+    }
+
+    /**
+     * @notice struct of callback data for the cancel callback
+     */
+    struct CallbackDataCancel {
+        PoolKey key;
+        int24 tickLower;
+        int256 liquidityDelta;
+        address to;
+        bool removingAllLiquidity;
+    }
+
+    /**
+     * @notice struct of callback data for the withdraw callback
+     */
+    struct CallbackDataWithdraw {
+        Currency currency0;
+        Currency currency1;
+        uint256 currency0Amount;
+        uint256 currency1Amount;
+        address to;
+    }
+
+    /**
+     * @notice The zero bytes.
+     */
+    bytes internal constant ZERO_BYTES = bytes("");
+
+    /**
+     * @notice The default order id, used to indicate that an order is not yet initialized.
+     */
+    OrderId private constant ORDER_ID_DEFAULT = OrderId.wrap(0);
+
+    /**
+     * @notice The next order id to be used.
+     */
+    OrderId public orderIdNext = OrderId.wrap(1);
+
+    /**
+     * @notice The last tick lower for each pool.
+     */
+    mapping(PoolId => int24) public tickLowerLasts;
+
+    /**
+     * @notice Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
+     */
+    mapping(bytes32 => OrderId) public orders;
+
+    /**
+     * @notice Tracks the order info for each order id.
+     */
+    mapping(OrderId => OrderInfo) public orderInfos;
+
+    /**
+     * @dev Zero liquidity was attempted to be added or removed.
+     */
+    error ZeroLiquidity();
+
+    /**
+     * @dev Limit order was placed in range
+     */
+    error InRange();
+
+    /**
+     * @dev Limit order placed on the wrong side of the range
+     */
+    error CrossedRange();
+
+    /**
+     * @dev Hook was already initialized.
+     */
+    error AlreadyInitialized();
+
+    /**
+     * @dev Limit order was already filled.
+     */
+    error Filled();
+
+    /**
+     * @dev Limit order is not filled.
+     */
+    error NotFilled();
+
+    /**
+     * @dev event emitted when a limit order is placed
+     */
+    event Place(
+        address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+    );
+
+    /**
+     * @dev event emitted when a limit order is filled
+     */
+    event Fill(OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne);
+
+    /**
+     * @dev event emitted when a limit order is canceled
+     */
+    event Cancel(
+        address indexed owner, OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity
+    );
+
+    /**
+     * @dev event emitted when a limit order is withdrawn
+     */
+    event Withdraw(address indexed owner, OrderId indexed orderId, uint128 liquidity);
+
+    /**
+     * @dev Set the `PoolManager` address.
+     */
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    /**
+     * @dev Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
+     */
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
+        // set the last tick lower for the pool
+        tickLowerLasts[key.toId()] = getTickLower(tick, key.tickSpacing);
+
+        return this.afterInitialize.selector;
+    }
+
+    /**
+     * @dev Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
+     */
+    function _afterSwap(
+        address,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta,
+        bytes calldata
+    ) internal virtual override returns (bytes4, int128) {
+        (int24 tickLower, int24 lower, int24 upper) = _getCrossedTicks(key.toId(), key.tickSpacing);
+
+        if (lower > upper) return (this.afterSwap.selector, 0);
+
+        // set the last tick lower for the pool
+        tickLowerLasts[key.toId()] = tickLower;
+
+        // note that a zeroForOne swap means that the pool is actually gaining token0, so limit
+        // order fills are the opposite of swap fills, hence the inversion below
+        bool zeroForOne = !params.zeroForOne;
+        for (; lower <= upper; lower += key.tickSpacing) {
+            _fillOrder(key, lower, zeroForOne);
+        }
+
+        return (this.afterSwap.selector, 0);
+    }
+
+    /**
+     * @dev Place a limit order.
+     *
+     * @dev The limit order is placed as a liquidity addition out of range, so it will be filled if the price crosses the tick.
+     *
+     * @param key The pool key.
+     * @param tick The tick to place the limit order at.
+     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     * @param liquidity The liquidity to place.
+     */
+    function placeOrder(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external {
+        // revert if liquidity is 0
+        if (liquidity == 0) revert ZeroLiquidity();
+
+        OrderInfo storage orderInfo;
+
+        // get the order for the limit order
+        OrderId orderId = getOrderId(key, tick, zeroForOne);
+
+        // if the order is not initialized, initialize it
+        if (orderId.equals(ORDER_ID_DEFAULT)) {
+            // initialize the order to the next order
+            unchecked {
+                setOrderId(key, tick, zeroForOne, orderId = orderIdNext);
+
+                // increment the order id
+                orderIdNext = orderIdNext.unsafeIncrement();
+            }
+
+            // get the order info
+            orderInfo = orderInfos[orderId];
+
+            // set the currency0 and currency1
+            orderInfo.currency0 = key.currency0;
+            orderInfo.currency1 = key.currency1;
+        } else {
+            // get the order info
+            orderInfo = orderInfos[orderId];
+        }
+
+        // add the liquidity to the order
+        unchecked {
+            orderInfo.liquidityTotal += liquidity;
+            orderInfo.liquidity[msg.sender] += liquidity;
+        }
+
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
+        // note that multiple functions trigger `unlockCallback`, so the callbackData.callbackType will determine what happens
+        // in `unlockCallback`. In this case, it will add liquiidty out of range.
+        poolManager.unlock(
+            abi.encode(
+                CallbackData(
+                    Callbacks.PlaceOrder, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+                )
+            )
+        );
+
+        // emit the place event
+        emit Place(msg.sender, orderId, key, tick, zeroForOne, liquidity);
+    }
+
+    /**
+     * @dev Cancel a limit order.
+     *
+     * @dev The limit order is canceled by removing the liquidity.
+     *
+     * note that this function will cancel the limit order and return the liquidity added to the `to` address. It is not possible
+     * to remove liquidity partially.
+     *
+     * @param key The pool key.
+     * @param tickLower The tick lower of the limit order.
+     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     * @param to The address to send the liquidity removed to.
+     */
+    function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external {
+        // get the order
+        OrderId orderId = getOrderId(key, tickLower, zeroForOne);
+        OrderInfo storage orderInfo = orderInfos[orderId];
+
+        // revert if the order is already filled
+        if (orderInfo.filled) revert Filled();
+
+        // get the liquidity added by the msg.sender
+        uint128 liquidity = orderInfo.liquidity[msg.sender];
+
+        // revert if the liquidity is 0
+        if (liquidity == 0) revert ZeroLiquidity();
+
+        // delete the liquidity from the order
+        delete orderInfo.liquidity[msg.sender];
+
+        // subtract the liquidity from the total liquidity
+        orderInfo.liquidityTotal -= liquidity;
+
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
+        // and remove the liquidity from the pool. Note that this funciton will return the fees accrued
+        // by the position, since the limit order is a liquidity addition.
+        // Note that `amount0Fee` and `amount1Fee` are the fees accrued by the position and will not be transferred to
+        // the `to` address. Instead, they will be added to the order info (benefiting the remaining limit order placers).
+        (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
+            poolManager.unlock(
+                abi.encode(
+                    CallbackData(
+                        Callbacks.CancelOrder,
+                        abi.encode(
+                            CallbackDataCancel(
+                                key, tickLower, -int256(uint256(liquidity)), to, liquidity == orderInfo.liquidityTotal
+                            )
+                        )
+                    )
+                )
+            ),
+            (uint256, uint256)
+        );
+
+        // add the fees to the order info
+        // note that the currency totals must be updated after poolManager call as they depend on the returned values of the callback.
+        // This is safe as these functions are only callable on the trusted poolManager
+        unchecked {
+            // slither-disable-next-line reentrancy-no-eth
+            orderInfo.currency0Total += amount0Fee;
+            // slither-disable-next-line reentrancy-no-eth
+            orderInfo.currency1Total += amount1Fee;
+        }
+
+        // emit the cancel event
+        emit Cancel(msg.sender, orderId, key, tickLower, zeroForOne, liquidity);
+    }
+
+    /**
+     * @dev Withdraw the liquidity from the order.
+     *
+     * @dev This function will return the liquidity added to the `to` address.
+     *
+     * @notice This function will revert if the order is not filled. To remove liquidity before the order is filled, use the `cancelOrder` function.
+     *
+     * @param orderId The order id to withdraw the liquidity from.
+     * @param to The address to send the liquidity to.
+     */
+    function withdraw(OrderId orderId, address to) external returns (uint256 amount0, uint256 amount1) {
+        // get the order info
+        OrderInfo storage orderInfo = orderInfos[orderId];
+
+        // revert if the order is not filled
+        if (!orderInfo.filled) revert NotFilled();
+
+        // get the liquidity added by the msg.sender
+        uint128 liquidity = orderInfo.liquidity[msg.sender];
+
+        // revert if the liquidity is 0
+        if (liquidity == 0) revert ZeroLiquidity();
+
+        // delete the liquidity from the order
+        delete orderInfo.liquidity[msg.sender];
+
+        // get the total liquidity in the order
+        uint128 liquidityTotal = orderInfo.liquidityTotal;
+
+        // calculate the amount of currency0 and currency1 owed to the msg.sender
+        amount0 = FullMath.mulDiv(orderInfo.currency0Total, liquidity, liquidityTotal);
+        amount1 = FullMath.mulDiv(orderInfo.currency1Total, liquidity, liquidityTotal);
+
+        // subtract the amount of currency0 and currency1 from the order info
+        orderInfo.currency0Total -= amount0;
+        orderInfo.currency1Total -= amount1;
+
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
+        // and return the liquidity to the `to` address.
+        poolManager.unlock(
+            abi.encode(
+                CallbackData(
+                    Callbacks.Withdraw,
+                    abi.encode(CallbackDataWithdraw(orderInfo.currency0, orderInfo.currency1, amount0, amount1, to))
+                )
+            )
+        );
+
+        // emit the withdraw event
+        emit Withdraw(msg.sender, orderId, liquidity);
+    }
+
+    /**
+     * @dev Callback from the `PoolManager` when an order is placed, canceled or withdrawn.
+     *
+     * @param rawData The encoded `CallbackData` struct.
+     * @return returnData The encoded caller and fees accrued deltas.
+     */
+    function unlockCallback(bytes calldata rawData)
+        external
+        virtual
+        override
+        onlyPoolManager
+        returns (bytes memory returnData)
+    {
+        // decode the callback data
+        CallbackData memory callbackData = abi.decode(rawData, (CallbackData));
+
+        // handle the callback based on the type
+        if (callbackData.callbackType == Callbacks.PlaceOrder) {
+            // decode the callback data
+            CallbackDataPlace memory placeData = abi.decode(callbackData.data, (CallbackDataPlace));
+
+            _handlePlaceCallback(placeData);
+        } else if (callbackData.callbackType == Callbacks.CancelOrder) {
+            // decode the callback data
+            CallbackDataCancel memory cancelData = abi.decode(callbackData.data, (CallbackDataCancel));
+
+            (uint256 amount0Fee, uint256 amount1Fee) = _handleCancelCallback(cancelData);
+
+            // return the fees accrued by the position encoded in the return data
+            return abi.encode(amount0Fee, amount1Fee);
+        } else if (callbackData.callbackType == Callbacks.Withdraw) {
+            CallbackDataWithdraw memory withdrawData = abi.decode(callbackData.data, (CallbackDataWithdraw));
+
+            _handleWithdrawCallback(withdrawData);
+        }
+    }
+
+    /**
+     * @dev Handle the place callback.
+     *
+     * @param placeData The place data.
+     */
+    function _handlePlaceCallback(CallbackDataPlace memory placeData) internal {
+        // get the pool key
+        PoolKey memory key = placeData.key;
+
+        // add the out of range liquidity to the pool
+        (BalanceDelta delta,) = poolManager.modifyLiquidity(
+            key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: placeData.tickLower,
+                tickUpper: placeData.tickLower + key.tickSpacing,
+                liquidityDelta: int256(uint256(placeData.liquidity)),
+                salt: 0
+            }),
+            ZERO_BYTES
+        );
+
+        // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
+        if (delta.amount0() < 0) {
+            // if the amount of currency1 is not 0, the limit order is in range
+            if (delta.amount1() != 0) revert InRange();
+            // if `zeroForOne` is false, the limit order is wrong side of the range
+            if (!placeData.zeroForOne) revert CrossedRange();
+
+            // settle the currency0 to the owner
+            key.currency0.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount0())), false);
+        } else {
+            // if the amount of currency0 is not 0, the limit order is in range
+            if (delta.amount0() != 0) revert InRange();
+            // if `zeroForOne` is true, the limit order is wrong side of the range
+            if (placeData.zeroForOne) revert CrossedRange();
+
+            // settle the currency1 to the owner
+            key.currency1.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount1())), false);
+        }
+    }
+
+    /**
+     * @dev Handle the cancel callback.
+     *
+     * @param cancelData The cancel data.
+     * @return amount0Fee The amount of currency0 fees accrued.
+     * @return amount1Fee The amount of currency1 fees accrued.
+     */
+    function _handleCancelCallback(CallbackDataCancel memory cancelData)
+        internal
+        returns (uint256 amount0Fee, uint256 amount1Fee)
+    {
+        // get the tick upper
+        int24 tickUpper = cancelData.tickLower + cancelData.key.tickSpacing;
+
+        // remove the liquidity from the pool. The fees accrued by the position are included in the `cancelDelta`
+        (BalanceDelta cancelDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+            cancelData.key,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: cancelData.tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: cancelData.liquidityDelta,
+                salt: 0
+            }),
+            ZERO_BYTES
+        );
+
+        BalanceDelta principalDelta;
+
+        // because `modifyPosition` includes not just principal value but also fees, we cannot allocate
+        // the proceeds pro-rata. if we were to do so, users who have been in a limit order that's partially filled
+        // could be unfairly diluted by a user sychronously placing then canceling a limit order to skim off fees.
+        // to prevent this, we allocate all fee revenue to remaining limit order placers, unless this is the last order.
+        if (!cancelData.removingAllLiquidity) {
+            // if the amount of fees in currency0 is positive, mint currency0 to the hook
+            if (feesAccrued.amount0() > 0) {
+                poolManager.mint(
+                    address(this), cancelData.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
+                );
+            }
+
+            // if the amount of fees in currency1 is positive, mint currency1 to the hook
+            if (feesAccrued.amount1() > 0) {
+                poolManager.mint(
+                    address(this), cancelData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
+                );
+            }
+
+            // if the `removingAllLiquidity` flag is false, the fees accrued will be allocated to the remaining limit order placers
+            // so we need to subtract the fees from the `cancelDelta` to get the principal delta
+            principalDelta = cancelDelta - feesAccrued;
+        } else {
+            // if the `removingAllLiquidity` flag is true, the fees accrued will be allocated to the placer of the last limit order being cancelled
+            // so we can just use the `cancelDelta` as the principal delta
+            principalDelta = cancelDelta;
+        }
+
+        // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
+        if (principalDelta.amount0() > 0) {
+            cancelData.key.currency0.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount0())), false);
+        }
+
+        // if the amount of currency1 is positive, take the currency1 from the pool and send it to the `to` address
+        if (principalDelta.amount1() > 0) {
+            cancelData.key.currency1.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount1())), false);
+        }
+    }
+
+    /**
+     * @dev Handle the withdraw callback.
+     *
+     * @param withdrawData The withdraw data.
+     */
+    function _handleWithdrawCallback(CallbackDataWithdraw memory withdrawData) internal {
+        // if the amount of currency0 is positive, burn the currency0 from the hook
+        if (withdrawData.currency0Amount > 0) {
+            // burn the currency0 from the hook
+            poolManager.burn(address(this), withdrawData.currency0.toId(), withdrawData.currency0Amount);
+            // take the currency0 from the pool and send it to the `to` address
+            poolManager.take(withdrawData.currency0, withdrawData.to, withdrawData.currency0Amount);
+        }
+
+        // if the amount of currency1 is positive, burn the currency1 from the hook
+        if (withdrawData.currency1Amount > 0) {
+            // burn the currency1 from the hook
+            poolManager.burn(address(this), withdrawData.currency1.toId(), withdrawData.currency1Amount);
+            // take the currency1 from the pool and send it to the `to` address
+            poolManager.take(withdrawData.currency1, withdrawData.to, withdrawData.currency1Amount);
+        }
+    }
+
+    /**
+     * @dev Fill the order when the price crosses the tick.
+     *
+     * @param key The pool key.
+     * @param tickLower The lower tick.
+     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     */
+    function _fillOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne) internal {
+        // get the order
+        OrderId orderId = getOrderId(key, tickLower, zeroForOne);
+
+        // if the order is not default (not initialized), fill it
+        if (!orderId.equals(ORDER_ID_DEFAULT)) {
+            // get the order info
+            OrderInfo storage orderInfo = orderInfos[orderId];
+
+            // set the order as filled
+            orderInfo.filled = true;
+
+            // set the order as default (inactive)
+            setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
+
+            // modify the liquidity to remove the order liquidity from the pool
+            (BalanceDelta delta,) = poolManager.modifyLiquidity(
+                key,
+                IPoolManager.ModifyLiquidityParams({
+                    tickLower: tickLower,
+                    tickUpper: tickLower + key.tickSpacing,
+                    liquidityDelta: -int256(uint256(orderInfo.liquidityTotal)),
+                    salt: 0
+                }),
+                ZERO_BYTES
+            );
+
+            uint128 amount0 = 0;
+            uint128 amount1 = 0;
+
+            // if the amount of currency0 is positive, mint the currency0 to the hook
+            if (delta.amount0() > 0) {
+                poolManager.mint(address(this), key.currency0.toId(), amount0 = uint128(delta.amount0()));
+            }
+
+            // if the amount of currency1 is positive, mint the currency1 to the hook
+            if (delta.amount1() > 0) {
+                poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(delta.amount1()));
+            }
+
+            // add the amount of currency0 and currency1 to the order info
+            // note that the currency totals must be updated after poolManager calls as they depend on the returned values.
+            // This is safe as these functions are only callable on the trusted poolManager
+            unchecked {
+                // slither-disable-next-line reentrancy-no-eth
+                orderInfo.currency0Total += amount0;
+                // slither-disable-next-line reentrancy-no-eth
+                orderInfo.currency1Total += amount1;
+            }
+
+            // emit the fill event
+            emit Fill(orderId, key, tickLower, zeroForOne);
+        }
+    }
+
+    /**
+     * @dev Get the crossed ticks for a given pool after a price change.
+     *
+     * @param poolId The pool id.
+     * @param tickSpacing The tick spacing.
+     * @return tickLower The lower tick.
+     * @return lower The lower tick.
+     * @return upper The upper tick.
+     */
+    function _getCrossedTicks(PoolId poolId, int24 tickSpacing)
+        internal
+        view
+        returns (int24 tickLower, int24 lower, int24 upper)
+    {
+        tickLower = getTickLower(getTick(poolId), tickSpacing);
+        int24 tickLowerLast = getTickLowerLast(poolId);
+
+        if (tickLower < tickLowerLast) {
+            lower = tickLower + tickSpacing;
+            upper = tickLowerLast;
+        } else {
+            lower = tickLowerLast;
+            upper = tickLower - tickSpacing;
+        }
+    }
+
+    /**
+     * @dev Get the last tick lower.
+     *
+     * @param poolId The pool id.
+     * @return tickLowerLast The last tick lower.
+     */
+    function getTickLowerLast(PoolId poolId) public view returns (int24) {
+        return tickLowerLasts[poolId];
+    }
+
+    /**
+     * @dev Get the order for a given pool and tick.
+     *
+     * @param key The pool key.
+     * @param tickLower The lower tick.
+     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     * @return orderId The order id.
+     */
+    function getOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne) public view returns (OrderId) {
+        return orders[keccak256(abi.encode(key, tickLower, zeroForOne))];
+    }
+
+    /**
+     * @dev Set the order id for a given pool and tick.
+     *
+     * @param key The pool key.
+     * @param tickLower The lower tick.
+     * @param zeroForOne Whether the limit order is for buy `currency0` or `currency1`.
+     * @param orderId The order id.
+     */
+    function setOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne, OrderId orderId) private {
+        orders[keccak256(abi.encode(key, tickLower, zeroForOne))] = orderId;
+    }
+
+    /**
+     * @dev Get the tick lower.
+     *
+     * @param tick The tick.
+     * @param tickSpacing The tick spacing.
+     * @return tickLower The lower tick.
+     */
+    function getTickLower(int24 tick, int24 tickSpacing) private pure returns (int24) {
+        // slither-disable-next-line divide-before-multiply
+        int24 compressed = tick / tickSpacing;
+        if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
+        return compressed * tickSpacing;
+    }
+
+    /**
+     * @dev Get the order liquidity for a given order id and owner.
+     *
+     * @param orderId The order id.
+     * @param owner The owner.
+     * @return liquidity The liquidity.
+     */
+    function getOrderLiquidity(OrderId orderId, address owner) external view returns (uint256) {
+        return orderInfos[orderId].liquidity[owner];
+    }
+
+    /**
+     * @dev Get the tick for a given pool.
+     *
+     * @param poolId The pool id.
+     * @return tick The tick.
+     */
+    function getTick(PoolId poolId) private view returns (int24 tick) {
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
+    }
+
+    /**
+     * @dev Set the hook permissions, specifically `afterInitialize` and `afterSwap`.
+     *
+     * @return permissions The hook permissions.
+     */
+    function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: true,
+            beforeAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterAddLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: false,
+            afterSwap: true,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
+    }
+}
