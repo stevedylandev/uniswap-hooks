@@ -254,9 +254,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             orderInfo.liquidity[msg.sender] += liquidity;
         }
 
-        // unlock the callback to the poolManager, the callback will trigger `{unlockCallback}`
-        // note that multiple functions trigger `{unlockCallback}`, so the `callbackData.callbackType` will determine what happens
-        // in `{unlockCallback}`. In this case, it will add liquidity out of range.
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
+        // note that multiple functions trigger `unlockCallback`, so the `callbackData.callbackType` will determine what happens
+        // in `unlockCallback`. In this case, it will add liquidity out of range.
+        // IMPORTANT: `tick` must be valid, i.e. within the range of `MIN_TICK` and `MAX_TICK`, defined in the `TickMath` library and it must be
+        // a multiple of `key.tickSpacing`.
         poolManager.unlock(
             abi.encode(
                 CallbackData(
@@ -296,7 +298,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // subtract the liquidity from the total liquidity
         orderInfo.liquidityTotal -= liquidity;
 
-        // unlock the callback to the poolManager, the callback will trigger `{unlockCallback}`
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and remove the liquidity from the pool. Note that this function will return the fees accrued
         // by the position, since the limit order is a liquidity addition.
         // Note that `amount0Fee` and `amount1Fee` are the fees accrued by the position and will not be transferred to
@@ -364,7 +366,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         orderInfo.currency0Total -= amount0;
         orderInfo.currency1Total -= amount1;
 
-        // unlock the callback to the poolManager, the callback will trigger `{unlockCallback}`
+        // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and return the liquidity to the `to` address.
         poolManager.unlock(
             abi.encode(
