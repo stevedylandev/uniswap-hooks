@@ -72,12 +72,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         if (_lastCheckpoint.blockNumber != uint32(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
         } else {
-            // get target output and apply flag
-            (uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
-
-            // update target output and apply flag, only apply if not on the first swap in block
-            _targetOutput = targetOutput;
-            _applyTargetOutput = applyTargetOutput;
+            return super._beforeSwap(sender, key, params, hookData);
         }
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
