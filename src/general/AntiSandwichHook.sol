@@ -70,6 +70,9 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      * For subsequent swaps in the same block:
      * - Calculates a target output based on the beginning-of-block state
      * - Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
+     *
+     * NOTE: This implementation skips calling `super._beforeSwap` in the first swap of the block. Consider
+     * execution side effects might be missed if there is more than one definition for this function.
      */
     function _beforeSwap(
         address sender,
