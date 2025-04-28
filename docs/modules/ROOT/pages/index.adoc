@@ -67,8 +67,6 @@ In order to facilitate understanding of Uniswap Hooks and help start building wi
 
 video::89poDXj6ylw_8k[youtube,list=PLdJRkA9gCKOOx-hRyS1tsprm2R4EG2dcZ, width=100%, height=350]
 
-
-
 [[security]]
 == Security
 
