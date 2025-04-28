@@ -51,7 +51,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
     /// @dev Represents a checkpoint of the pool state at the beginning of a block.
     struct Checkpoint {
-        uint32 blockNumber;
+        uint48 blockNumber;
         Slot0 slot0;
         Pool.State state;
     }
@@ -84,7 +84,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         // update the top-of-block `slot0` if new block
-        if (_lastCheckpoint.blockNumber != uint32(block.number)) {
+        if (_lastCheckpoint.blockNumber != uint48(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
             return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
@@ -110,7 +110,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         BalanceDelta delta,
         bytes calldata hookData
     ) internal override returns (bytes4, int128) {
-        uint32 blockNumber = uint32(block.number);
+        uint48 blockNumber = uint48(block.number);
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
