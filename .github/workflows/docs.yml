@@ -1,8 +1,12 @@
 name: docs
+
 on:
   push:
     branches:
       - master
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -13,7 +17,5 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - run: bash scripts/git-user-config.sh
-      - run: npm run prepare-docs
-      - run: git add -f docs
-      - run: git commit -m "Update docs"
+      - run: node scripts/publish-docs.js
       - run: git push --all origin
