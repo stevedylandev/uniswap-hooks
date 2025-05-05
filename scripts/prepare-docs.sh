@@ -11,6 +11,8 @@ fi
 
 rm -rf "$OUTDIR"
 
+export SHELL=/bin/bash
+
 # Check if forge is installed
 if ! command -v forge &> /dev/null; then
   (curl -L https://foundry.paradigm.xyz | bash) || true
