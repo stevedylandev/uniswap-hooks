@@ -1,0 +1,69 @@
+:github-icon: pass:[<svg class="icon"><use href="#github-icon"/></svg>]
+:IHookEvents: pass:normal[xref:interfaces.adoc#IHookEvents[`IHookEvents`]]
+:xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-
+:xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
+:xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
+:xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
+= Interfaces
+
+[.readme-notice]
+NOTE: This document is better viewed on the docs page.
+
+Interfaces to be used by Hooks 
+
+ * {IHookEvents}: Interface for standard hook events emission.
+
+== Interfaces
+
+:HookSwap: pass:normal[xref:#IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-[`++HookSwap++`]]
+:HookFee: pass:normal[xref:#IHookEvents-HookFee-bytes32-address-uint128-uint128-[`++HookFee++`]]
+:HookModifyLiquidity: pass:normal[xref:#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-[`++HookModifyLiquidity++`]]
+:HookBonus: pass:normal[xref:#IHookEvents-HookBonus-bytes32-uint128-uint128-[`++HookBonus++`]]
+
+[.contract]
+[[IHookEvents]]
+=== `++IHookEvents++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/master/src/interfaces/IHookEvents.sol[{github-icon},role=heading-link]
+
+[.hljs-theme-light.nopadding]
+```solidity
+import "uniswap-hooks/src/interfaces/IHookEvents.sol";
+```
+
+Interface for standard hook events emission.
+
+NOTE: Hooks should inherit from this interface to standardized event emission.
+
+[.contract-index]
+.Events
+--
+* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(id, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
+* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(id, sender, feeAmount0, feeAmount1)++`]
+* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(id, sender, amount0, amount1)++`]
+* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(id, amount0, amount1)++`]
+
+--
+
+[.contract-item]
+[[IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-]]
+==== `[.contract-item-name]#++HookSwap++#++(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint128 hookLPfeeAmount0, uint128 hookLPfeeAmount1)++` [.item-kind]#event#
+
+Event emitted when a swap is executed.
+
+[.contract-item]
+[[IHookEvents-HookFee-bytes32-address-uint128-uint128-]]
+==== `[.contract-item-name]#++HookFee++#++(bytes32 indexed id, address indexed sender, uint128 feeAmount0, uint128 feeAmount1)++` [.item-kind]#event#
+
+Event emitted when a fee is collected.
+
+[.contract-item]
+[[IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-]]
+==== `[.contract-item-name]#++HookModifyLiquidity++#++(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1)++` [.item-kind]#event#
+
+Event emitted when a liquidity modification is executed.
+
+[.contract-item]
+[[IHookEvents-HookBonus-bytes32-uint128-uint128-]]
+==== `[.contract-item-name]#++HookBonus++#++(bytes32 indexed id, uint128 amount0, uint128 amount1)++` [.item-kind]#event#
+
+Event emitted when a bonus is added to a swap.
+

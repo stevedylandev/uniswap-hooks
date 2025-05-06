@@ -1,0 +1,869 @@
+:github-icon: pass:[<svg class="icon"><use href="#github-icon"/></svg>]
+:LiquidityPenaltyHook: pass:normal[xref:general.adoc#LiquidityPenaltyHook[`LiquidityPenaltyHook`]]
+:AntiSandwichHook: pass:normal[xref:general.adoc#AntiSandwichHook[`AntiSandwichHook`]]
+:LimitOrderHook: pass:normal[xref:general.adoc#LimitOrderHook[`LimitOrderHook`]]
+:xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-: xref:general.adoc#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-
+:xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-
+:xref-LiquidityPenaltyHook-getHookPermissions--: xref:general.adoc#LiquidityPenaltyHook-getHookPermissions--
+:xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256
+:xref-LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--: xref:general.adoc#LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--
+:xref-LiquidityPenaltyHook-blockNumberOffset-uint256: xref:general.adoc#LiquidityPenaltyHook-blockNumberOffset-uint256
+:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
+:xref-LiquidityPenaltyHook-BlockNumberOffsetTooLow--: xref:general.adoc#LiquidityPenaltyHook-BlockNumberOffsetTooLow--
+:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
+:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
+:xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
+:xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
+:xref-AntiSandwichHook-constructor-contract-IPoolManager-: xref:general.adoc#AntiSandwichHook-constructor-contract-IPoolManager-
+:xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:general.adoc#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-: xref:general.adoc#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-
+:xref-AntiSandwichHook-getHookPermissions--: xref:general.adoc#AntiSandwichHook-getHookPermissions--
+:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
+:xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-
+:xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
+:xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
+:xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
+:xref-BaseDynamicAfterFee-TargetOutputExceeds--: xref:fee.adoc#BaseDynamicAfterFee-TargetOutputExceeds--
+:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
+:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
+:xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
+:xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
+:xref-LimitOrderHook-constructor-contract-IPoolManager-: xref:general.adoc#LimitOrderHook-constructor-contract-IPoolManager-
+:xref-LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:general.adoc#LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:general.adoc#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-
+:xref-LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-: xref:general.adoc#LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-
+:xref-LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-: xref:general.adoc#LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-
+:xref-LimitOrderHook-unlockCallback-bytes-: xref:general.adoc#LimitOrderHook-unlockCallback-bytes-
+:xref-LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-: xref:general.adoc#LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-
+:xref-LimitOrderHook-_handleCancelCallback-struct-LimitOrderHook-CallbackDataCancel-: xref:general.adoc#LimitOrderHook-_handleCancelCallback-struct-LimitOrderHook-CallbackDataCancel-
+:xref-LimitOrderHook-_handleWithdrawCallback-struct-LimitOrderHook-CallbackDataWithdraw-: xref:general.adoc#LimitOrderHook-_handleWithdrawCallback-struct-LimitOrderHook-CallbackDataWithdraw-
+:xref-LimitOrderHook-_fillOrder-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-_fillOrder-struct-PoolKey-int24-bool-
+:xref-LimitOrderHook-_getCrossedTicks-PoolId-int24-: xref:general.adoc#LimitOrderHook-_getCrossedTicks-PoolId-int24-
+:xref-LimitOrderHook-getTickLowerLast-PoolId-: xref:general.adoc#LimitOrderHook-getTickLowerLast-PoolId-
+:xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-
+:xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-: xref:general.adoc#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-
+:xref-LimitOrderHook-getHookPermissions--: xref:general.adoc#LimitOrderHook-getHookPermissions--
+:xref-LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId: xref:general.adoc#LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId
+:xref-LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-: xref:general.adoc#LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-
+:xref-LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-: xref:general.adoc#LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-
+:xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-: xref:general.adoc#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-
+:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
+:xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
+:xref-LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-
+:xref-LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-
+:xref-LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-
+:xref-LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-: xref:general.adoc#LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-
+:xref-LimitOrderHook-ZeroLiquidity--: xref:general.adoc#LimitOrderHook-ZeroLiquidity--
+:xref-LimitOrderHook-InRange--: xref:general.adoc#LimitOrderHook-InRange--
+:xref-LimitOrderHook-CrossedRange--: xref:general.adoc#LimitOrderHook-CrossedRange--
+:xref-LimitOrderHook-AlreadyInitialized--: xref:general.adoc#LimitOrderHook-AlreadyInitialized--
+:xref-LimitOrderHook-Filled--: xref:general.adoc#LimitOrderHook-Filled--
+:xref-LimitOrderHook-NotFilled--: xref:general.adoc#LimitOrderHook-NotFilled--
+:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
+:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
+:xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
+:xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
+:xref-LimitOrderHook-ZERO_BYTES-bytes: xref:general.adoc#LimitOrderHook-ZERO_BYTES-bytes
+= General
+
+[.readme-notice]
+NOTE: This document is better viewed on the docs page.
+
+Ready-to-use hooks built on top of the base and fee abstract contracts
+
+ * {LiquidityPenaltyHook}: Hook resistant to just-in-time liquidity attacks
+ * {AntiSandwichHook}: Hook resistant to sandwich attacks on swaps
+ * {LimitOrderHook}: Hook to enable limit order placing on liquidity pools
+
+== Hooks
+
+:MIN_BLOCK_NUMBER_OFFSET: pass:normal[xref:#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256[`++MIN_BLOCK_NUMBER_OFFSET++`]]
+:lastAddedLiquidity: pass:normal[xref:#LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--[`++lastAddedLiquidity++`]]
+:blockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-blockNumberOffset-uint256[`++blockNumberOffset++`]]
+:BlockNumberOffsetTooLow: pass:normal[xref:#LiquidityPenaltyHook-BlockNumberOffsetTooLow--[`++BlockNumberOffsetTooLow++`]]
+:constructor: pass:normal[xref:#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-[`++constructor++`]]
+:_afterAddLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterAddLiquidity++`]]
+:_afterRemoveLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterRemoveLiquidity++`]]
+:_calculateLiquidityPenalty: pass:normal[xref:#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-[`++_calculateLiquidityPenalty++`]]
+:getHookPermissions: pass:normal[xref:#LiquidityPenaltyHook-getHookPermissions--[`++getHookPermissions++`]]
+
+[.contract]
+[[LiquidityPenaltyHook]]
+=== `++LiquidityPenaltyHook++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/master/src/general/LiquidityPenaltyHook.sol[{github-icon},role=heading-link]
+
+[.hljs-theme-light.nopadding]
+```solidity
+import "uniswap-hooks/src/general/LiquidityPenaltyHook.sol";
+```
+
+This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
+The main purpose is to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
+it checks if a liquidity position was added to the pool within a certain block number range (at least 1 block)
+and if so, it donates some of the fees to the pool (up to 100% of the fees). This way, the hook effectively taxes JIT attackers by donating their
+expected profits back to the pool.
+The hook calculates the fee donation based on the block number when the liquidity was added
+and the block number offset.
+
+At constructor, the hook requires a block number offset. This offset is the number of blocks at which the hook
+will donate the fees to the pool. The minimum value is 1.
+
+NOTE: The hook donates the fees to the current in range liquidity providers (at the time of liquidity removal).
+If the block number offset is much later than the actual block number when the liquidity was added, the
+liquidity providers who benefited from the fees will be the ones in range at the time of liquidity removal, not
+the ones in range at the time of liquidity addition.
+
+WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+not give any warranties and will not be liable for any losses incurred through any use of this code
+base.
+
+_Available since v0.1.1_
+
+[.contract-index]
+.Functions
+--
+* {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-}[`++constructor(_poolManager, _blockNumberOffset)++`]
+* {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , , )++`]
+* {xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(sender, key, params, , feeDelta, )++`]
+* {xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-}[`++_calculateLiquidityPenalty(feeDelta, poolId, positionKey)++`]
+* {xref-LiquidityPenaltyHook-getHookPermissions--}[`++getHookPermissions()++`]
+* {xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256}[`++MIN_BLOCK_NUMBER_OFFSET()++`]
+* {xref-LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--}[`++lastAddedLiquidity()++`]
+* {xref-LiquidityPenaltyHook-blockNumberOffset-uint256}[`++blockNumberOffset()++`]
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
+* {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
+* {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
+* {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, , , , )++`]
+* {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
+* {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Errors
+--
+* {xref-LiquidityPenaltyHook-BlockNumberOffsetTooLow--}[`++BlockNumberOffsetTooLow()++`]
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
+* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
+* {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
+* {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-item]
+[[LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-]]
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager, uint256 _blockNumberOffset)++` [.item-kind]#public#
+
+Set the `PoolManager` address and the block number offset.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterAddLiquidity++#++(address sender, struct PoolKey key, struct IPoolManager.ModifyLiquidityParams params, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
+
+Hooks into the `afterAddLiquidity` hook to record the block number when the liquidity was added to track
+JIT liquidity positions.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterRemoveLiquidity++#++(address sender, struct PoolKey key, struct IPoolManager.ModifyLiquidityParams params, BalanceDelta, BalanceDelta feeDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
+
+Hooks into the `afterRemoveLiquidity` hook to donate accumulated fees for a JIT liquidity position created.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-]]
+==== `[.contract-item-name]#++_calculateLiquidityPenalty++#++(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey) → BalanceDelta liquidityPenalty++` [.item-kind]#internal#
+
+Calculates the fee donation when a liquidity position is removed before the block number offset.
+
+[.contract-item]
+[[LiquidityPenaltyHook-getHookPermissions--]]
+==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
+
+[.contract-item]
+[[LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256]]
+==== `[.contract-item-name]#++MIN_BLOCK_NUMBER_OFFSET++#++() → uint256++` [.item-kind]#public#
+
+[.contract-item]
+[[LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--]]
+==== `[.contract-item-name]#++lastAddedLiquidity++#++() → mapping(PoolId &#x3D;&gt; mapping(bytes32 &#x3D;&gt; uint256))++` [.item-kind]#public#
+
+[.contract-item]
+[[LiquidityPenaltyHook-blockNumberOffset-uint256]]
+==== `[.contract-item-name]#++blockNumberOffset++#++() → uint256++` [.item-kind]#public#
+
+[.contract-item]
+[[LiquidityPenaltyHook-BlockNumberOffsetTooLow--]]
+==== `[.contract-item-name]#++BlockNumberOffsetTooLow++#++()++` [.item-kind]#error#
+
+Hook was attempted to be deployed with a block number offset that is too low.
+
+:Checkpoint: pass:normal[xref:#AntiSandwichHook-Checkpoint[`++Checkpoint++`]]
+:constructor: pass:normal[xref:#AntiSandwichHook-constructor-contract-IPoolManager-[`++constructor++`]]
+:_beforeSwap: pass:normal[xref:#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-[`++_beforeSwap++`]]
+:_afterSwap: pass:normal[xref:#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
+:_getTargetOutput: pass:normal[xref:#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-[`++_getTargetOutput++`]]
+:_afterSwapHandler: pass:normal[xref:#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-[`++_afterSwapHandler++`]]
+:getHookPermissions: pass:normal[xref:#AntiSandwichHook-getHookPermissions--[`++getHookPermissions++`]]
+
+[.contract]
+[[AntiSandwichHook]]
+=== `++AntiSandwichHook++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/master/src/general/AntiSandwichHook.sol[{github-icon},role=heading-link]
+
+[.hljs-theme-light.nopadding]
+```solidity
+import "uniswap-hooks/src/general/AntiSandwichHook.sol";
+```
+
+Sandwich-resistant hook, based on
+https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
+implementation.
+
+This hook implements the sandwich-resistant AMM design introduced
+https://www.umbraresearch.xyz/writings/sandwich-resistant-amm[here]. Specifically,
+this hook guarantees that no swaps get filled at a price better than the price at
+the beginning of the slot window (i.e. one block).
+
+Within a slot window, swaps impact the pool asymmetrically for buys and sells.
+When a buy order is executed, the offer on the pool increases in accordance with
+the xy=k curve. However, the bid price remains constant, instead increasing the
+amount of liquidity on the bid. Subsequent sells eat into this liquidity, while
+decreasing the offer price according to xy=k.
+
+NOTE: Swaps in the other direction do not get the positive price difference
+compared to the initial price before the first swap in the block.
+
+WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+not give any warranties and will not be liable for any losses incurred through any use of this code
+base.
+
+_Available since v1.1.0_
+
+[.contract-index]
+.Functions
+--
+* {xref-AntiSandwichHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
+* {xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
+* {xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_getTargetOutput(, key, params, )++`]
+* {xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, , , feeAmount)++`]
+* {xref-AntiSandwichHook-getHookPermissions--}[`++getHookPermissions()++`]
+
+[.contract-subindex-inherited]
+.BaseDynamicAfterFee
+
+[.contract-subindex-inherited]
+.IHookEvents
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
+* {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
+* {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
+* {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
+* {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Events
+--
+
+[.contract-subindex-inherited]
+.BaseDynamicAfterFee
+
+[.contract-subindex-inherited]
+.IHookEvents
+* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(id, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
+* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(id, sender, feeAmount0, feeAmount1)++`]
+* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(id, sender, amount0, amount1)++`]
+* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(id, amount0, amount1)++`]
+
+[.contract-subindex-inherited]
+.BaseHook
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Errors
+--
+
+[.contract-subindex-inherited]
+.BaseDynamicAfterFee
+* {xref-BaseDynamicAfterFee-TargetOutputExceeds--}[`++TargetOutputExceeds()++`]
+
+[.contract-subindex-inherited]
+.IHookEvents
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
+* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
+* {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
+* {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-item]
+[[AntiSandwichHook-constructor-contract-IPoolManager-]]
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#public#
+
+[.contract-item]
+[[AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-]]
+==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct IPoolManager.SwapParams params, bytes hookData) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
+
+Handles the before swap hook, setting up checkpoints at the beginning of blocks
+and calculating target outputs for subsequent swaps.
+
+For the first swap in a block:
+- Saves the current pool state as a checkpoint
+
+For subsequent swaps in the same block:
+- Calculates a target output based on the beginning-of-block state
+- Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
+
+NOTE: This implementation skips calling `super._beforeSwap` in the first swap of the block. Consider
+execution side effects might be missed if there is more than one definition for this function.
+
+[.contract-item]
+[[AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterSwap++#++(address sender, struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta delta, bytes hookData) → bytes4, int128++` [.item-kind]#internal#
+
+Handles the after swap hook, initializing the full pool state checkpoint for the first
+swap in a block and updating the target output if needed.
+
+For the first swap in a block:
+- Saves a detailed checkpoint of the pool state including liquidity and tick information
+- This checkpoint will be used for subsequent swaps to calculate fair execution prices
+
+For all swaps:
+- Caps the target output to the actual swap amount to prevent excessive fee collection
+
+[.contract-item]
+[[AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-]]
+==== `[.contract-item-name]#++_getTargetOutput++#++(address, struct PoolKey key, struct IPoolManager.SwapParams params, bytes) → uint256 targetOutput, bool applyTargetOutput++` [.item-kind]#internal#
+
+Calculates the fair output amount based on the pool state at the beginning of the block.
+This prevents sandwich attacks by ensuring trades can't get better prices than what was available
+at the start of the block.
+
+The anti-sandwich mechanism works by:
+* For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve
+* For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
+  price, which prevents attackers from manipulating the price within a block
+
+[.contract-item]
+[[AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-]]
+==== `[.contract-item-name]#++_afterSwapHandler++#++(struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta, uint256, uint256 feeAmount)++` [.item-kind]#internal#
+
+Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
+When a swap executes at a worse price than what's currently available in the pool (due to
+enforcing the beginning-of-block price), the excess tokens are donated back to the pool
+to benefit all liquidity providers.
+
+[.contract-item]
+[[AntiSandwichHook-getHookPermissions--]]
+==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
+
+Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwapReturnDelta`.
+
+:OrderInfo: pass:normal[xref:#LimitOrderHook-OrderInfo[`++OrderInfo++`]]
+:Callbacks: pass:normal[xref:#LimitOrderHook-Callbacks[`++Callbacks++`]]
+:CallbackData: pass:normal[xref:#LimitOrderHook-CallbackData[`++CallbackData++`]]
+:CallbackDataPlace: pass:normal[xref:#LimitOrderHook-CallbackDataPlace[`++CallbackDataPlace++`]]
+:CallbackDataCancel: pass:normal[xref:#LimitOrderHook-CallbackDataCancel[`++CallbackDataCancel++`]]
+:CallbackDataWithdraw: pass:normal[xref:#LimitOrderHook-CallbackDataWithdraw[`++CallbackDataWithdraw++`]]
+:ZERO_BYTES: pass:normal[xref:#LimitOrderHook-ZERO_BYTES-bytes[`++ZERO_BYTES++`]]
+:orderIdNext: pass:normal[xref:#LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId[`++orderIdNext++`]]
+:tickLowerLasts: pass:normal[xref:#LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-[`++tickLowerLasts++`]]
+:orders: pass:normal[xref:#LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-[`++orders++`]]
+:orderInfos: pass:normal[xref:#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-[`++orderInfos++`]]
+:ZeroLiquidity: pass:normal[xref:#LimitOrderHook-ZeroLiquidity--[`++ZeroLiquidity++`]]
+:InRange: pass:normal[xref:#LimitOrderHook-InRange--[`++InRange++`]]
+:CrossedRange: pass:normal[xref:#LimitOrderHook-CrossedRange--[`++CrossedRange++`]]
+:AlreadyInitialized: pass:normal[xref:#LimitOrderHook-AlreadyInitialized--[`++AlreadyInitialized++`]]
+:Filled: pass:normal[xref:#LimitOrderHook-Filled--[`++Filled++`]]
+:NotFilled: pass:normal[xref:#LimitOrderHook-NotFilled--[`++NotFilled++`]]
+:Place: pass:normal[xref:#LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-[`++Place++`]]
+:Fill: pass:normal[xref:#LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-[`++Fill++`]]
+:Cancel: pass:normal[xref:#LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-[`++Cancel++`]]
+:Withdraw: pass:normal[xref:#LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-[`++Withdraw++`]]
+:constructor: pass:normal[xref:#LimitOrderHook-constructor-contract-IPoolManager-[`++constructor++`]]
+:_afterInitialize: pass:normal[xref:#LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
+:_afterSwap: pass:normal[xref:#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
+:placeOrder: pass:normal[xref:#LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-[`++placeOrder++`]]
+:cancelOrder: pass:normal[xref:#LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-[`++cancelOrder++`]]
+:withdraw: pass:normal[xref:#LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-[`++withdraw++`]]
+:unlockCallback: pass:normal[xref:#LimitOrderHook-unlockCallback-bytes-[`++unlockCallback++`]]
+:_handlePlaceCallback: pass:normal[xref:#LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-[`++_handlePlaceCallback++`]]
+:_handleCancelCallback: pass:normal[xref:#LimitOrderHook-_handleCancelCallback-struct-LimitOrderHook-CallbackDataCancel-[`++_handleCancelCallback++`]]
+:_handleWithdrawCallback: pass:normal[xref:#LimitOrderHook-_handleWithdrawCallback-struct-LimitOrderHook-CallbackDataWithdraw-[`++_handleWithdrawCallback++`]]
+:_fillOrder: pass:normal[xref:#LimitOrderHook-_fillOrder-struct-PoolKey-int24-bool-[`++_fillOrder++`]]
+:_getCrossedTicks: pass:normal[xref:#LimitOrderHook-_getCrossedTicks-PoolId-int24-[`++_getCrossedTicks++`]]
+:getTickLowerLast: pass:normal[xref:#LimitOrderHook-getTickLowerLast-PoolId-[`++getTickLowerLast++`]]
+:getOrderId: pass:normal[xref:#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-[`++getOrderId++`]]
+:getOrderLiquidity: pass:normal[xref:#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-[`++getOrderLiquidity++`]]
+:getHookPermissions: pass:normal[xref:#LimitOrderHook-getHookPermissions--[`++getHookPermissions++`]]
+
+[.contract]
+[[LimitOrderHook]]
+=== `++LimitOrderHook++` link:https://github.com/OpenZeppelin/uniswap-hooks/blob/master/src/general/LimitOrderHook.sol[{github-icon},role=heading-link]
+
+[.hljs-theme-light.nopadding]
+```solidity
+import "uniswap-hooks/src/general/LimitOrderHook.sol";
+```
+
+This hook implements a mechanism to place limit orders on a liquidity pool. Specifically,
+it allows users to place limit orders at a specific tick, which will be filled if the price of the pool
+crosses the tick.
+
+The hook implements the placing of orders by adding liquidity to the pool in a tick range out of range of the current price.
+Note that, given the way v4 pools work, if one adds liquidity out of range, the liquidity added will be in a single currency,
+instead of both, as in an in-range addition.
+
+Users can cancel their limit orders at any time until it is filled and liquidity is removed from the pool. Users can also withdraw
+their liquidity after the limit order is filled.
+
+WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+not give any warranties and will not be liable for any losses incurred through any use of this code
+base.
+
+_Available since v1.1.0_
+
+[.contract-index]
+.Functions
+--
+* {xref-LimitOrderHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
+* {xref-LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , tick)++`]
+* {xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, key, params, , )++`]
+* {xref-LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-}[`++placeOrder(key, tick, zeroForOne, liquidity)++`]
+* {xref-LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-}[`++cancelOrder(key, tickLower, zeroForOne, to)++`]
+* {xref-LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-}[`++withdraw(orderId, to)++`]
+* {xref-LimitOrderHook-unlockCallback-bytes-}[`++unlockCallback(rawData)++`]
+* {xref-LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-}[`++_handlePlaceCallback(placeData)++`]
+* {xref-LimitOrderHook-_handleCancelCallback-struct-LimitOrderHook-CallbackDataCancel-}[`++_handleCancelCallback(cancelData)++`]
+* {xref-LimitOrderHook-_handleWithdrawCallback-struct-LimitOrderHook-CallbackDataWithdraw-}[`++_handleWithdrawCallback(withdrawData)++`]
+* {xref-LimitOrderHook-_fillOrder-struct-PoolKey-int24-bool-}[`++_fillOrder(key, tickLower, zeroForOne)++`]
+* {xref-LimitOrderHook-_getCrossedTicks-PoolId-int24-}[`++_getCrossedTicks(poolId, tickSpacing)++`]
+* {xref-LimitOrderHook-getTickLowerLast-PoolId-}[`++getTickLowerLast(poolId)++`]
+* {xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-}[`++getOrderId(key, tickLower, zeroForOne)++`]
+* {xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-}[`++getOrderLiquidity(orderId, owner)++`]
+* {xref-LimitOrderHook-getHookPermissions--}[`++getHookPermissions()++`]
+* {xref-LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId}[`++orderIdNext()++`]
+* {xref-LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-}[`++tickLowerLasts()++`]
+* {xref-LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-}[`++orders()++`]
+* {xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-}[`++orderInfos()++`]
+
+[.contract-subindex-inherited]
+.IUnlockCallback
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
+* {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
+* {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
+* {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
+* {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Events
+--
+* {xref-LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-}[`++Place(owner, orderId, key, tickLower, zeroForOne, liquidity)++`]
+* {xref-LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-}[`++Fill(orderId, key, tickLower, zeroForOne)++`]
+* {xref-LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-}[`++Cancel(owner, orderId, key, tickLower, zeroForOne, liquidity)++`]
+* {xref-LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-}[`++Withdraw(owner, orderId, liquidity)++`]
+
+[.contract-subindex-inherited]
+.IUnlockCallback
+
+[.contract-subindex-inherited]
+.BaseHook
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Errors
+--
+* {xref-LimitOrderHook-ZeroLiquidity--}[`++ZeroLiquidity()++`]
+* {xref-LimitOrderHook-InRange--}[`++InRange()++`]
+* {xref-LimitOrderHook-CrossedRange--}[`++CrossedRange()++`]
+* {xref-LimitOrderHook-AlreadyInitialized--}[`++AlreadyInitialized()++`]
+* {xref-LimitOrderHook-Filled--}[`++Filled()++`]
+* {xref-LimitOrderHook-NotFilled--}[`++NotFilled()++`]
+
+[.contract-subindex-inherited]
+.IUnlockCallback
+
+[.contract-subindex-inherited]
+.BaseHook
+* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
+* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
+* {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
+* {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-index]
+.Internal Variables
+--
+* {xref-LimitOrderHook-ZERO_BYTES-bytes}[`++bytes constant ZERO_BYTES++`]
+
+[.contract-subindex-inherited]
+.IUnlockCallback
+
+[.contract-subindex-inherited]
+.BaseHook
+
+[.contract-subindex-inherited]
+.IHooks
+
+--
+
+[.contract-item]
+[[LimitOrderHook-constructor-contract-IPoolManager-]]
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#public#
+
+Set the `PoolManager` address.
+
+[.contract-item]
+[[LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-]]
+==== `[.contract-item-name]#++_afterInitialize++#++(address, struct PoolKey key, uint160, int24 tick) → bytes4++` [.item-kind]#internal#
+
+Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
+
+[.contract-item]
+[[LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterSwap++#++(address, struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta, bytes) → bytes4, int128++` [.item-kind]#internal#
+
+Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
+
+[.contract-item]
+[[LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-]]
+==== `[.contract-item-name]#++placeOrder++#++(struct PoolKey key, int24 tick, bool zeroForOne, uint128 liquidity)++` [.item-kind]#external#
+
+Places a limit order by adding liquidity out of range at a specific tick. The order will be filled when the
+pool price crosses the specified `tick`. Takes a `PoolKey` `key`, target `tick`, direction `zeroForOne` indicating
+whether to buy currency0 or currency1, and amount of `liquidity` to place. The interaction with the `poolManager` is done
+via the `unlock` function, which will trigger the `{unlockCallback}` function.
+
+[.contract-item]
+[[LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-]]
+==== `[.contract-item-name]#++cancelOrder++#++(struct PoolKey key, int24 tickLower, bool zeroForOne, address to)++` [.item-kind]#external#
+
+Cancels a limit order by removing liquidity from the pool. Takes a `PoolKey` `key`, `tickLower` of the order,
+direction `zeroForOne` indicating whether it was buying currency0 or currency1, and recipient address `to` for the
+removed liquidity. Note that partial cancellation is not supported - the entire liquidity added by the msg.sender will be removed.
+Note also that cancelling an order will cancel the order placed by the msg.sender, not orders placed by other users in the same tick range.
+The interaction with the `poolManager` is done via the `unlock` function, which will trigger the `{unlockCallback}` function.
+
+[.contract-item]
+[[LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-]]
+==== `[.contract-item-name]#++withdraw++#++(OrderIdLibrary.OrderId orderId, address to) → uint256 amount0, uint256 amount1++` [.item-kind]#external#
+
+Withdraws liquidity from a filled order, sending it to address `to`. Takes an `OrderId` `orderId` of the filled
+order to withdraw from. Returns the withdrawn amounts as `(amount0, amount1)`. Can only be called after the order is
+filled - use `cancelOrder` to remove liquidity from unfilled orders. The interaction with the `poolManager` is done via the
+`unlock` function, which will trigger the `{unlockCallback}` function.
+
+[.contract-item]
+[[LimitOrderHook-unlockCallback-bytes-]]
+==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#external#
+
+Handles callbacks from the `PoolManager` for order operations. Takes encoded `rawData` containing the callback type
+and operation-specific data. Returns encoded data containing fees accrued for cancel operations, or empty bytes
+otherwise. Only callable by the PoolManager.
+
+[.contract-item]
+[[LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-]]
+==== `[.contract-item-name]#++_handlePlaceCallback++#++(struct LimitOrderHook.CallbackDataPlace placeData)++` [.item-kind]#internal#
+
+Internal handler for place order callbacks. Takes `placeData` containing the order details and adds the
+specified liquidity to the pool out of range. Reverts if the order would be placed in range or on the wrong
+side of the range.
+
+[.contract-item]
+[[LimitOrderHook-_handleCancelCallback-struct-LimitOrderHook-CallbackDataCancel-]]
+==== `[.contract-item-name]#++_handleCancelCallback++#++(struct LimitOrderHook.CallbackDataCancel cancelData) → uint256 amount0Fee, uint256 amount1Fee++` [.item-kind]#internal#
+
+Internal handler for cancel order callbacks. Takes `cancelData` containing the cancellation details and
+removes liquidity from the pool. Returns accrued fees `(amount0Fee, amount1Fee)` which are allocated to remaining
+limit order placers, or to the cancelling user if they're removing all liquidity.
+
+[.contract-item]
+[[LimitOrderHook-_handleWithdrawCallback-struct-LimitOrderHook-CallbackDataWithdraw-]]
+==== `[.contract-item-name]#++_handleWithdrawCallback++#++(struct LimitOrderHook.CallbackDataWithdraw withdrawData)++` [.item-kind]#internal#
+
+Internal handler for withdraw callbacks. Takes `withdrawData` containing withdrawal amounts and recipient,
+burns the specified currency amounts from the hook, and transfers them to the recipient address.
+
+[.contract-item]
+[[LimitOrderHook-_fillOrder-struct-PoolKey-int24-bool-]]
+==== `[.contract-item-name]#++_fillOrder++#++(struct PoolKey key, int24 tickLower, bool zeroForOne)++` [.item-kind]#internal#
+
+Internal handler for filling limit orders when price crosses a tick. Takes a `PoolKey` `key`, target `tickLower`,
+and direction `zeroForOne`. Removes liquidity from filled orders, mints the received currencies to the hook, and
+updates order state to track filled amounts.
+
+[.contract-item]
+[[LimitOrderHook-_getCrossedTicks-PoolId-int24-]]
+==== `[.contract-item-name]#++_getCrossedTicks++#++(PoolId poolId, int24 tickSpacing) → int24 tickLower, int24 lower, int24 upper++` [.item-kind]#internal#
+
+Internal helper that calculates the range of ticks crossed during a price change. Takes a `PoolId` `poolId`
+and `tickSpacing`, returns the current `tickLower` and the range of ticks crossed (`lower`, `upper`) that need
+to be checked for limit orders.
+
+[.contract-item]
+[[LimitOrderHook-getTickLowerLast-PoolId-]]
+==== `[.contract-item-name]#++getTickLowerLast++#++(PoolId poolId) → int24++` [.item-kind]#public#
+
+Returns the last recorded lower tick for a given pool. Takes a `PoolId` `poolId` and returns the
+stored `tickLowerLast` value.
+
+[.contract-item]
+[[LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-]]
+==== `[.contract-item-name]#++getOrderId++#++(struct PoolKey key, int24 tickLower, bool zeroForOne) → OrderIdLibrary.OrderId++` [.item-kind]#public#
+
+Retrieves the order id for a given pool position. Takes a `PoolKey` `key`, target `tickLower`, and direction
+`zeroForOne` indicating whether it's buying currency0 or currency1. Returns the {OrderId} associated with this
+position, or the default order id if no order exists.
+
+[.contract-item]
+[[LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-]]
+==== `[.contract-item-name]#++getOrderLiquidity++#++(OrderIdLibrary.OrderId orderId, address owner) → uint256++` [.item-kind]#external#
+
+Get the liquidity of an order for a given order id and owner. Takes an {OrderId} `orderId` and `owner` address
+and returns the amount of liquidity the owner has contributed to the order.
+
+[.contract-item]
+[[LimitOrderHook-getHookPermissions--]]
+==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
+
+Get the hook permissions for this contract. Returns a `Hooks.Permissions` struct configured to enable
+`afterInitialize` and `afterSwap` hooks while disabling all other hooks.
+
+[.contract-item]
+[[LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId]]
+==== `[.contract-item-name]#++orderIdNext++#++() → OrderIdLibrary.OrderId++` [.item-kind]#public#
+
+The next order id to be used.
+
+[.contract-item]
+[[LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-]]
+==== `[.contract-item-name]#++tickLowerLasts++#++() → mapping(PoolId &#x3D;&gt; int24)++` [.item-kind]#public#
+
+The last tick lower for each pool.
+
+[.contract-item]
+[[LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-]]
+==== `[.contract-item-name]#++orders++#++() → mapping(bytes32 &#x3D;&gt; OrderIdLibrary.OrderId)++` [.item-kind]#public#
+
+Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
+
+[.contract-item]
+[[LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-]]
+==== `[.contract-item-name]#++orderInfos++#++() → mapping(OrderIdLibrary.OrderId &#x3D;&gt; struct LimitOrderHook.OrderInfo)++` [.item-kind]#public#
+
+Tracks the order info for each order id.
+
+[.contract-item]
+[[LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-]]
+==== `[.contract-item-name]#++Place++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity)++` [.item-kind]#event#
+
+Event emitted when a limit order is placed.
+
+[.contract-item]
+[[LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-]]
+==== `[.contract-item-name]#++Fill++#++(OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne)++` [.item-kind]#event#
+
+Event emitted when a limit order is filled.
+
+[.contract-item]
+[[LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-]]
+==== `[.contract-item-name]#++Cancel++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity)++` [.item-kind]#event#
+
+Event emitted when a limit order is canceled.
+
+[.contract-item]
+[[LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-]]
+==== `[.contract-item-name]#++Withdraw++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, uint128 liquidity)++` [.item-kind]#event#
+
+Event emitted when a limit order is withdrawn.
+
+[.contract-item]
+[[LimitOrderHook-ZeroLiquidity--]]
+==== `[.contract-item-name]#++ZeroLiquidity++#++()++` [.item-kind]#error#
+
+Zero liquidity was attempted to be added or removed.
+
+[.contract-item]
+[[LimitOrderHook-InRange--]]
+==== `[.contract-item-name]#++InRange++#++()++` [.item-kind]#error#
+
+Limit order was placed in range.
+
+[.contract-item]
+[[LimitOrderHook-CrossedRange--]]
+==== `[.contract-item-name]#++CrossedRange++#++()++` [.item-kind]#error#
+
+Limit order placed on the wrong side of the range.
+
+[.contract-item]
+[[LimitOrderHook-AlreadyInitialized--]]
+==== `[.contract-item-name]#++AlreadyInitialized++#++()++` [.item-kind]#error#
+
+Hook was already initialized.
+
+[.contract-item]
+[[LimitOrderHook-Filled--]]
+==== `[.contract-item-name]#++Filled++#++()++` [.item-kind]#error#
+
+Limit order was already filled.
+
+[.contract-item]
+[[LimitOrderHook-NotFilled--]]
+==== `[.contract-item-name]#++NotFilled++#++()++` [.item-kind]#error#
+
+Limit order is not filled.
+
+[.contract-item]
+[[LimitOrderHook-ZERO_BYTES-bytes]]
+==== `bytes [.contract-item-name]#++ZERO_BYTES++#` [.item-kind]#internal constant#
+
+The zero bytes.
+
