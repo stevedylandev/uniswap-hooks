@@ -61,6 +61,12 @@ contract DynamicLPFeeHook is BaseDynamicFee, Ownable {
 
 To keep your system secure, you should **always** use the installed code as-is, and neither copy-paste it from online sources, nor modify it yourself. The library is designed so that only the contracts and functions you use are deployed, so you don't need to worry about it needlessly increasing gas costs.
 
+[[tutorials]]
+=== Videos
+In order to facilitate understanding of Uniswap Hooks and help start building with them, we’ve released this playlist of guidelines on our YouTube channel.
+
+video::89poDXj6ylw_8k[youtube,list=PLdJRkA9gCKOOx-hRyS1tsprm2R4EG2dcZ, width=100%, height=350]
+
 [[security]]
 == Security
 
