@@ -118,7 +118,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
 
-
             return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
 
@@ -184,11 +183,11 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         // }
 
         int128 unspecifiedAmount = (params.amountSpecified < 0 == params.zeroForOne) ? delta.amount1() : delta.amount0();
-        if(unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
+        if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
 
-        if(!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+        if (!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
             uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
 
             address msgSender = IMsgSender(sender).msgSender();
@@ -196,7 +195,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             console.log("msgSender", msgSender);
 
             unspecified.settle(poolManager, msgSender, payAmount, false);
-
 
             return (this.afterSwap.selector, -(payAmount.toInt128()));
         }
@@ -219,10 +217,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
-        if(params.zeroForOne) {
+        if (params.zeroForOne) {
             return (type(uint256).max, false);
         }
-        
+
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
