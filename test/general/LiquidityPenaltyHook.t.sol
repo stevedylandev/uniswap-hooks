@@ -34,7 +34,7 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
-                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG
+                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG | Hooks.AFTER_ADD_LIQUIDITY_RETURNS_DELTA_FLAG
                 )
             )
         );
@@ -183,6 +183,57 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
         );
     }
 
+    function test_addLiquidity_Swap_addLiquidityJIT() public {
+        bool zeroForOne = true;
+
+        // add liquidity
+        modifyPoolLiquidity(key, -600, 600, 1e18, 0);
+        modifyPoolLiquidity(noHookKey, -600, 600, 1e18, 0);
+
+        // swap
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        SwapParams memory swapParams = SwapParams({
+            zeroForOne: zeroForOne,
+            amountSpecified: -1e15, //exact input
+            sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT
+        });
+        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
+        (int128 feesExpected0, int128 feesExpected1) =
+            calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
+
+        // add liquidity
+        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, 1e17, 0);
+        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, 1e17, 0);
+
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook), BalanceDeltaLibrary.amount0(deltaNoHook) - feesExpected0);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook), BalanceDeltaLibrary.amount1(deltaNoHook) - feesExpected1);
+
+        vm.roll(block.number + 1);
+        swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(noHookKey, swapParams, testSettings, "");
+
+        uint128 liquidityHookKey = StateLibrary.getLiquidity(manager, key.toId());
+        uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
+
+        assertEq(liquidityHookKey, liquidityNoHookKey);
+
+        BalanceDelta deltaHookNextBlock = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+        BalanceDelta deltaNoHookNextBlock = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
+
+        assertEq(
+            BalanceDeltaLibrary.amount0(deltaHookNextBlock),
+            BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) + feesExpected0
+        );
+        assertEq(
+            BalanceDeltaLibrary.amount1(deltaHookNextBlock),
+            BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1
+        );
+    }
+
     function test_addLiquidity_MultipleSwaps_JIT() public {
         // add liquidity
         modifyPoolLiquidity(key, -600, 600, 1e18, 0);
@@ -299,7 +350,7 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
-                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG
+                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG | Hooks.AFTER_ADD_LIQUIDITY_RETURNS_DELTA_FLAG
                 ) + 2 ** 96
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
@@ -351,7 +402,7 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
-                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG
+                        | Hooks.AFTER_REMOVE_LIQUIDITY_RETURNS_DELTA_FLAG | Hooks.AFTER_ADD_LIQUIDITY_RETURNS_DELTA_FLAG
                 ) + 2 ** 96
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );

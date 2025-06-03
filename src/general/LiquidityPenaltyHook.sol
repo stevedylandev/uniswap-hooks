@@ -83,11 +83,31 @@ contract LiquidityPenaltyHook is BaseHook {
         PoolKey calldata key,
         ModifyLiquidityParams calldata params,
         BalanceDelta,
-        BalanceDelta,
+        BalanceDelta feeDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
+        PoolId id = key.toId();
         // Get the position key
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
+
+        uint128 liquidity = poolManager.getLiquidity(id);
+        // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
+        if (block.number - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
+            // If the liquidity provider adds liquidity before the block number offset, the hook donates
+            // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
+            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
+
+            // Record the block number when the liquidity was added
+            lastAddedLiquidity[id][positionKey] = block.number;
+
+            BalanceDelta deltaHook = poolManager.donate(
+                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+            );
+
+            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
+
+            return (this.afterAddLiquidity.selector, returnDelta);
+        }
 
         // Record the block number when the liquidity was added
         lastAddedLiquidity[key.toId()][positionKey] = block.number;
@@ -189,7 +209,7 @@ contract LiquidityPenaltyHook is BaseHook {
             afterDonate: false,
             beforeSwapReturnDelta: false,
             afterSwapReturnDelta: false,
-            afterAddLiquidityReturnDelta: false,
+            afterAddLiquidityReturnDelta: true,
             afterRemoveLiquidityReturnDelta: true
         });
     }
