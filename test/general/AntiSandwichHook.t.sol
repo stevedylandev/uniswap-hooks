@@ -12,6 +12,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
+import {console} from "forge-std/console.sol";
 
 contract AntiSandwichHookTest is Test, Deployers {
     AntiSandwichHook hook;
@@ -73,6 +74,57 @@ contract AntiSandwichHookTest is Test, Deployers {
         assertEq(currency1.balanceOf(address(this)), balanceBefore1 + 999000999000999, "amount 1");
     }
 
+    function test_swap_sandwiched_zeroForOne_exactInput() public {
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(amountToSwap),
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+        // buy currency0 for currency1, front run
+        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        console.log("AQUI A");
+        console.log("AQUI A, delta.amount0()", delta.amount0());
+        console.log("AQUI A, delta.amount1()", delta.amount1());
+
+        // sandwiched buy currency0 for currency1
+        swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        // sell currency1 for currency0, front run
+        params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(delta.amount1()),
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+        BalanceDelta deltaEnd = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+
+        console.log("AQUI 3");
+        console.log("AQUI 3, deltaEnd.amount0()", deltaEnd.amount0());
+        console.log("AQUI 3, deltaEnd.amount1()", deltaEnd.amount1());
+        console.log("AQUI 3, delta.amount0()", delta.amount0());
+        console.log("AQUI 3, delta.amount1()", delta.amount1());
+
+        assertLe(deltaEnd.amount0(), -delta.amount0(), "front runner profit");
+
+        vm.roll(block.number + 1);
+
+        params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(amountToSwap),
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+
+        delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        // 997010963116644 is obtained from `test_swap_successfulSandwich`
+        assertEq(delta.amount1(), 997010963116644, "state did not reset");    
+    }
+
+
+
+
     /// @notice Unit test for a failed sandwich attack using the hook.
     function test_swap_failedSandwich() public {
         uint256 amountToSwap = 1e15;
@@ -119,14 +171,21 @@ contract AntiSandwichHookTest is Test, Deployers {
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
-            amountSpecified: -int256(amountToSwap),
+            amountSpecified: -int256(amountToSwap), // exact input
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
         });
+
         // buy currency0 for currency1, front run
-        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+
+        console.log("AQUI 1");
+        console.log("AQUI 1, delta.amount0()", delta.amount0());
+        console.log("AQUI 1, delta.amount1()", delta.amount1());
 
         // sandwiched buy currency0 for currency1
-        swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+
+        console.log("AQUI 2");
 
         // sell currency1 for currency0, front run
         params = IPoolManager.SwapParams({
@@ -135,6 +194,8 @@ contract AntiSandwichHookTest is Test, Deployers {
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
         });
         BalanceDelta deltaEnd = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+
+        
 
         assertLe(deltaEnd.amount1(), -delta.amount1(), "front runner profit");
 

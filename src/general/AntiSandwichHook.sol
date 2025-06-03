@@ -12,12 +12,18 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
+import {console} from "forge-std/console.sol";
+
+interface IMsgSender {
+    function msgSender() external view returns (address);
+}
 
 /**
  * @dev Sandwich-resistant hook, based on
@@ -48,6 +54,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
+    using SafeCast for uint256;
 
     /// @dev Represents a checkpoint of the pool state at the beginning of a block.
     struct Checkpoint {
@@ -86,6 +93,32 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != uint48(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+
+            _lastCheckpoint.blockNumber = uint48(block.number);
+
+            // iterate over ticks
+            (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
+            for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
+                (
+                    uint128 liquidityGross,
+                    int128 liquidityNet,
+                    uint256 feeGrowthOutside0X128,
+                    uint256 feeGrowthOutside1X128
+                ) = poolManager.getTickInfo(poolId, tick);
+
+                _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+                _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+                _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+                _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+            }
+
+            // deep copy only values that are used and change in fair delta calculation
+            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+            (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
+                poolManager.getFeeGrowthGlobals(poolId);
+            _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
+
+
             return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
 
@@ -115,40 +148,57 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         // after the first swap in block, initialize the temporary pool state
-        if (_lastCheckpoint.blockNumber != blockNumber) {
-            _lastCheckpoint.blockNumber = blockNumber;
+        // if (_lastCheckpoint.blockNumber != blockNumber) {
+        //     _lastCheckpoint.blockNumber = blockNumber;
 
-            // iterate over ticks
-            (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
-            for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
-                (
-                    uint128 liquidityGross,
-                    int128 liquidityNet,
-                    uint256 feeGrowthOutside0X128,
-                    uint256 feeGrowthOutside1X128
-                ) = poolManager.getTickInfo(poolId, tick);
+        //     // iterate over ticks
+        //     (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
+        //     for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
+        //         (
+        //             uint128 liquidityGross,
+        //             int128 liquidityNet,
+        //             uint256 feeGrowthOutside0X128,
+        //             uint256 feeGrowthOutside1X128
+        //         ) = poolManager.getTickInfo(poolId, tick);
 
-                _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-            }
+        //         _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+        //         _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+        //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+        //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+        //     }
 
-            // deep copy only values that are used and change in fair delta calculation
-            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
-            (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
-                poolManager.getFeeGrowthGlobals(poolId);
-            _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
-        }
-        int128 unspecifiedAmount = (params.amountSpecified < 0 == params.zeroForOne) ? delta.amount1() : delta.amount0();
+        //     // deep copy only values that are used and change in fair delta calculation
+        //     _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+        //     (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
+        //         poolManager.getFeeGrowthGlobals(poolId);
+        //     _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
+        // }
 
-        if (unspecifiedAmount < 0) {
-            unspecifiedAmount = -unspecifiedAmount;
-        }
+        // if (unspecifiedAmount < 0) {
+        //     unspecifiedAmount = -unspecifiedAmount;
+        // }
 
         // update target output if it exceeds the swap amount
-        if (_targetOutput > uint128(unspecifiedAmount)) {
-            _targetOutput = uint128(unspecifiedAmount);
+        // if (_targetOutput > uint128(unspecifiedAmount)) {
+        //     _targetOutput = uint128(unspecifiedAmount);
+        // }
+
+        int128 unspecifiedAmount = (params.amountSpecified < 0 == params.zeroForOne) ? delta.amount1() : delta.amount0();
+        if(unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
+
+        Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
+
+        if(!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+            uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
+
+            address msgSender = IMsgSender(sender).msgSender();
+
+            console.log("msgSender", msgSender);
+
+            unspecified.settle(poolManager, msgSender, payAmount, false);
+
+
+            return (this.afterSwap.selector, -(payAmount.toInt128()));
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
@@ -169,6 +219,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
+        if(params.zeroForOne) {
+            return (type(uint256).max, false);
+        }
+        
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
@@ -192,6 +246,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
         int128 target =
             (params.amountSpecified < 0 == params.zeroForOne) ? targetDelta.amount1() : targetDelta.amount0();
+
+        console.log("target", target);
+
+        if (target < 0) target = -target;
 
         targetOutput = uint256(uint128(target));
         applyTargetOutput = true;
