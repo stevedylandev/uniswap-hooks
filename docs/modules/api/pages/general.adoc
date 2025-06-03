@@ -3,8 +3,8 @@
 :AntiSandwichHook: pass:normal[xref:general.adoc#AntiSandwichHook[`AntiSandwichHook`]]
 :LimitOrderHook: pass:normal[xref:general.adoc#LimitOrderHook[`LimitOrderHook`]]
 :xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-: xref:general.adoc#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-
-:xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
 :xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-
 :xref-LiquidityPenaltyHook-getHookPermissions--: xref:general.adoc#LiquidityPenaltyHook-getHookPermissions--
 :xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256
@@ -15,16 +15,16 @@
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
-:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
-:xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
@@ -36,26 +36,26 @@
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-AntiSandwichHook-constructor-contract-IPoolManager-: xref:general.adoc#AntiSandwichHook-constructor-contract-IPoolManager-
-:xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:general.adoc#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
-:xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-: xref:general.adoc#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-
+:xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:general.adoc#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
+:xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:general.adoc#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
 :xref-AntiSandwichHook-getHookPermissions--: xref:general.adoc#AntiSandwichHook-getHookPermissions--
 :xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
-:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
@@ -72,7 +72,7 @@
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-LimitOrderHook-constructor-contract-IPoolManager-: xref:general.adoc#LimitOrderHook-constructor-contract-IPoolManager-
 :xref-LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:general.adoc#LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
-:xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:general.adoc#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:general.adoc#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-
 :xref-LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-: xref:general.adoc#LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-
 :xref-LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-: xref:general.adoc#LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-
@@ -94,17 +94,17 @@
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
-:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-
-:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
-:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-
-:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-
+:xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
+:xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:base.adoc#BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:base.adoc#BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
@@ -143,8 +143,8 @@ Ready-to-use hooks built on top of the base and fee abstract contracts
 :blockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-blockNumberOffset-uint256[`++blockNumberOffset++`]]
 :BlockNumberOffsetTooLow: pass:normal[xref:#LiquidityPenaltyHook-BlockNumberOffsetTooLow--[`++BlockNumberOffsetTooLow++`]]
 :constructor: pass:normal[xref:#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-[`++constructor++`]]
-:_afterAddLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterAddLiquidity++`]]
-:_afterRemoveLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterRemoveLiquidity++`]]
+:_afterAddLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterAddLiquidity++`]]
+:_afterRemoveLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterRemoveLiquidity++`]]
 :_calculateLiquidityPenalty: pass:normal[xref:#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-[`++_calculateLiquidityPenalty++`]]
 :getHookPermissions: pass:normal[xref:#LiquidityPenaltyHook-getHookPermissions--[`++getHookPermissions++`]]
 
@@ -183,8 +183,8 @@ _Available since v0.1.1_
 .Functions
 --
 * {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-}[`++constructor(_poolManager, _blockNumberOffset)++`]
-* {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , , )++`]
-* {xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(sender, key, params, , feeDelta, )++`]
+* {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , , )++`]
+* {xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(sender, key, params, , feeDelta, )++`]
 * {xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-}[`++_calculateLiquidityPenalty(feeDelta, poolId, positionKey)++`]
 * {xref-LiquidityPenaltyHook-getHookPermissions--}[`++getHookPermissions()++`]
 * {xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256}[`++MIN_BLOCK_NUMBER_OFFSET()++`]
@@ -198,16 +198,16 @@ _Available since v0.1.1_
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
 * {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
-* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
-* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
-* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
-* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
-* {xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, , , , )++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, , , , )++`]
 * {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
@@ -243,15 +243,15 @@ _Available since v0.1.1_
 Set the `PoolManager` address and the block number offset.
 
 [.contract-item]
-[[LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
-==== `[.contract-item-name]#++_afterAddLiquidity++#++(address sender, struct PoolKey key, struct IPoolManager.ModifyLiquidityParams params, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
+[[LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterAddLiquidity++#++(address sender, struct PoolKey key, struct ModifyLiquidityParams params, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
 Hooks into the `afterAddLiquidity` hook to record the block number when the liquidity was added to track
 JIT liquidity positions.
 
 [.contract-item]
-[[LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
-==== `[.contract-item-name]#++_afterRemoveLiquidity++#++(address sender, struct PoolKey key, struct IPoolManager.ModifyLiquidityParams params, BalanceDelta, BalanceDelta feeDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
+[[LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterRemoveLiquidity++#++(address sender, struct PoolKey key, struct ModifyLiquidityParams params, BalanceDelta, BalanceDelta feeDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
 Hooks into the `afterRemoveLiquidity` hook to donate accumulated fees for a JIT liquidity position created.
 
@@ -285,10 +285,10 @@ Hook was attempted to be deployed with a block number offset that is too low.
 
 :Checkpoint: pass:normal[xref:#AntiSandwichHook-Checkpoint[`++Checkpoint++`]]
 :constructor: pass:normal[xref:#AntiSandwichHook-constructor-contract-IPoolManager-[`++constructor++`]]
-:_beforeSwap: pass:normal[xref:#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-[`++_beforeSwap++`]]
-:_afterSwap: pass:normal[xref:#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
-:_getTargetOutput: pass:normal[xref:#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-[`++_getTargetOutput++`]]
-:_afterSwapHandler: pass:normal[xref:#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-[`++_afterSwapHandler++`]]
+:_beforeSwap: pass:normal[xref:#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
+:_afterSwap: pass:normal[xref:#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
+:_getTargetOutput: pass:normal[xref:#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getTargetOutput++`]]
+:_afterSwapHandler: pass:normal[xref:#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-[`++_afterSwapHandler++`]]
 :getHookPermissions: pass:normal[xref:#AntiSandwichHook-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -328,10 +328,10 @@ _Available since v1.1.0_
 .Functions
 --
 * {xref-AntiSandwichHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
-* {xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
-* {xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, hookData)++`]
-* {xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_getTargetOutput(, key, params, )++`]
-* {xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, , , feeAmount)++`]
+* {xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
+* {xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getTargetOutput(, key, params, )++`]
+* {xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, , , feeAmount)++`]
 * {xref-AntiSandwichHook-getHookPermissions--}[`++getHookPermissions()++`]
 
 [.contract-subindex-inherited]
@@ -347,16 +347,16 @@ _Available since v1.1.0_
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
 * {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
-* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
-* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
-* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
-* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
-* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
-* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
 * {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
@@ -418,8 +418,8 @@ _Available since v1.1.0_
 ==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#public#
 
 [.contract-item]
-[[AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-]]
-==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct IPoolManager.SwapParams params, bytes hookData) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
+[[AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]
+==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct SwapParams params, bytes hookData) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
 
 Handles the before swap hook, setting up checkpoints at the beginning of blocks
 and calculating target outputs for subsequent swaps.
@@ -435,8 +435,8 @@ NOTE: This implementation skips calling `super._beforeSwap` in the first swap of
 execution side effects might be missed if there is more than one definition for this function.
 
 [.contract-item]
-[[AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-]]
-==== `[.contract-item-name]#++_afterSwap++#++(address sender, struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta delta, bytes hookData) → bytes4, int128++` [.item-kind]#internal#
+[[AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterSwap++#++(address sender, struct PoolKey key, struct SwapParams params, BalanceDelta delta, bytes hookData) → bytes4, int128++` [.item-kind]#internal#
 
 Handles the after swap hook, initializing the full pool state checkpoint for the first
 swap in a block and updating the target output if needed.
@@ -449,8 +449,8 @@ For all swaps:
 - Caps the target output to the actual swap amount to prevent excessive fee collection
 
 [.contract-item]
-[[AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-]]
-==== `[.contract-item-name]#++_getTargetOutput++#++(address, struct PoolKey key, struct IPoolManager.SwapParams params, bytes) → uint256 targetOutput, bool applyTargetOutput++` [.item-kind]#internal#
+[[AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-]]
+==== `[.contract-item-name]#++_getTargetOutput++#++(address, struct PoolKey key, struct SwapParams params, bytes) → uint256 targetOutput, bool applyTargetOutput++` [.item-kind]#internal#
 
 Calculates the fair output amount based on the pool state at the beginning of the block.
 This prevents sandwich attacks by ensuring trades can't get better prices than what was available
@@ -462,8 +462,8 @@ The anti-sandwich mechanism works by:
   price, which prevents attackers from manipulating the price within a block
 
 [.contract-item]
-[[AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-uint256-uint256-]]
-==== `[.contract-item-name]#++_afterSwapHandler++#++(struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta, uint256, uint256 feeAmount)++` [.item-kind]#internal#
+[[AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-]]
+==== `[.contract-item-name]#++_afterSwapHandler++#++(struct PoolKey key, struct SwapParams params, BalanceDelta, uint256, uint256 feeAmount)++` [.item-kind]#internal#
 
 Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
 When a swap executes at a worse price than what's currently available in the pool (due to
@@ -499,7 +499,7 @@ Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwap
 :Withdraw: pass:normal[xref:#LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-[`++Withdraw++`]]
 :constructor: pass:normal[xref:#LimitOrderHook-constructor-contract-IPoolManager-[`++constructor++`]]
 :_afterInitialize: pass:normal[xref:#LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
-:_afterSwap: pass:normal[xref:#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
+:_afterSwap: pass:normal[xref:#LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
 :placeOrder: pass:normal[xref:#LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-[`++placeOrder++`]]
 :cancelOrder: pass:normal[xref:#LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-[`++cancelOrder++`]]
 :withdraw: pass:normal[xref:#LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-[`++withdraw++`]]
@@ -545,7 +545,7 @@ _Available since v1.1.0_
 --
 * {xref-LimitOrderHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , tick)++`]
-* {xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, key, params, , )++`]
+* {xref-LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(, key, params, , )++`]
 * {xref-LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-}[`++placeOrder(key, tick, zeroForOne, liquidity)++`]
 * {xref-LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-}[`++cancelOrder(key, tickLower, zeroForOne, to)++`]
 * {xref-LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-}[`++withdraw(orderId, to)++`]
@@ -573,17 +573,17 @@ _Available since v1.1.0_
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
-* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
-* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
-* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
-* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
-* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-IPoolManager-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
-* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
-* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
-* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-BaseHook-beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeAddLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeAddLiquidity(, , , )++`]
+* {xref-BaseHook-beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++beforeRemoveLiquidity(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
+* {xref-BaseHook-afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterAddLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(, , , , , )++`]
+* {xref-BaseHook-afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData)++`]
+* {xref-BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(, , , , , )++`]
+* {xref-BaseHook-beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++beforeSwap(sender, key, params, hookData)++`]
+* {xref-BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(, , , )++`]
+* {xref-BaseHook-afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++afterSwap(sender, key, params, delta, hookData)++`]
 * {xref-BaseHook-beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++beforeDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
@@ -668,8 +668,8 @@ Set the `PoolManager` address.
 Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
 
 [.contract-item]
-[[LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-IPoolManager-SwapParams-BalanceDelta-bytes-]]
-==== `[.contract-item-name]#++_afterSwap++#++(address, struct PoolKey key, struct IPoolManager.SwapParams params, BalanceDelta, bytes) → bytes4, int128++` [.item-kind]#internal#
+[[LimitOrderHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-]]
+==== `[.contract-item-name]#++_afterSwap++#++(address, struct PoolKey key, struct SwapParams params, BalanceDelta, bytes) → bytes4, int128++` [.item-kind]#internal#
 
 Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill the orders that are crossed, filling them.
 
