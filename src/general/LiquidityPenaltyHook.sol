@@ -10,13 +10,15 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @dev This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
@@ -44,6 +46,7 @@ import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation
 contract LiquidityPenaltyHook is BaseHook {
     using CurrencySettler for Currency;
     using StateLibrary for IPoolManager;
+    using TransientStateLibrary for IPoolManager;
     using SafeCast for uint256;
 
     /**
@@ -55,6 +58,8 @@ contract LiquidityPenaltyHook is BaseHook {
      * @notice Tracks the last block number when a liquidity position was added to the pool.
      */
     mapping(PoolId id => mapping(bytes32 positionKey => uint256 blockNumber)) public lastAddedLiquidity;
+
+    mapping(PoolId id => mapping(bytes32 positionKey => BalanceDelta delta)) public pendingFeesAccrued;
 
     /**
      * @notice The block number offset before which if the liquidity is removed, the fees will be donated to the pool.
@@ -93,24 +98,25 @@ contract LiquidityPenaltyHook is BaseHook {
         uint128 liquidity = poolManager.getLiquidity(id);
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
         if (block.number - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
-            // If the liquidity provider adds liquidity before the block number offset, the hook donates
-            // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
-            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
-
-            // Record the block number when the liquidity was added
+            // store the block number when the liquidity was added
             lastAddedLiquidity[id][positionKey] = block.number;
 
-            BalanceDelta deltaHook = poolManager.donate(
-                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
-            );
+            key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
+            key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
 
-            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
+            console.log("feeDelta.amount0() -- afterAddLiquidity", feeDelta.amount0());
+            console.log("feeDelta.amount1() -- afterAddLiquidity", feeDelta.amount1());
 
-            return (this.afterAddLiquidity.selector, returnDelta);
+            console.log("currency delta 0", poolManager.currencyDelta(address(this), key.currency0));
+            console.log("currency delta 1", poolManager.currencyDelta(address(this), key.currency1));
+
+            pendingFeesAccrued[id][positionKey] = pendingFeesAccrued[id][positionKey] + feeDelta;
+
+            return (this.afterAddLiquidity.selector, feeDelta);
         }
 
-        // Record the block number when the liquidity was added
-        lastAddedLiquidity[key.toId()][positionKey] = block.number;
+        // store the block number when the liquidity was added
+        lastAddedLiquidity[id][positionKey] = block.number;
 
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
@@ -132,12 +138,23 @@ contract LiquidityPenaltyHook is BaseHook {
 
         uint128 liquidity = poolManager.getLiquidity(id);
 
+        BalanceDelta pendingFees = getPendingFees(id, positionKey);
+        pendingFeesAccrued[id][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
+
+        Currency currency0 = key.currency0;
+        Currency currency1 = key.currency1;
+
+        currency0.settle(poolManager, address(this), uint256(uint128(pendingFees.amount0())), true);
+        currency1.settle(poolManager, address(this), uint256(uint128(pendingFees.amount1())), true);
+
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
         if (block.number - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
 
-            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta, id, positionKey);
+            BalanceDelta totalFeesAccrued = feeDelta + pendingFees;
+
+            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(totalFeesAccrued, id, positionKey);
 
             BalanceDelta deltaHook = poolManager.donate(
                 key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
@@ -148,7 +165,11 @@ contract LiquidityPenaltyHook is BaseHook {
             return (this.afterRemoveLiquidity.selector, returnDelta);
         }
 
-        return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
+        return (this.afterRemoveLiquidity.selector, pendingFees);
+    }
+
+    function getPendingFees(PoolId id, bytes32 positionKey) public view returns (BalanceDelta) {
+        return pendingFeesAccrued[id][positionKey];
     }
 
     /**
