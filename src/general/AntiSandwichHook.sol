@@ -20,11 +20,8 @@ import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {MockV4Router} from "v4-periphery/test/mocks/MockV4Router.sol";
 import {console} from "forge-std/console.sol";
-
-interface IMsgSender {
-    function msgSender() external view returns (address);
-}
 
 /**
  * @dev Sandwich-resistant hook, based on
@@ -51,7 +48,7 @@ interface IMsgSender {
  *
  * _Available since v1.1.0_
  */
-contract AntiSandwichHook is BaseDynamicAfterFee {
+abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -117,8 +114,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
-
-            return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
 
         return super._beforeSwap(sender, key, params, hookData);
@@ -187,20 +182,28 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
 
+        console.log("-------afterSwap -------");
+        console.log("_targetOutput", _targetOutput);
+        console.log("unspecifiedAmount", unspecifiedAmount);
+
+
+
         if (!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+
             uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
 
-            address msgSender = IMsgSender(sender).msgSender();
+            address msgSender = _getUserAddress(sender);
 
-            console.log("msgSender", msgSender);
+            unspecified.take(poolManager, msgSender, payAmount, true);
 
-            unspecified.settle(poolManager, msgSender, payAmount, false);
-
-            return (this.afterSwap.selector, -(payAmount.toInt128()));
+            return (this.afterSwap.selector, (payAmount.toInt128()));
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
+
+
+    function _getUserAddress(address router) internal virtual returns (address);
 
     /**
      * @dev Calculates the fair output amount based on the pool state at the beginning of the block.
