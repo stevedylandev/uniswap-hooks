@@ -1,25 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
 import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 
 contract LiquidityPenaltyHookTest is Test, Deployers {
     LiquidityPenaltyHook hook;
@@ -597,13 +595,14 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
         assertEq(BalanceDeltaLibrary.amount0(deltaHook1), BalanceDeltaLibrary.amount0(deltaNoHook1) - feesExpected0Key1);
         assertEq(BalanceDeltaLibrary.amount1(deltaHook1), BalanceDeltaLibrary.amount1(deltaNoHook1) - feesExpected1Key1);
 
+        assertEq(BalanceDeltaLibrary.amount0(deltaHook2), BalanceDeltaLibrary.amount0(deltaNoHook2) - feesExpected0Key2);
+        assertEq(BalanceDeltaLibrary.amount1(deltaHook2), BalanceDeltaLibrary.amount1(deltaNoHook2) - feesExpected1Key2);
+
         vm.roll(block.number + 1);
         BalanceDelta deltaHook1NextBlock = modifyPoolLiquidity(poolKeyWithHook1, -600, 600, -1e17, 0);
         BalanceDelta deltaHook2NextBlock = modifyPoolLiquidity(poolKeyWithHook2, -600, 600, 0, 0);
 
         BalanceDelta deltaHook1NoHookNextBlock = modifyPoolLiquidity(poolKeyWithoutHook1, -600, 600, -1e17, 0);
-        BalanceDelta deltaNoHook2NextBlock = modifyPoolLiquidity(poolKeyWithoutHook2, -600, 600, 0, 0);
-
         assertEq(
             BalanceDeltaLibrary.amount0(deltaHook1NextBlock),
             BalanceDeltaLibrary.amount0(deltaHook1NoHookNextBlock) + feesExpected0Key1
