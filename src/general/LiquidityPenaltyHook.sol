@@ -3,22 +3,22 @@
 
 pragma solidity ^0.8.24;
 
-import {BaseHook} from "src/base/BaseHook.sol";
-import {Pool} from "v4-core/src/libraries/Pool.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+// Internal imports
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+
+// External imports
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {console} from "forge-std/console.sol";
+import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
  * @dev This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
@@ -46,7 +46,6 @@ import {console} from "forge-std/console.sol";
 contract LiquidityPenaltyHook is BaseHook {
     using CurrencySettler for Currency;
     using StateLibrary for IPoolManager;
-    using TransientStateLibrary for IPoolManager;
     using SafeCast for uint256;
 
     /**
@@ -57,14 +56,14 @@ contract LiquidityPenaltyHook is BaseHook {
     /**
      * @notice Tracks the last block number when a liquidity position was added to the pool.
      */
-    mapping(PoolId id => mapping(bytes32 positionKey => uint256 blockNumber)) public lastAddedLiquidity;
+    mapping(PoolId id => mapping(bytes32 positionKey => uint256 blockNumber)) private lastAddedLiquidity;
 
-    mapping(PoolId id => mapping(bytes32 positionKey => BalanceDelta delta)) public pendingFeesAccrued;
+    mapping(PoolId id => mapping(bytes32 positionKey => BalanceDelta delta)) private pendingFeesAccrued;
 
     /**
      * @notice The block number offset before which if the liquidity is removed, the fees will be donated to the pool.
      */
-    uint256 public immutable blockNumberOffset;
+    uint256 private immutable blockNumberOffset;
 
     /**
      * @dev Hook was attempted to be deployed with a block number offset that is too low.
@@ -104,12 +103,6 @@ contract LiquidityPenaltyHook is BaseHook {
             key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
             key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
 
-            console.log("feeDelta.amount0() -- afterAddLiquidity", feeDelta.amount0());
-            console.log("feeDelta.amount1() -- afterAddLiquidity", feeDelta.amount1());
-
-            console.log("currency delta 0", poolManager.currencyDelta(address(this), key.currency0));
-            console.log("currency delta 1", poolManager.currencyDelta(address(this), key.currency1));
-
             pendingFeesAccrued[id][positionKey] = pendingFeesAccrued[id][positionKey] + feeDelta;
 
             return (this.afterAddLiquidity.selector, feeDelta);
@@ -132,29 +125,19 @@ contract LiquidityPenaltyHook is BaseHook {
         BalanceDelta feeDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
-        PoolId id = key.toId();
-
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        uint128 liquidity = poolManager.getLiquidity(id);
+        uint128 liquidity = poolManager.getLiquidity(key.toId());
 
-        BalanceDelta pendingFees = getPendingFees(id, positionKey);
-        pendingFeesAccrued[id][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
-
-        Currency currency0 = key.currency0;
-        Currency currency1 = key.currency1;
-
-        currency0.settle(poolManager, address(this), uint256(uint128(pendingFees.amount0())), true);
-        currency1.settle(poolManager, address(this), uint256(uint128(pendingFees.amount1())), true);
+        BalanceDelta pendingFees = _settlePendingFees(key, positionKey);
 
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
-        if (block.number - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
+        if (block.number - lastAddedLiquidity[key.toId()][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
-
             BalanceDelta totalFeesAccrued = feeDelta + pendingFees;
 
-            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(totalFeesAccrued, id, positionKey);
+            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(totalFeesAccrued, key.toId(), positionKey);
 
             BalanceDelta deltaHook = poolManager.donate(
                 key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
@@ -165,11 +148,30 @@ contract LiquidityPenaltyHook is BaseHook {
             return (this.afterRemoveLiquidity.selector, returnDelta);
         }
 
-        return (this.afterRemoveLiquidity.selector, pendingFees);
+        if (pendingFees != BalanceDeltaLibrary.ZERO_DELTA) {
+            BalanceDelta returnDelta = toBalanceDelta(-pendingFees.amount0(), -pendingFees.amount1());
+            return (this.afterRemoveLiquidity.selector, returnDelta);
+        }
+
+        return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     function getPendingFees(PoolId id, bytes32 positionKey) public view returns (BalanceDelta) {
         return pendingFeesAccrued[id][positionKey];
+    }
+
+    function _settlePendingFees(PoolKey calldata key, bytes32 positionKey) internal returns (BalanceDelta) {
+        PoolId id = key.toId();
+        BalanceDelta pendingFees = getPendingFees(id, positionKey);
+        pendingFeesAccrued[id][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
+
+        Currency currency0 = key.currency0;
+        Currency currency1 = key.currency1;
+
+        currency0.settle(poolManager, address(this), uint256(uint128(pendingFees.amount0())), true);
+        currency1.settle(poolManager, address(this), uint256(uint128(pendingFees.amount1())), true);
+
+        return pendingFees;
     }
 
     /**

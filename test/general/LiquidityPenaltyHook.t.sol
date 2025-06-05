@@ -20,7 +20,6 @@ import {Position} from "v4-core/src/libraries/Position.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {console} from "forge-std/console.sol";
 
 contract LiquidityPenaltyHookTest is Test, Deployers {
     LiquidityPenaltyHook hook;
@@ -231,19 +230,14 @@ contract LiquidityPenaltyHookTest is Test, Deployers {
         BalanceDelta deltaHookNextBlock = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
         BalanceDelta deltaNoHookNextBlock = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
 
-        console.log(
-            "difference",
-            BalanceDeltaLibrary.amount0(deltaHookNextBlock) - BalanceDeltaLibrary.amount0(deltaNoHookNextBlock)
-        );
-
         assertEq(
             BalanceDeltaLibrary.amount0(deltaHookNextBlock),
             BalanceDeltaLibrary.amount0(deltaNoHookNextBlock) + feesExpected0
         );
-        // assertEq(
-        //     BalanceDeltaLibrary.amount1(deltaHookNextBlock),
-        //     BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1
-        // );
+        assertEq(
+            BalanceDeltaLibrary.amount1(deltaHookNextBlock),
+            BalanceDeltaLibrary.amount1(deltaNoHookNextBlock) + feesExpected1
+        );
     }
 
     function test_addLiquidity_MultipleSwaps_JIT() public {
