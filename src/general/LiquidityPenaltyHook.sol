@@ -96,9 +96,9 @@ contract LiquidityPenaltyHook is BaseHook {
 
         uint128 liquidity = poolManager.getLiquidity(id);
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
-        if (block.number - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
+        if (_getBlockNumber() - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
             // store the block number when the liquidity was added
-            lastAddedLiquidity[id][positionKey] = block.number;
+            lastAddedLiquidity[id][positionKey] = _getBlockNumber();
 
             key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
             key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
@@ -109,7 +109,7 @@ contract LiquidityPenaltyHook is BaseHook {
         }
 
         // store the block number when the liquidity was added
-        lastAddedLiquidity[id][positionKey] = block.number;
+        lastAddedLiquidity[id][positionKey] = _getBlockNumber();
 
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
@@ -132,7 +132,7 @@ contract LiquidityPenaltyHook is BaseHook {
         BalanceDelta pendingFees = _settlePendingFees(key, positionKey);
 
         // We need to check if the liquidity is greater than 0 to prevent donating when there are no liquidity positions.
-        if (block.number - lastAddedLiquidity[key.toId()][positionKey] < blockNumberOffset && liquidity > 0) {
+        if (_getBlockNumber() - lastAddedLiquidity[key.toId()][positionKey] < blockNumberOffset && liquidity > 0) {
             // If the liquidity provider removes liquidity before the block number offset, the hook donates
             // a part of the fees to the pool (i.e., in range liquidity providers at the time of liquidity removal).
             BalanceDelta totalFeesAccrued = feeDelta + pendingFees;
@@ -154,6 +154,10 @@ contract LiquidityPenaltyHook is BaseHook {
         }
 
         return (this.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
+    }
+
+    function _getBlockNumber() internal view virtual returns (uint48) {
+        return uint48(block.number);
     }
 
     function getPendingFees(PoolId id, bytes32 positionKey) public view returns (BalanceDelta) {
@@ -190,22 +194,24 @@ contract LiquidityPenaltyHook is BaseHook {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
 
+        uint48 blockNumber = _getBlockNumber();
+
         // amount0 and amount1 are necesseraly greater than or equal to 0, since they are fee rewards
         // This is the implementation of a linear penalty on the fees, where the penalty decreases linearly from 100% of the fees at the block
         // where liquidity was added to the pool to 0% after the block number offset.
         // The formula is:
-        // liquidityPenalty = feeDelta * ( 1 - (block.number - lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
+        // liquidityPenalty = feeDelta * ( 1 - (blockNumber - lastAddedLiquidity[id][positionKey]) / blockNumberOffset)
         // NOTE: this function is called only if the liquidity is removed before the block number offset, i.e.,
-        // block.number - lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
+        // blockNumber - lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
         // so the subtraction is safe and won't overflow
         uint256 amount0LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount0FeeDelta),
-            blockNumberOffset - (block.number - lastAddedLiquidity[poolId][positionKey]), // wont't overflow, since block.number - lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
+            blockNumberOffset - (blockNumber - lastAddedLiquidity[poolId][positionKey]), // wont't overflow, since blockNumber - lastAddedLiquidity[poolId][positionKey] < blockNumberOffset
             blockNumberOffset
         );
         uint256 amount1LiquidityPenalty = FullMath.mulDiv(
             SafeCast.toUint128(amount1FeeDelta),
-            blockNumberOffset - (block.number - lastAddedLiquidity[poolId][positionKey]),
+            blockNumberOffset - (blockNumber - lastAddedLiquidity[poolId][positionKey]),
             blockNumberOffset
         );
 
