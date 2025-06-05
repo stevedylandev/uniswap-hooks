@@ -176,10 +176,10 @@ contract LiquidityPenaltyHook is BaseHook {
     function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal {
         PoolId id = key.toId();
 
+        withheldFeesAccrued[id][positionKey] = withheldFeesAccrued[id][positionKey] + feeDelta;
+
         key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
         key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
-
-        withheldFeesAccrued[id][positionKey] = withheldFeesAccrued[id][positionKey] + feeDelta;
     }
 
     /**
@@ -190,6 +190,9 @@ contract LiquidityPenaltyHook is BaseHook {
 
         withheldFees = getWithheldFees(id, positionKey);
 
+        // Reset the `withheldFeesAccrued`.
+        withheldFeesAccrued[id][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
+
         // Settle the `withheldFeesAccrued` for the liquidity position.
         if (withheldFees.amount0() > 0) {
             key.currency0.settle(poolManager, address(this), uint256(uint128(withheldFees.amount0())), true);
@@ -197,9 +200,6 @@ contract LiquidityPenaltyHook is BaseHook {
         if (withheldFees.amount1() > 0) {
             key.currency1.settle(poolManager, address(this), uint256(uint128(withheldFees.amount1())), true);
         }
-
-        // Reset the `withheldFeesAccrued`.
-        withheldFeesAccrued[id][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
     }
 
     /**
