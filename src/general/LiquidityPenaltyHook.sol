@@ -105,11 +105,9 @@ contract LiquidityPenaltyHook is BaseHook {
         // Get the position key
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        uint128 liquidity = poolManager.getLiquidity(id);
         // If the liquidity is added in the same position within the block number offset, we don't return the fees to the liquidity provider
         // but instead we hold the fees in the hook contract until the liquidity is removed.
-        // We need to check if the liquidity is greater than 0 to prevent withholding the fees when there are no liquidity positions.
-        if (_getBlockNumber() - lastAddedLiquidity[id][positionKey] < blockNumberOffset && liquidity > 0) {
+        if (_getBlockNumber() - lastAddedLiquidity[id][positionKey] < blockNumberOffset) {
             lastAddedLiquidity[id][positionKey] = _getBlockNumber();
 
             // take the fees from the liquidity provider
