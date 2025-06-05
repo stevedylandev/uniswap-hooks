@@ -109,13 +109,12 @@ contract LiquidityPenaltyHook is BaseHook {
         // but instead we hold the fees in the hook contract until the liquidity is removed.
         if (_getBlockNumber() - lastAddedLiquidity[id][positionKey] < blockNumberOffset) {
             lastAddedLiquidity[id][positionKey] = _getBlockNumber();
+            // store the fees in the hook contract
+            pendingFeesAccrued[id][positionKey] = pendingFeesAccrued[id][positionKey] + feeDelta;
 
             // take the fees from the liquidity provider
             key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
             key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
-
-            // store the fees in the hook contract
-            pendingFeesAccrued[id][positionKey] = pendingFeesAccrued[id][positionKey] + feeDelta;
 
             return (this.afterAddLiquidity.selector, feeDelta);
         }
