@@ -94,8 +94,8 @@ contract LiquidityPenaltyHook is BaseHook {
 
         // If liquidity was added recently within the `blockNumberOffset`, retain the `feesAccrued` in this hook.
         if (_getBlockNumber() - getLastAddedLiquidityBlock(id, positionKey) < blockNumberOffset) {
-            _takeFeesToHook(key, positionKey, feeDelta);
             _updateLastAddedLiquidityBlock(id, positionKey);
+            _takeFeesToHook(key, positionKey, feeDelta);
 
             return (this.afterAddLiquidity.selector, feeDelta);
         }
