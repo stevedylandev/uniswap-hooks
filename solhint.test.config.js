@@ -7,7 +7,6 @@ const rules = [
   'event-name-capwords',
   'max-states-count',
   'explicit-types',
-  'func-name-mixedcase',
   'func-param-name-mixedcase',
   'imports-on-top',
   'modifier-name-mixedcase',
@@ -20,6 +19,8 @@ const rules = [
   'visibility-modifier-order',
   'interface-starts-with-i',
   'duplicated-imports',
+  // 'func-name-mixedcase', => conflicts with foundry tests
+  'foundry-test-functions',
   ...customRules.map(r => `openzeppelin/${r.ruleId}`),
 ];
 

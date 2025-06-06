@@ -166,7 +166,10 @@ contract LiquidityPenaltyHook is BaseHook {
             BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(totalFeesAccrued, key.toId(), positionKey);
 
             BalanceDelta deltaHook = poolManager.donate(
-                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+                key,
+                uint256(int256(liquidityPenalty.amount0())),
+                uint256(int256(liquidityPenalty.amount1())),
+                ""
             );
 
             BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
@@ -230,11 +233,11 @@ contract LiquidityPenaltyHook is BaseHook {
      * @param positionKey The `bytes32` key of the position.
      * @return liquidityPenalty The `BalanceDelta` of the liquidity penalty.
      */
-    function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey)
-        internal
-        virtual
-        returns (BalanceDelta liquidityPenalty)
-    {
+    function _calculateLiquidityPenalty(
+        BalanceDelta feeDelta,
+        PoolId poolId,
+        bytes32 positionKey
+    ) internal virtual returns (BalanceDelta liquidityPenalty) {
         int128 amount0FeeDelta = feeDelta.amount0();
         int128 amount1FeeDelta = feeDelta.amount1();
 
@@ -269,21 +272,22 @@ contract LiquidityPenaltyHook is BaseHook {
      * @return permissions The permissions for the hook.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
-        return Hooks.Permissions({
-            beforeInitialize: false,
-            afterInitialize: false,
-            beforeAddLiquidity: false,
-            afterAddLiquidity: true,
-            beforeRemoveLiquidity: false,
-            afterRemoveLiquidity: true,
-            beforeSwap: false,
-            afterSwap: false,
-            beforeDonate: false,
-            afterDonate: false,
-            beforeSwapReturnDelta: false,
-            afterSwapReturnDelta: false,
-            afterAddLiquidityReturnDelta: true,
-            afterRemoveLiquidityReturnDelta: true
-        });
+        return
+            Hooks.Permissions({
+                beforeInitialize: false,
+                afterInitialize: false,
+                beforeAddLiquidity: false,
+                afterAddLiquidity: true,
+                beforeRemoveLiquidity: false,
+                afterRemoveLiquidity: true,
+                beforeSwap: false,
+                afterSwap: false,
+                beforeDonate: false,
+                afterDonate: false,
+                beforeSwapReturnDelta: false,
+                afterSwapReturnDelta: false,
+                afterAddLiquidityReturnDelta: true,
+                afterRemoveLiquidityReturnDelta: true
+            });
     }
 }
