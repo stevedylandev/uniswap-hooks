@@ -10,7 +10,7 @@
     "docs": "npm run prepare-docs && oz-docs",
     "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
     "prepare-docs": "scripts/prepare-docs.sh",
-    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check && solhint '{src,test}/**/*.sol'",
+    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; solhint '{src,test}/**/*.sol'",
     "lint:fix": "prettier --log-level warn '{src,test}/**/*.sol' --write",
     "prepare": "husky"
   },
@@ -29,6 +29,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-solidity": "^2.0.0",
     "solhint": "^5.1.0",
+    "solhint-plugin-openzeppelin": "file:scripts/solhint-custom",
     "solidity-docgen": "^0.6.0-beta.36"
   },
   "lint-staged": {
