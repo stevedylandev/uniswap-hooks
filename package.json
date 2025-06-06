@@ -10,7 +10,7 @@
     "docs": "npm run prepare-docs && oz-docs",
     "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
     "prepare-docs": "scripts/prepare-docs.sh",
-    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; solhint '{src,test}/**/*.sol'",
+    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; solhint --noPoster '{src,test}/**/*.sol'",
     "lint:fix": "prettier --log-level warn '{src,test}/**/*.sol' --write",
     "prepare": "husky"
   },
