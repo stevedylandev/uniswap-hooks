@@ -55,12 +55,12 @@ contract LiquidityPenaltyHook is BaseHook {
      * removed without penalty. During this period, JIT attacks are deterred through fee withholding 
      * and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
      */
-    uint48 private immutable blockNumberOffset;
+    uint48 private immutable _blockNumberOffset;
 
     /**
      * @dev Tracks the last block during which liquidity was added to a position.
      */
-    mapping(PoolId poolId => mapping(bytes32 positionKey => uint48 blockNumber)) private lastAddedLiquidityBlock;
+    mapping(PoolId poolId => mapping(bytes32 positionKey => uint48 blockNumber)) private _lastAddedLiquidityBlock;
 
     /**
      * @dev Tracks the `withheldFeesAccrued` for a liquidity position.
@@ -70,14 +70,14 @@ contract LiquidityPenaltyHook is BaseHook {
      * 
      * This effectively disables fee collection during JIT liquidity provisioning.
      */
-    mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private withheldFeesAccrued;
+    mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFeesAccrued;
 
     /**
      * @dev Sets the `PoolManager` address and the `blockNumberOffset`.
      */
-    constructor(IPoolManager _poolManager, uint48 _blockNumberOffset) BaseHook(_poolManager) {
-        if (_blockNumberOffset < MIN_BLOCK_NUMBER_OFFSET) revert BlockNumberOffsetTooLow();
-        blockNumberOffset = _blockNumberOffset;
+    constructor(IPoolManager poolManager_, uint48 blockNumberOffset_) BaseHook(poolManager_) {
+        if (blockNumberOffset_ < MIN_BLOCK_NUMBER_OFFSET) revert BlockNumberOffsetTooLow();
+        _blockNumberOffset = blockNumberOffset_;
     }
 
     /**
@@ -96,7 +96,7 @@ contract LiquidityPenaltyHook is BaseHook {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         // If liquidity was added recently within the `blockNumberOffset`, retain the `feesAccrued` in this hook.
-        if (_getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < blockNumberOffset) {
+        if (_getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < getBlockNumberOffset()) {
             _updateLastAddedLiquidityBlock(poolId, positionKey);
             _takeFeesToHook(key, positionKey, feeDelta);
 
@@ -131,13 +131,13 @@ contract LiquidityPenaltyHook is BaseHook {
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         // Receive back the `withheldFeesAccrued` retained during previous liquidity additions within the `blockNumberOffset`.
-        BalanceDelta withheldFees = _returnFeesFromHook(key, positionKey);
+        BalanceDelta withheldFees = _settleFeesFromHook(key, positionKey);
 
         // We need to ensure the liquidity is greater than 0 to prevent donating when there are no liquidity positions,
         // otherwise the PoolManager would revert and block the removal of liquidity.
         uint128 liquidity = poolManager.getLiquidity(poolId);
 
-        if (_getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < blockNumberOffset && liquidity > 0) {
+        if (_getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < getBlockNumberOffset() && liquidity > 0) {
             // The total fees accrued by the LP are the sum of the current `feeDelta` plus the potentially withheldFees.
             BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta + withheldFees, key.toId(), positionKey);
 
@@ -169,7 +169,7 @@ contract LiquidityPenaltyHook is BaseHook {
      * @dev Updates the `lastAddedLiquidityBlock` for a liquidity position.
      */
     function _updateLastAddedLiquidityBlock(PoolId poolId, bytes32 positionKey) internal virtual {
-        lastAddedLiquidityBlock[poolId][positionKey] = _getBlockNumber();
+        _lastAddedLiquidityBlock[poolId][positionKey] = _getBlockNumber();
     }
 
     /**
@@ -178,22 +178,22 @@ contract LiquidityPenaltyHook is BaseHook {
     function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal {
         PoolId poolId = key.toId();
 
-        withheldFeesAccrued[poolId][positionKey] = withheldFeesAccrued[poolId][positionKey] + feeDelta;
+        _withheldFeesAccrued[poolId][positionKey] = _withheldFeesAccrued[poolId][positionKey] + feeDelta;
 
         key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
         key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
     }
 
     /**
-     * @dev Returns the `withheldFeesAccrued` from this hook to the liquidity provider.
+     * @dev Returns `withheldFeesAccrued` from this hook to the liquidity provider.
      */
-    function _returnFeesFromHook(PoolKey calldata key, bytes32 positionKey) internal returns (BalanceDelta withheldFees) {
+    function _settleFeesFromHook(PoolKey calldata key, bytes32 positionKey) internal returns (BalanceDelta withheldFees) {
         PoolId poolId = key.toId();
 
         withheldFees = getWithheldFees(poolId, positionKey);
 
         // Reset the `withheldFeesAccrued`.
-        withheldFeesAccrued[poolId][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
+        _withheldFeesAccrued[poolId][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
 
         // Settle the `withheldFeesAccrued` for the liquidity position.
         if (withheldFees.amount0() > 0) {
@@ -224,6 +224,7 @@ contract LiquidityPenaltyHook is BaseHook {
     {
         uint48 currentBlockNumber = _getBlockNumber();
         uint48 lastAddedLiquidityBlock = getLastAddedLiquidityBlock(poolId, positionKey);
+        uint48 blockNumberOffset = getBlockNumberOffset();
 
         // Note that `amount0` and `amount1` are necessarily greater than or equal to 0, since they are fee rewards.
         (int128 amount0FeeDelta, int128 amount1FeeDelta) = (feeDelta.amount0(), feeDelta.amount1());
@@ -244,19 +245,26 @@ contract LiquidityPenaltyHook is BaseHook {
             liquidityPenalty = toBalanceDelta(amount0LiquidityPenalty.toInt128(), amount1LiquidityPenalty.toInt128());
         }
     }
+    
+    /**
+     * @dev Returns the `blockNumberOffset`.
+     */
+    function getBlockNumberOffset() public view returns (uint48) {
+        return _blockNumberOffset;
+    }
 
     /**
      * @dev Returns the `lastAddedLiquidityBlock` for a liquidity position.
      */
     function getLastAddedLiquidityBlock(PoolId poolId, bytes32 positionKey) public virtual view returns (uint48) {
-        return lastAddedLiquidityBlock[poolId][positionKey];
+        return _lastAddedLiquidityBlock[poolId][positionKey];
     }
 
     /**
      * @dev Returns the `withheldFeesAccrued` for a liquidity position.
      */
     function getWithheldFees(PoolId poolId, bytes32 positionKey) public view returns (BalanceDelta) {
-        return withheldFeesAccrued[poolId][positionKey];
+        return _withheldFeesAccrued[poolId][positionKey];
     }
 
     /**
