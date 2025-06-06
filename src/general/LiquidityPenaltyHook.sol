@@ -21,7 +21,7 @@ import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
- * @dev Just in time (JIT) liquidity provisioning resistant hook.
+ * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.
  * 
  * This hook disincentivizes JIT attacks by penalizing LP fee collection during `afterRemoveLiquidity`,
  * and disabling it during `afterAddLiquidity` if liquidity was recently added to the position.
@@ -51,8 +51,9 @@ contract LiquidityPenaltyHook is BaseHook {
     uint256 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
     /**
-     * @dev The `blockNumberOffset` is the number of blocks since `lastAddedLiquidityBlock` during which the JIT penalty
-     * is applied and fees are donated to the pool LPs in range. See {_calculateLiquidityPenalty} for penalty calculation.
+     * @dev The minimum time window (in blocks) that must pass after adding liquidity before it can be 
+     * removed without penalty. During this period, JIT attacks are deterred through fee withholding 
+     * and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
      */
     uint256 private immutable blockNumberOffset;
 
