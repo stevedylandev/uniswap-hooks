@@ -10,8 +10,10 @@
     "docs": "npm run prepare-docs && oz-docs",
     "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
     "prepare-docs": "scripts/prepare-docs.sh",
-    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; solhint --noPoster '{src,test}/**/*.sol'",
+    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; npm run solhint; npm run solhint:test",
     "lint:fix": "prettier --log-level warn '{src,test}/**/*.sol' --write",
+    "solhint": "solhint --noPoster 'src/**/*.sol'",
+    "solhint:test": "solhint --noPoster --config solhint.test.config.js 'test/**/*.sol'",
     "prepare": "husky"
   },
   "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
@@ -33,9 +35,13 @@
     "solidity-docgen": "^0.6.0-beta.36"
   },
   "lint-staged": {
-    "*.sol": [
+    "src/**/*.sol": [
       "prettier --log-level warn --ignore-path .gitignore --check",
-      "solhint"
+      "solhint --noPoster 'src/**/*.sol'"
+    ],
+    "test/**/*.sol": [
+      "prettier --log-level warn --ignore-path .gitignore --check",
+      "solhint --noPoster --config solhint.test.config.js 'test/**/*.sol'"
     ]
   }
 }
