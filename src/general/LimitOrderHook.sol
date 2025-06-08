@@ -366,6 +366,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         orderInfo.currency0Total -= amount0;
         orderInfo.currency1Total -= amount1;
 
+        // update total liquidity
+        orderInfo.liquidityTotal -= liquidity;
+
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and return the liquidity to the `to` address.
         poolManager.unlock(

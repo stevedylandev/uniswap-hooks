@@ -183,6 +183,64 @@ contract LimitOrderHookTest is Test, Deployers {
         assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
     }
 
+    function test_withdraw_multipleLPs() public {
+        int24 tickLower = 0;
+        bool zeroForOne = true;
+        uint128 liquidity = 1000000;
+
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+
+        currency0.transfer(vm.addr(1), 1e18);
+        currency1.transfer(vm.addr(2), 1e18);
+
+        vm.startPrank(vm.addr(1));
+        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), 1e18);
+        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), 1e18);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+        vm.stopPrank();
+
+        assertTrue(OrderIdLibrary.equals(hook.getOrderId(key, tickLower, zeroForOne), OrderIdLibrary.OrderId.wrap(1)));
+
+        bytes32 positionId = Position.calculatePositionKey(address(hook), tickLower, tickLower + key.tickSpacing, 0);
+        assertEq(manager.getPositionLiquidity(key.toId(), positionId), liquidity * 2);
+
+        swapRouter.swap(
+            key,
+            SwapParams({
+                zeroForOne: false,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing)
+            }),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            ZERO_BYTES
+        );
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertTrue(filled);
+        assertEq(currency0Total, 0);
+        assertEq(currency1Total, 2 * (2996 + 17));
+
+        vm.startPrank(vm.addr(1));
+        hook.withdraw(OrderIdLibrary.OrderId.wrap(1), vm.addr(1));
+        vm.stopPrank();
+
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertTrue(filled);
+        assertEq(currency0Total, 0);
+        assertEq(currency1Total, 2996 + 17);
+
+        hook.withdraw(OrderIdLibrary.OrderId.wrap(1), address(this));
+
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertTrue(filled);
+        assertEq(currency0Total, 0);
+        assertEq(currency1Total, 0);
+    }
+
     function test_swapAcrossRange() public {
         int24 tickLower = 0;
         bool zeroForOne = true;
