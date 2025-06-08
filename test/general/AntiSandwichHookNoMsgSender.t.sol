@@ -11,13 +11,17 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
+import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {AntiSandwichHookNoMsgSenderMock} from "../mocks/AntiSandwichHookNoMsgSenderMock.sol";
+import {BaseDynamicFeeMock} from "../mocks/BaseDynamicFeeMock.sol";
 import {console} from "forge-std/console.sol";
 
 contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
     AntiSandwichHookNoMsgSenderMock hook;
     PoolKey noHookKey;
+
+    BaseDynamicFeeMock dynamicFeesHooks;
 
     function setUp() public {
         deployFreshManagerAndRouters();
@@ -28,14 +32,32 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
         );
         deployCodeTo("test/mocks/AntiSandwichHookNoMsgSenderMock.sol:AntiSandwichHookNoMsgSenderMock", abi.encode(manager), address(hook));
 
+        dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
+        deployCodeTo(
+            "test/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock", abi.encode(manager), address(dynamicFeesHooks)
+        );
+
         (key,) = initPoolAndAddLiquidity(
             currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
         );
-        (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 100, SQRT_PRICE_1_1);
+        (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(dynamicFeesHooks)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1);
 
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
     }
+
+    // function calculateExpectedDelta(SwapParams memory params, int24 tickSpacing) public view returns (BalanceDelta) {
+    //     return Pool.swap(
+    //         manager,
+    //         Pool.SwapParams({
+    //             tickSpacing: tickSpacing,
+    //             zeroForOne: params.zeroForOne,
+    //             amountSpecified: params.amountSpecified,
+    //             sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+    //             lpFeeOverride: 0
+    //         })
+    //     );
+    // }
 
     /// @notice Unit test for a single swap, not zero for one.
     function test_swap_single_notZeroForOne() public {
@@ -75,38 +97,43 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         SwapParams memory params =
             SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+        
         // buy currency0 for currency1, front run
-        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
 
-        console.log("AQUI A");
-        console.log("AQUI A, delta.amount0()", delta.amount0());
-        console.log("AQUI A, delta.amount1()", delta.amount1());
+        assertTrue(deltaAttack1WithKey == deltaAttack1WithoutKey);
 
         // sandwiched buy currency0 for currency1
-        swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertTrue(deltaUserWithKey == deltaUserWithoutKey);
 
         // sell currency1 for currency0, front run
         params = SwapParams({
             zeroForOne: false,
-            amountSpecified: -int256(delta.amount1()),
+            amountSpecified: -int256(deltaAttack1WithKey.amount1()),
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
         });
-        BalanceDelta deltaEnd = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        BalanceDelta deltaAttack2WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // fixed price
 
-        console.log("AQUI 3");
-        console.log("AQUI 3, deltaEnd.amount0()", deltaEnd.amount0());
-        console.log("AQUI 3, deltaEnd.amount1()", deltaEnd.amount1());
-        console.log("AQUI 3, delta.amount0()", delta.amount0());
-        console.log("AQUI 3, delta.amount1()", delta.amount1());
+        console.log("difference ", deltaAttack2WithoutKey.amount0() - deltaAttack2WithKey.amount0());
 
-        assertLe(deltaEnd.amount0(), -delta.amount0(), "front runner profit");
+        console.log("deltaAttack2WithKey.amount0()", deltaAttack2WithKey.amount0());
+        console.log("deltaAttack2WithoutKey.amount0()", deltaAttack2WithoutKey.amount0());
+        console.log("deltaAttack2WithKey.amount1()", deltaAttack2WithKey.amount1());
+        console.log("deltaAttack2WithoutKey.amount1()", deltaAttack2WithoutKey.amount1());
+
+        assertLe(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
 
         vm.roll(block.number + 1);
 
         params =
             SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
 
-        delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
         // 997010963116644 is obtained from `test_swap_successfulSandwich`
         assertEq(delta.amount1(), 997010963116644, "state did not reset");
     }
@@ -159,29 +186,26 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
         console.log("AQUI 1, delta.amount1()", delta.amount1());
 
         // sandwiched buy currency0 for currency1
-        vm.expectRevert(); // expect revert due to no access to msg.sender
         swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
 
-        // console.log("AQUI 2");
+        // sell currency1 for currency0, front run
+        params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(delta.amount0()),
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+        BalanceDelta deltaEnd = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
-        // // sell currency1 for currency0, front run
-        // params = SwapParams({
-        //     zeroForOne: true,
-        //     amountSpecified: -int256(delta.amount0()),
-        //     sqrtPriceLimitX96: MIN_PRICE_LIMIT
-        // });
-        // BalanceDelta deltaEnd = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        assertLe(deltaEnd.amount1(), -delta.amount1(), "front runner profit");
 
-        // assertLe(deltaEnd.amount1(), -delta.amount1(), "front runner profit");
+        vm.roll(block.number + 1);
 
-        // vm.roll(block.number + 1);
+        params =
+            SwapParams({zeroForOne: false, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
 
-        // params =
-        //     SwapParams({zeroForOne: false, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
-
-        // delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
-        // // 997010963116644 is obtained from `test_swap_successfulSandwich`
-        // assertEq(delta.amount0(), 997010963116644, "state did not reset");
+        delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        //997010963116644 is obtained from `test_swap_successfulSandwich`
+        assertEq(delta.amount0(), 997010963116644, "state did not reset");
     }
 
     /// @notice Unit test for a successful sandwich attack without using the hook.

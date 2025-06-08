@@ -21,6 +21,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {MockV4Router} from "v4-periphery/test/mocks/MockV4Router.sol";
+import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {console} from "forge-std/console.sol";
 
 /**
@@ -51,6 +52,7 @@ import {console} from "forge-std/console.sol";
 abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
+    using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeCast for uint256;
 
@@ -190,13 +192,15 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
         if (!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
 
+            console.log("unspecified is currency0: ", unspecified == key.currency0);
+
             uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
+            unspecified.take(poolManager, address(this), payAmount, true);
 
-            address msgSender = _getUserAddress(sender);
+            console.log("payAmount", payAmount);
 
-            unspecified.take(poolManager, msgSender, payAmount, true);
-
-            return (this.afterSwap.selector, (payAmount.toInt128()));
+            //_afterSwapHandler(key, params, delta, _targetOutput, payAmount);
+            return (this.afterSwap.selector, payAmount.toInt128());
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
@@ -247,8 +251,6 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
         int128 target =
             (params.amountSpecified < 0 == params.zeroForOne) ? targetDelta.amount1() : targetDelta.amount0();
-
-        console.log("target", target);
 
         if (target < 0) target = -target;
 
