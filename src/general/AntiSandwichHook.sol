@@ -49,7 +49,7 @@ import {console} from "forge-std/console.sol";
  *
  * _Available since v1.1.0_
  */
-abstract contract AntiSandwichHook is BaseDynamicAfterFee {
+contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using TransientStateLibrary for IPoolManager;
@@ -64,6 +64,8 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     }
 
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
+
+    error RouteNotAllowed();
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
@@ -97,19 +99,37 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
             // iterate over ticks
             (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
-            for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
-                (
-                    uint128 liquidityGross,
-                    int128 liquidityNet,
-                    uint256 feeGrowthOutside0X128,
-                    uint256 feeGrowthOutside1X128
-                ) = poolManager.getTickInfo(poolId, tick);
 
-                _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+            if(tickAfter > _lastCheckpoint.slot0.tick()) {
+                for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
+                    (
+                        uint128 liquidityGross,
+                        int128 liquidityNet,
+                        uint256 feeGrowthOutside0X128,
+                        uint256 feeGrowthOutside1X128
+                    ) = poolManager.getTickInfo(poolId, tick);
+
+                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+                }
             }
+            // else {
+            //     for (int24 tick = _lastCheckpoint.slot0.tick(); tick > tickAfter; tick -= key.tickSpacing) {
+            //         (
+            //             uint128 liquidityGross,
+            //             int128 liquidityNet,
+            //             uint256 feeGrowthOutside0X128,
+            //             uint256 feeGrowthOutside1X128
+            //         ) = poolManager.getTickInfo(poolId, tick);
+
+            //         _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+            //         _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+            //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+            //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+            //     }
+            // }
 
             // deep copy only values that are used and change in fair delta calculation
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
@@ -188,26 +208,24 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         console.log("_targetOutput", _targetOutput);
         console.log("unspecifiedAmount", unspecifiedAmount);
 
+        bool exactInput = params.amountSpecified < 0;
 
 
-        if (!params.zeroForOne && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+        console.log("exactInput", exactInput);
 
-            console.log("unspecified is currency0: ", unspecified == key.currency0);
 
-            uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
-            unspecified.take(poolManager, address(this), payAmount, true);
+        if(!exactInput && !params.zeroForOne) {
+            if(_targetOutput < uint256(uint128(unspecifiedAmount))) {
+                // we need to revert here because in order to get the correct price, we would need to 
+                // decrease the price in favor of the user, which would compromise the `poolManager`
+                revert RouteNotAllowed();
+            }
 
-            console.log("payAmount", payAmount);
-
-            //_afterSwapHandler(key, params, delta, _targetOutput, payAmount);
-            return (this.afterSwap.selector, payAmount.toInt128());
+            return super._afterSwap(sender, key, params, delta, hookData);
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
-
-
-    function _getUserAddress(address router) internal virtual returns (address);
 
     /**
      * @dev Calculates the fair output amount based on the pool state at the beginning of the block.

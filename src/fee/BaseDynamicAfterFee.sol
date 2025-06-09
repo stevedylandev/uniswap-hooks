@@ -15,8 +15,6 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-import {console} from "forge-std/console.sol";
-
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
  *
@@ -31,6 +29,7 @@ import {console} from "forge-std/console.sol";
  *
  * _Available since v0.1.0_
  */
+
 abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     using SafeCast for uint256;
     using CurrencySettler for Currency;
@@ -104,10 +103,6 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
 
         // If fee is on output, get the absolute output amount
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
-
-        console.log("----- BaseDynamicAfterFee -----");
-        console.log("targetOutput", targetOutput);
-        console.log("unspecifiedAmount", unspecifiedAmount);
 
         // Revert if the target output exceeds the swap amount
         if (targetOutput > uint128(unspecifiedAmount)) revert TargetOutputExceeds();

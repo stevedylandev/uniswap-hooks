@@ -13,12 +13,14 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-import {AntiSandwichHookNoMsgSenderMock} from "../mocks/AntiSandwichHookNoMsgSenderMock.sol";
 import {BaseDynamicFeeMock} from "../mocks/BaseDynamicFeeMock.sol";
+import {AntiSandwichHook} from "src/general/AntiSandwichHook.sol";
+import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
+import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
 import {console} from "forge-std/console.sol";
 
-contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
-    AntiSandwichHookNoMsgSenderMock hook;
+contract AntiSandwichHookTest is Test, Deployers {
+    AntiSandwichHook hook;
     PoolKey noHookKey;
 
     BaseDynamicFeeMock dynamicFeesHooks;
@@ -27,10 +29,14 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = AntiSandwichHookNoMsgSenderMock(
+        hook = AntiSandwichHook(
             address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
         );
-        deployCodeTo("test/mocks/AntiSandwichHookNoMsgSenderMock.sol:AntiSandwichHookNoMsgSenderMock", abi.encode(manager), address(hook));
+        deployCodeTo(
+            "src/general/AntiSandwichHook.sol:AntiSandwichHook",
+            abi.encode(manager),
+            address(hook)
+        );
 
         dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
@@ -40,7 +46,9 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
         (key,) = initPoolAndAddLiquidity(
             currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
         );
-        (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(dynamicFeesHooks)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1);
+        (noHookKey,) = initPoolAndAddLiquidity(
+            currency0, currency1, IHooks(address(dynamicFeesHooks)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
+        );
 
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
@@ -97,7 +105,52 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         SwapParams memory params =
             SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
-        
+
+        // buy currency0 for currency1, front run
+        BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertTrue(deltaAttack1WithKey == deltaAttack1WithoutKey);
+
+        // sandwiched buy currency0 for currency
+        BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+        BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertGt(deltaAttack1WithKey.amount1(), deltaUserWithKey.amount1(), "price didn't increase in the front run");
+
+        assertTrue(deltaUserWithKey == deltaUserWithoutKey);
+
+        // sell currency1 for currency0, front run
+        params = SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(deltaAttack1WithKey.amount1()),
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+        console.log("AQUI 1");
+        BalanceDelta deltaAttack2WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertLe(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
+
+        vm.roll(block.number + 1);
+
+        params =
+            SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+
+        BalanceDelta deltaResetState = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta deltaNextBlock = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES);
+
+        // 997010963116644 is obtained from `test_swap_successfulSandwich`
+        assertEq(deltaResetState.amount1(), deltaNextBlock.amount1(), "state did not reset");
+    }
+
+    function test_swap_sandwiched_zeroForOne_exactOutput() public {
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        SwapParams memory params =
+            SwapParams({zeroForOne: true, amountSpecified: int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+
         // buy currency0 for currency1, front run
         BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
         BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
@@ -108,6 +161,8 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
         BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
         BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
 
+        assertLt(-deltaAttack1WithKey.amount0(), -deltaUserWithKey.amount0(), "price didn't decrease in the front run");
+
         assertTrue(deltaUserWithKey == deltaUserWithoutKey);
 
         // sell currency1 for currency0, front run
@@ -117,25 +172,153 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
         });
         BalanceDelta deltaAttack2WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
-        BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // fixed price
+        BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
 
-        console.log("difference ", deltaAttack2WithoutKey.amount0() - deltaAttack2WithKey.amount0());
-
-        console.log("deltaAttack2WithKey.amount0()", deltaAttack2WithKey.amount0());
-        console.log("deltaAttack2WithoutKey.amount0()", deltaAttack2WithoutKey.amount0());
-        console.log("deltaAttack2WithKey.amount1()", deltaAttack2WithKey.amount1());
-        console.log("deltaAttack2WithoutKey.amount1()", deltaAttack2WithoutKey.amount1());
-
-        assertLe(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
+        assertLt(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
 
         vm.roll(block.number + 1);
 
         params =
             SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
 
-        BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta deltaResetState = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta deltaNextBlock = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES);
+
         // 997010963116644 is obtained from `test_swap_successfulSandwich`
-        assertEq(delta.amount1(), 997010963116644, "state did not reset");
+        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "state did not reset");
+    }
+
+    function test_swap_sandwiched_NotZeroForOne_exactInput() public {
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        SwapParams memory params =
+            SwapParams({zeroForOne: false, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
+
+        // buy currency0 for currency1, front run
+        BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price, first swap in block
+        BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertTrue(deltaAttack1WithKey == deltaAttack1WithoutKey);
+
+        // sandwiched buy currency0 for currency1
+        console.log("AQUI 2");
+        BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        console.log("AQUI 3");
+        BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertLt(-deltaAttack1WithKey.amount0(), -deltaUserWithKey.amount0(), "price didn't decrease in the front run");
+
+        assertTrue(deltaUserWithKey == deltaUserWithoutKey);
+
+        // sell currency1 for currency0, front run
+        params = SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(deltaAttack1WithKey.amount1()),
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+        BalanceDelta deltaAttack2WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertLt(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
+
+        vm.roll(block.number + 1);
+
+        params =
+            SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+
+        BalanceDelta deltaResetState = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        BalanceDelta deltaNextBlock = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES);
+
+        // 997010963116644 is obtained from `test_swap_successfulSandwich`
+        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "state did not reset");
+    }
+
+    function test_reverts_swap_sandwiched_NotZeroForOne_exactInput() public {
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        SwapParams memory params =
+            SwapParams({zeroForOne: false, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
+
+        // buy currency0 for currency1, front run
+        BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price, first swap in block
+        BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertTrue(deltaAttack1WithKey == deltaAttack1WithoutKey);
+
+        // sandwiched buy currency0 for currency1
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(hook),
+                IHooks.afterSwap.selector,
+                abi.encodeWithSelector(BaseDynamicAfterFee.TargetOutputExceeds.selector),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
+            )
+        );
+        BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price, second swap in block
+        // BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        // console.log("deltaAttack1WithKey.amount0()", deltaAttack1WithKey.amount0());
+        // console.log("deltaUserWithKey.amount0()", deltaUserWithKey.amount0());
+        // console.log("deltaAttack1WithKey.amount1()", deltaAttack1WithKey.amount1());
+        // console.log("deltaUserWithKey.amount1()", deltaUserWithKey.amount1());
+
+        // assertTrue(deltaAttack1WithKey == deltaUserWithKey, "price wasn't fixed in the front run");
+
+        // assertTrue(deltaUserWithKey == deltaUserWithoutKey);
+
+        // // sell currency1 for currency0, front run
+        // params = SwapParams({
+        //     zeroForOne: false,
+        //     amountSpecified: -int256(deltaAttack1WithKey.amount1()),
+        //     sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        // });
+        // BalanceDelta deltaAttack2WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
+        // BalanceDelta deltaAttack2WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        // assertLe(deltaAttack2WithKey.amount0(), -deltaAttack1WithKey.amount0(), "front runner profit");
+
+        // vm.roll(block.number + 1);
+
+        // params =
+        //     SwapParams({zeroForOne: true, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+
+        // BalanceDelta deltaResetState = swapRouter.swap(key, params, testSettings, ZERO_BYTES);
+        // BalanceDelta deltaNextBlock = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES);
+
+        // console.log("deltaResetState.amount1()", deltaResetState.amount1());
+
+        // // 997010963116644 is obtained from `test_swap_successfulSandwich`
+        // assertEq(deltaResetState.amount1(), deltaNextBlock.amount1(), "state did not reset");
+    }
+
+    function test_reverts_swap_sandwiched_NotZeroForOne_exactOutput() public {
+        uint256 amountToSwap = 1e15;
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        SwapParams memory params =
+            SwapParams({zeroForOne: false, amountSpecified: int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
+
+        // buy currency0 for currency1, front run
+        BalanceDelta deltaAttack1WithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price, first swap in block
+        BalanceDelta deltaAttack1WithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
+
+        assertTrue(deltaAttack1WithKey == deltaAttack1WithoutKey);
+
+        // sandwiched buy currency0 for currency1
+        // should revert when _targetOutput < unspecifiedAmount
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(hook),
+                IHooks.afterSwap.selector,
+                abi.encodeWithSelector(AntiSandwichHook.RouteNotAllowed.selector),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
+            )
+        );
+        BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price, second swap in block
     }
 
     /// @notice Unit test for a failed sandwich attack using the hook.
@@ -180,10 +363,6 @@ contract AntiSandwichHookNoMsgSenderTest is Test, Deployers {
             SwapParams({zeroForOne: false, amountSpecified: -int256(amountToSwap), sqrtPriceLimitX96: MAX_PRICE_LIMIT});
         // buy currency0 for currency1, front run
         BalanceDelta delta = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
-
-        console.log("AQUI 1");
-        console.log("AQUI 1, delta.amount0()", delta.amount0());
-        console.log("AQUI 1, delta.amount1()", delta.amount1());
 
         // sandwiched buy currency0 for currency1
         swapRouter.swap(key, params, testSettings, ZERO_BYTES); // fixed price
