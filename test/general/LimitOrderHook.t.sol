@@ -17,6 +17,7 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {LimitOrderHook, OrderIdLibrary} from "src/general/LimitOrderHook.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {console} from "forge-std/console.sol";
 
 contract LimitOrderHookTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -175,6 +176,41 @@ contract LimitOrderHookTest is Test, Deployers {
         uint256 balanceBefore = currency0.balanceOf(address(this));
 
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+
+        hook.cancelOrder(key, tickLower, zeroForOne, address(this));
+
+        uint256 balanceAfterCancel = currency0.balanceOf(address(this));
+
+        assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
+    }
+
+    function test_cancelOrder_feesAccrued() public {
+        int24 tickLower = 0;
+        bool zeroForOne = true;
+        uint128 liquidity = 1e15;
+
+        uint256 balanceBefore = currency0.balanceOf(address(this));
+
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+
+        swapRouter.swap(
+            key,
+            SwapParams({
+                zeroForOne: false,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing * 2)
+            }),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            ZERO_BYTES
+        );
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        console.log("currency0Total", currency0Total);
+        console.log("currency1Total", currency1Total);
+
+        assertFalse(filled, "order should not be filled");
 
         hook.cancelOrder(key, tickLower, zeroForOne, address(this));
 

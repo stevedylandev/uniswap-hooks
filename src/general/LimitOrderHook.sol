@@ -295,8 +295,13 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // delete the liquidity from the order
         delete orderInfo.liquidity[msg.sender];
 
+        bool removingAllLiquidity = liquidity == orderInfo.liquidityTotal;
         // subtract the liquidity from the total liquidity
         orderInfo.liquidityTotal -= liquidity;
+
+        if (removingAllLiquidity) {
+            setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
+        }
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and remove the liquidity from the pool. Note that this function will return the fees accrued
@@ -309,9 +314,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                     CallbackData(
                         Callbacks.CancelOrder,
                         abi.encode(
-                            CallbackDataCancel(
-                                key, tickLower, -int256(uint256(liquidity)), to, liquidity == orderInfo.liquidityTotal
-                            )
+                            CallbackDataCancel(key, tickLower, -int256(uint256(liquidity)), to, removingAllLiquidity)
                         )
                     )
                 )
