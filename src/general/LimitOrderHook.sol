@@ -142,9 +142,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     /// @dev Limit order placed on the wrong side of the range.
     error CrossedRange();
 
-    /// @dev Hook was already initialized.
-    error AlreadyInitialized();
-
     /// @dev Limit order was already filled.
     error Filled();
 
