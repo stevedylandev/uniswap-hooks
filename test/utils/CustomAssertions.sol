@@ -40,6 +40,7 @@ contract CustomAssertions is Test {
         assertTrue(amount0Different || amount1Different, err);
     }
 
+    // @dev Asserts that delta1 is greater than delta2 for both amount0 and amount1
     function assertGt(BalanceDelta delta1, BalanceDelta delta2) internal {
         assertGt(BalanceDeltaLibrary.amount1(delta1), BalanceDeltaLibrary.amount1(delta2));
         assertGt(BalanceDeltaLibrary.amount0(delta1), BalanceDeltaLibrary.amount0(delta2));
@@ -48,5 +49,18 @@ contract CustomAssertions is Test {
     function assertGt(BalanceDelta delta1, BalanceDelta delta2, string memory err) internal {
         assertGt(BalanceDeltaLibrary.amount1(delta1), BalanceDeltaLibrary.amount1(delta2), err);
         assertGt(BalanceDeltaLibrary.amount0(delta1), BalanceDeltaLibrary.amount0(delta2), err);
+    }
+
+    // @dev Asserts that delta1 is greater than delta2 for either amount0 or amount1
+    function assertEitherGt(BalanceDelta delta1, BalanceDelta delta2) internal {
+        bool amount1Gt = BalanceDeltaLibrary.amount1(delta1) > BalanceDeltaLibrary.amount1(delta2);
+        bool amount0Gt = BalanceDeltaLibrary.amount0(delta1) > BalanceDeltaLibrary.amount0(delta2);
+        assertTrue(amount1Gt || amount0Gt);
+    }
+
+    function assertEitherGt(BalanceDelta delta1, BalanceDelta delta2, string memory err) internal {
+        bool amount1Gt = BalanceDeltaLibrary.amount1(delta1) > BalanceDeltaLibrary.amount1(delta2);
+        bool amount0Gt = BalanceDeltaLibrary.amount0(delta1) > BalanceDeltaLibrary.amount0(delta2);
+        assertTrue(amount1Gt || amount0Gt, err);
     }
 }

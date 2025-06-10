@@ -12,6 +12,8 @@ import {Position} from "v4-core/src/libraries/Position.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
+import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {IPoolManagerEvents} from "../../src/interfaces/IPoolManagerEvents.sol";
 import {CustomAssertions} from "./CustomAssertions.sol";
 
@@ -63,6 +65,28 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
         ModifyLiquidityParams memory modifyLiquidityParams =
             ModifyLiquidityParams({tickLower: tickLower, tickUpper: tickUpper, liquidityDelta: liquidity, salt: salt});
         return modifyLiquidityRouter.modifyLiquidity(poolKey, modifyLiquidityParams, "");
+    }
+
+    function swap(PoolKey memory poolKey, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96)
+        internal
+        returns (BalanceDelta)
+    {
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: zeroForOne, amountSpecified: amountSpecified, sqrtPriceLimitX96: sqrtPriceLimitX96});
+        return swapRouter.swap(poolKey, swapParams, testSettings, "");
+    }
+
+    function swapAllCombinations(PoolKey memory poolKey, uint256 amount) internal {
+        for (uint256 i = 0; i < 4; i++) {
+            swap(
+                poolKey,
+                i < 2 ? false : true,
+                i % 2 == 0 ? -int256(amount) : int256(amount),
+                i < 2 ? MAX_PRICE_LIMIT : MIN_PRICE_LIMIT
+            );
+        }
     }
 
     // function modifyPoolLiquidityAs(
