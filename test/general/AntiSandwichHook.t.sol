@@ -321,6 +321,8 @@ contract AntiSandwichHookTest is Test, Deployers {
         BalanceDelta deltaUserWithKey = swapRouter.swap(key, params, testSettings, ZERO_BYTES); // second swap in block
         BalanceDelta deltaUserWithoutKey = swapRouter.swap(noHookKey, params, testSettings, ZERO_BYTES); // normal curve, x * y = k
 
+        assertLt
+
 
 
 
