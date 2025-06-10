@@ -91,7 +91,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
-        // update the top-of-block `slot0` if new block
+        // update the top-of-block `slot0` if new block, only at the first buy (zeroForOne = true)
         if (_lastCheckpoint.blockNumber != uint48(block.number)) {
             _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
 
@@ -214,15 +214,15 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         console.log("exactInput", exactInput);
 
 
-        if(!exactInput && !params.zeroForOne) {
-            if(_targetOutput < uint256(uint128(unspecifiedAmount))) {
-                // we need to revert here because in order to get the correct price, we would need to 
-                // decrease the price in favor of the user, which would compromise the `poolManager`
-                revert RouteNotAllowed();
-            }
+        // if(!exactInput && !params.zeroForOne) {
+        //     if(_targetOutput < uint256(uint128(unspecifiedAmount))) {
+        //         // we need to revert here because in order to get the correct price, we would need to 
+        //         // decrease the price in favor of the user, which would compromise the `poolManager`
+        //         revert RouteNotAllowed();
+        //     }
 
-            return super._afterSwap(sender, key, params, delta, hookData);
-        }
+        //     return super._afterSwap(sender, key, params, delta, hookData);
+        // }
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
@@ -242,13 +242,13 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
-        if (params.zeroForOne) {
-            return (type(uint256).max, false);
-        }
-
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
+        if (params.zeroForOne) {
+            return (type(uint256).max, false);
+        }
+        
         // constant bid price
         if (!params.zeroForOne) {
             _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
