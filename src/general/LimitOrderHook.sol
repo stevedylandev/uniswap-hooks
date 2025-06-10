@@ -433,7 +433,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         PoolKey memory key = placeData.key;
 
         // add the out of range liquidity to the pool
-        (BalanceDelta delta,) = poolManager.modifyLiquidity(
+        (BalanceDelta principalDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
             key,
             ModifyLiquidityParams({
                 tickLower: placeData.tickLower,
@@ -443,6 +443,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             }),
             ZERO_BYTES
         );
+
+        BalanceDelta delta = principalDelta - feesAccrued;
 
         // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
         if (delta.amount0() < 0) {
