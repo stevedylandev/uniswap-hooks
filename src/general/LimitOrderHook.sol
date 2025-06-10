@@ -72,7 +72,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint256 currency0Total;
         uint256 currency1Total;
         uint128 liquidityTotal;
-        mapping(address => uint128) liquidity;
+        mapping(address owner => uint128 amount) liquidity;
     }
 
     /// @dev Enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `{unlockCallback}`
@@ -125,13 +125,13 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     OrderIdLibrary.OrderId public orderIdNext = OrderIdLibrary.OrderId.wrap(1);
 
     /// @dev The last tick lower for each pool.
-    mapping(PoolId => int24) public tickLowerLasts;
+    mapping(PoolId poolId => int24 tickLowerLast) public tickLowerLasts;
 
     /// @dev Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
-    mapping(bytes32 => OrderIdLibrary.OrderId) public orders;
+    mapping(bytes32 orderIdKey => OrderIdLibrary.OrderId orderId) public orders;
 
     /// @dev Tracks the order info for each order id.
-    mapping(OrderIdLibrary.OrderId => OrderInfo) public orderInfos;
+    mapping(OrderIdLibrary.OrderId orderId => OrderInfo orderInfo) public orderInfos;
 
     /// @dev Zero liquidity was attempted to be added or removed.
     error ZeroLiquidity();
