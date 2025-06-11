@@ -8,22 +8,18 @@ import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 // External imports
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-import {MockV4Router} from "v4-periphery/test/mocks/MockV4Router.sol";
-import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
-import {console} from "forge-std/console.sol";
-
 /**
  * @dev Sandwich-resistant hook, based on
  * https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
@@ -41,7 +37,8 @@ import {console} from "forge-std/console.sol";
  * decreasing the offer price according to xy=k.
  *
  * NOTE: Swaps in the other direction do not get the positive price difference
- * compared to the initial price before the first swap in the block.
+ * compared to the initial price before the first swap in the block, i.e. the anti sandwich mechanism 
+ * is only applied when zeroForOne = true.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -52,20 +49,17 @@ import {console} from "forge-std/console.sol";
 contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
-    using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeCast for uint256;
 
     /// @dev Represents a checkpoint of the pool state at the beginning of a block.
     struct Checkpoint {
         uint48 blockNumber;
-        Slot0 slot0;
         Pool.State state;
     }
 
+    /// @dev Maps each pool to its last checkpoint.
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
-
-    error RouteNotAllowed();
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
@@ -80,8 +74,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      * - Calculates a target output based on the beginning-of-block state
      * - Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
      *
-     * NOTE: This implementation skips calling `super._beforeSwap` in the first swap of the block. Consider
-     * execution side effects might be missed if there is more than one definition for this function.
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
@@ -91,17 +83,31 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
-        // update the top-of-block `slot0` if new block, only at the first buy (zeroForOne = true)
+        // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != uint48(block.number)) {
-            _lastCheckpoint.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
 
             _lastCheckpoint.blockNumber = uint48(block.number);
 
             // iterate over ticks
             (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
 
-            if(tickAfter > _lastCheckpoint.slot0.tick()) {
-                for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
+            if (tickAfter > _lastCheckpoint.state.slot0.tick()) {
+                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
+                    (
+                        uint128 liquidityGross,
+                        int128 liquidityNet,
+                        uint256 feeGrowthOutside0X128,
+                        uint256 feeGrowthOutside1X128
+                    ) = poolManager.getTickInfo(poolId, tick);
+
+                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
+                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
+                }
+            } else {
+                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick > tickAfter; tick -= key.tickSpacing) {
                     (
                         uint128 liquidityGross,
                         int128 liquidityNet,
@@ -115,24 +121,6 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
                     _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
                 }
             }
-            // else {
-            //     for (int24 tick = _lastCheckpoint.slot0.tick(); tick > tickAfter; tick -= key.tickSpacing) {
-            //         (
-            //             uint128 liquidityGross,
-            //             int128 liquidityNet,
-            //             uint256 feeGrowthOutside0X128,
-            //             uint256 feeGrowthOutside1X128
-            //         ) = poolManager.getTickInfo(poolId, tick);
-
-            //         _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-            //         _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-            //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-            //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-            //     }
-            // }
-
-            // deep copy only values that are used and change in fair delta calculation
-            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
@@ -159,70 +147,27 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         BalanceDelta delta,
         bytes calldata hookData
     ) internal override returns (bytes4, int128) {
-        uint48 blockNumber = uint48(block.number);
-        PoolId poolId = key.toId();
-        Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
-
-        // after the first swap in block, initialize the temporary pool state
-        // if (_lastCheckpoint.blockNumber != blockNumber) {
-        //     _lastCheckpoint.blockNumber = blockNumber;
-
-        //     // iterate over ticks
-        //     (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
-        //     for (int24 tick = _lastCheckpoint.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
-        //         (
-        //             uint128 liquidityGross,
-        //             int128 liquidityNet,
-        //             uint256 feeGrowthOutside0X128,
-        //             uint256 feeGrowthOutside1X128
-        //         ) = poolManager.getTickInfo(poolId, tick);
-
-        //         _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-        //         _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-        //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-        //         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-        //     }
-
-        //     // deep copy only values that are used and change in fair delta calculation
-        //     _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
-        //     (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
-        //         poolManager.getFeeGrowthGlobals(poolId);
-        //     _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
-        // }
-
-        // if (unspecifiedAmount < 0) {
-        //     unspecifiedAmount = -unspecifiedAmount;
-        // }
-
-        // update target output if it exceeds the swap amount
-        // if (_targetOutput > uint128(unspecifiedAmount)) {
-        //     _targetOutput = uint128(unspecifiedAmount);
-        // }
+        if (!_applyTargetOutput) {
+            return (this.afterSwap.selector, 0);
+        }
 
         int128 unspecifiedAmount = (params.amountSpecified < 0 == params.zeroForOne) ? delta.amount1() : delta.amount0();
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
-
-        console.log("-------afterSwap -------");
-        console.log("_targetOutput", _targetOutput);
-        console.log("unspecifiedAmount", unspecifiedAmount);
-
         bool exactInput = params.amountSpecified < 0;
 
+        if (!exactInput && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+            // In this case, the swapper has a fixed output and `_targetOutput` is greater than the input amount.
+            // In order to protect against the sandwich attack, we increase the input amount to `_targetOutput`.
+            uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
 
-        console.log("exactInput", exactInput);
+            unspecified.take(poolManager, address(this), payAmount, true);
 
+            _afterSwapHandler(key, params, delta, _targetOutput, payAmount);
 
-        // if(!exactInput && !params.zeroForOne) {
-        //     if(_targetOutput < uint256(uint128(unspecifiedAmount))) {
-        //         // we need to revert here because in order to get the correct price, we would need to 
-        //         // decrease the price in favor of the user, which would compromise the `poolManager`
-        //         revert RouteNotAllowed();
-        //     }
-
-        //     return super._afterSwap(sender, key, params, delta, hookData);
-        // }
+            return (this.afterSwap.selector, int128(uint128(payAmount)));
+        }
 
         return super._afterSwap(sender, key, params, delta, hookData);
     }
@@ -230,7 +175,9 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
     /**
      * @dev Calculates the fair output amount based on the pool state at the beginning of the block.
      * This prevents sandwich attacks by ensuring trades can't get better prices than what was available
-     * at the start of the block.
+     * at the start of the block. Note that the output calculated could mean either input or output, depending
+     * if it's an exact input or output swap. In cases of zeroForOne == true, the target output is not applicable,
+     * the max uint256 value is returned only as a flag.
      *
      * The anti-sandwich mechanism works by:
      * * For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve
@@ -242,17 +189,14 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
-        PoolId poolId = key.toId();
-        Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
-
         if (params.zeroForOne) {
+            // when zeroForOne == true, the xy=k curve is used, so the target output doesn't matter, since it's not going to be used
+            // we return the max value to indicate that the target output is not applicable
             return (type(uint256).max, false);
         }
-        
-        // constant bid price
-        if (!params.zeroForOne) {
-            _lastCheckpoint.state.slot0 = _lastCheckpoint.slot0;
-        }
+
+        PoolId poolId = key.toId();
+        Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         // calculate target output
         // NOTE: this functions does not execute the swap, it only calculates the output of a swap in the given state
