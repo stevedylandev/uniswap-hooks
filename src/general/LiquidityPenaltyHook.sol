@@ -18,7 +18,7 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta, eq} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
  * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.
@@ -144,12 +144,11 @@ contract LiquidityPenaltyHook is BaseHook {
             // The total fees accrued by the LP are the sum of the current `feeDelta` plus the potentially withheldFees.
             BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta + withheldFees, key.toId(), positionKey);
 
-            BalanceDelta deltaHook = poolManager.donate(
+            poolManager.donate(
                 key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
             );
 
-            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
-            return (this.afterRemoveLiquidity.selector, returnDelta);
+            return (this.afterRemoveLiquidity.selector, liquidityPenalty - withheldFees);
         }
 
         // If the liquidity removal was not penalized, return the withheld fees if any.

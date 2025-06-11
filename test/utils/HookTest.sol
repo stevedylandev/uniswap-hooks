@@ -15,11 +15,11 @@ import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {IPoolManagerEvents} from "../../src/interfaces/IPoolManagerEvents.sol";
-import {CustomAssertions} from "./CustomAssertions.sol";
+import {BalanceDeltaAssertions} from "./BalanceDeltaAssertions.sol";
 
-contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
-    // Helper functions
-
+// @dev Set of utilities to test Hooks.
+contract HookTest is Test, Deployers, IPoolManagerEvents, BalanceDeltaAssertions {
+    // @dev Calculate the current `feesAccrued` for a given position.
     function calculateFees(
         IPoolManager manager,
         PoolId poolId,
@@ -35,14 +35,13 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
         (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
             StateLibrary.getFeeGrowthInside(manager, poolId, tickLower, tickUpper);
 
-        uint256 feesExpected0 =
-            FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-        uint256 feesExpected1 =
-            FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+        uint256 fees0 = FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
+        uint256 fees1 = FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
 
-        return (int128(int256(feesExpected0)), int128(int256(feesExpected1)));
+        return (int128(int256(fees0)), int128(int256(fees1)));
     }
 
+    // @dev Calculate the current feeDelta for a given position.
     function calculateFeeDelta(
         IPoolManager manager,
         PoolId poolId,
@@ -50,11 +49,12 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
         int24 tickLower,
         int24 tickUpper,
         bytes32 salt
-    ) internal view returns (BalanceDelta) {
+    ) internal view returns (BalanceDelta feeDelta) {
         (int128 fees0, int128 fees1) = calculateFees(manager, poolId, owner, tickLower, tickUpper, salt);
         return toBalanceDelta(fees0, fees1);
     }
 
+    // @dev Modify the liquidity of a given position.
     function modifyPoolLiquidity(
         PoolKey memory poolKey,
         int24 tickLower,
@@ -67,6 +67,7 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
         return modifyLiquidityRouter.modifyLiquidity(poolKey, modifyLiquidityParams, "");
     }
 
+    // @dev Swap tokens in a given pool.
     function swap(PoolKey memory poolKey, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96)
         internal
         returns (BalanceDelta)
@@ -78,6 +79,7 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
         return swapRouter.swap(poolKey, swapParams, testSettings, "");
     }
 
+    // @dev Swaps all combinations of `zeroForOne` (true/false) and `amountSpecified` (+,-) in a given pool.
     function swapAllCombinations(PoolKey memory poolKey, uint256 amount) internal {
         for (uint256 i = 0; i < 4; i++) {
             swap(
@@ -88,16 +90,4 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, CustomAssertions {
             );
         }
     }
-
-    // function modifyPoolLiquidityAs(
-    //     address liquidityProvider,
-    //     PoolKey memory poolKey,
-    //     int24 tickLower,
-    //     int24 tickUpper,
-    //     int256 liquidity,
-    // ) internal returns (BalanceDelta) {
-    //     vm.prank(liquidityProvider);
-    //     return modifyPoolLiquidity(poolKey, tickLower, tickUpper, liquidity, keccak256(abi.encode(liquidityProvider)));
-    //     vm.stopPrank();
-    // }
 }
