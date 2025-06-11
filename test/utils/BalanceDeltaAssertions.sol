@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {Test} from "forge-std/Test.sol";
 
-// @dev Custom assertions for `BalanceDelta` from `v4-core`
+// @dev Custom foundry-like assertions for `BalanceDelta` from `v4-core`
 contract BalanceDeltaAssertions is Test {
     // @dev Asserts that `delta1` is equal to `delta2` for both amount0 and amount1
     function assertEq(BalanceDelta delta1, BalanceDelta delta2) internal {
