@@ -37,7 +37,7 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
  * decreasing the offer price according to xy=k.
  *
  * NOTE: Swaps in the other direction do not get the positive price difference
- * compared to the initial price before the first swap in the block, i.e. the anti sandwich mechanism 
+ * compared to the initial price before the first swap in the block, i.e. the anti sandwich mechanism
  * is only applied when zeroForOne = true.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
@@ -46,6 +46,7 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
  *
  * _Available since v1.1.0_
  */
+
 contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
