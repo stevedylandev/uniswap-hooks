@@ -14,7 +14,7 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-import {IPoolManagerEvents} from "../../src/interfaces/IPoolManagerEvents.sol";
+import {IPoolManagerEvents} from "./IPoolManagerEvents.sol";
 import {BalanceDeltaAssertions} from "./BalanceDeltaAssertions.sol";
 
 // @dev Set of utilities to test Hooks.

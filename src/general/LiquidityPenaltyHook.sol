@@ -18,7 +18,7 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta, eq} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 
 /**
  * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.
