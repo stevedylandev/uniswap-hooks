@@ -49,7 +49,7 @@ contract LiquidityPenaltyHook is BaseHook {
     using SafeCast for uint256;
 
     /**
-     * @dev The hook was attempted to be constructed with a {blockNumberOffset} lower than `MIN_BLOCK_NUMBER_OFFSET`.
+     * @dev The hook was attempted to be constructed with a `blockNumberOffset` lower than `MIN_BLOCK_NUMBER_OFFSET`.
      */
     error BlockNumberOffsetTooLow();
 
@@ -254,8 +254,8 @@ contract LiquidityPenaltyHook is BaseHook {
      * @dev Tracks the `withheldFees` for a liquidity position.
      *
      * `withheldFees` are UniswapV4's `feesAccrued` retained by this hook during liquidity addition if liquidity
-     * has been added within the `blockNumberOffset` period. This is intended to disable fee collection during JIT
-     * liquidity provisioning. See {_afterRemoveLiquidity} for claiming the fees back.
+     * has been added within the `blockNumberOffset` time window. This is intended to disable fee collection during
+     * JIT liquidity provisioning attacks. See {_afterRemoveLiquidity} for claiming the fees back.
      */
     function getLastAddedLiquidityBlock(PoolId poolId, bytes32 positionKey) public view virtual returns (uint48) {
         return _lastAddedLiquidityBlock[poolId][positionKey];
