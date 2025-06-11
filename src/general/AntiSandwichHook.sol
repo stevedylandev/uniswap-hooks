@@ -85,10 +85,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         // update the top-of-block `slot0` if new block
-        if (_lastCheckpoint.blockNumber != uint48(block.number)) {
+        if (_lastCheckpoint.blockNumber != _getBlockNumber()) {
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
 
-            _lastCheckpoint.blockNumber = uint48(block.number);
+            _lastCheckpoint.blockNumber = _getBlockNumber();
 
             // iterate over ticks
             (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
@@ -171,6 +171,13 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
+    }
+
+    /**
+     * @dev Returns the current block number.
+     */
+    function _getBlockNumber() internal view virtual returns (uint48) {
+        return uint48(block.number);
     }
 
     /**
