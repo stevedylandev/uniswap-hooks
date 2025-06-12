@@ -2,14 +2,19 @@
 :LiquidityPenaltyHook: pass:normal[xref:general.adoc#LiquidityPenaltyHook[`LiquidityPenaltyHook`]]
 :AntiSandwichHook: pass:normal[xref:general.adoc#AntiSandwichHook[`AntiSandwichHook`]]
 :LimitOrderHook: pass:normal[xref:general.adoc#LimitOrderHook[`LimitOrderHook`]]
-:xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-: xref:general.adoc#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-
+:xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-: xref:general.adoc#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-
 :xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
 :xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-: xref:general.adoc#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-
+:xref-LiquidityPenaltyHook-_getBlockNumber--: xref:general.adoc#LiquidityPenaltyHook-_getBlockNumber--
+:xref-LiquidityPenaltyHook-_updateLastAddedLiquidityBlock-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_updateLastAddedLiquidityBlock-PoolId-bytes32-
+:xref-LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-: xref:general.adoc#LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-
+:xref-LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-
 :xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-
+:xref-LiquidityPenaltyHook-getBlockNumberOffset--: xref:general.adoc#LiquidityPenaltyHook-getBlockNumberOffset--
+:xref-LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-
+:xref-LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-
 :xref-LiquidityPenaltyHook-getHookPermissions--: xref:general.adoc#LiquidityPenaltyHook-getHookPermissions--
-:xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256
-:xref-LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--: xref:general.adoc#LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--
-:xref-LiquidityPenaltyHook-blockNumberOffset-uint256: xref:general.adoc#LiquidityPenaltyHook-blockNumberOffset-uint256
+:xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48
 :xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -138,14 +143,19 @@ Ready-to-use hooks built on top of the base and fee abstract contracts
 
 == Hooks
 
-:MIN_BLOCK_NUMBER_OFFSET: pass:normal[xref:#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256[`++MIN_BLOCK_NUMBER_OFFSET++`]]
-:lastAddedLiquidity: pass:normal[xref:#LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--[`++lastAddedLiquidity++`]]
-:blockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-blockNumberOffset-uint256[`++blockNumberOffset++`]]
 :BlockNumberOffsetTooLow: pass:normal[xref:#LiquidityPenaltyHook-BlockNumberOffsetTooLow--[`++BlockNumberOffsetTooLow++`]]
-:constructor: pass:normal[xref:#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-[`++constructor++`]]
+:MIN_BLOCK_NUMBER_OFFSET: pass:normal[xref:#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48[`++MIN_BLOCK_NUMBER_OFFSET++`]]
+:constructor: pass:normal[xref:#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-[`++constructor++`]]
 :_afterAddLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterAddLiquidity++`]]
 :_afterRemoveLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterRemoveLiquidity++`]]
+:_getBlockNumber: pass:normal[xref:#LiquidityPenaltyHook-_getBlockNumber--[`++_getBlockNumber++`]]
+:_updateLastAddedLiquidityBlock: pass:normal[xref:#LiquidityPenaltyHook-_updateLastAddedLiquidityBlock-PoolId-bytes32-[`++_updateLastAddedLiquidityBlock++`]]
+:_takeFeesToHook: pass:normal[xref:#LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-[`++_takeFeesToHook++`]]
+:_settleFeesFromHook: pass:normal[xref:#LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-[`++_settleFeesFromHook++`]]
 :_calculateLiquidityPenalty: pass:normal[xref:#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-[`++_calculateLiquidityPenalty++`]]
+:getBlockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-getBlockNumberOffset--[`++getBlockNumberOffset++`]]
+:getLastAddedLiquidityBlock: pass:normal[xref:#LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-[`++getLastAddedLiquidityBlock++`]]
+:getWithheldFees: pass:normal[xref:#LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-[`++getWithheldFees++`]]
 :getHookPermissions: pass:normal[xref:#LiquidityPenaltyHook-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -157,21 +167,21 @@ Ready-to-use hooks built on top of the base and fee abstract contracts
 import "uniswap-hooks/src/general/LiquidityPenaltyHook.sol";
 ```
 
-This hook implements a mechanism penalize liquidity provision based on time of adding and removal of liquidty.
-The main purpose is to prevent JIT (Just in Time) attacks on liquidity pools. Specifically,
-it checks if a liquidity position was added to the pool within a certain block number range (at least 1 block)
-and if so, it donates some of the fees to the pool (up to 100% of the fees). This way, the hook effectively taxes JIT attackers by donating their
-expected profits back to the pool.
-The hook calculates the fee donation based on the block number when the liquidity was added
-and the block number offset.
+Just-in-Time (JIT) liquidity provisioning resistant hook.
 
-At constructor, the hook requires a block number offset. This offset is the number of blocks at which the hook
-will donate the fees to the pool. The minimum value is 1.
+This hook disincentivizes JIT attacks by penalizing LP fee collection during {_afterRemoveLiquidity},
+and disabling it during {_afterAddLiquidity} if liquidity was recently added to the position.
+The penalty is donated to the pool's liquidity providers in range at the time of removal.
 
-NOTE: The hook donates the fees to the current in range liquidity providers (at the time of liquidity removal).
-If the block number offset is much later than the actual block number when the liquidity was added, the
-liquidity providers who benefited from the fees will be the ones in range at the time of liquidity removal, not
-the ones in range at the time of liquidity addition.
+See {_calculateLiquidityPenalty} for penalty calculation.
+
+NOTE: If a long term liquidity provider adds liquidity continuously, a pause of `blockNumberOffset`
+before removing will be needed if `feesAccrued` collection is intended, in order to avoid getting
+penalized by the JIT protection mechanism.
+
+WARNING: Altrough this hook achieves it's objective of protecting long term LP's in most scenarios,
+low liquidity pools and long-tail assets may still be vulnerable depending on the configured `blockNumberOffset`.
+Larger values of such are recommended in those cases in order to decrease the profitability of the attack.
 
 WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
 not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -182,14 +192,19 @@ _Available since v0.1.1_
 [.contract-index]
 .Functions
 --
-* {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-}[`++constructor(_poolManager, _blockNumberOffset)++`]
-* {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , , )++`]
+* {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-}[`++constructor(poolManager_, blockNumberOffset_)++`]
+* {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , feeDelta, )++`]
 * {xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(sender, key, params, , feeDelta, )++`]
+* {xref-LiquidityPenaltyHook-_getBlockNumber--}[`++_getBlockNumber()++`]
+* {xref-LiquidityPenaltyHook-_updateLastAddedLiquidityBlock-PoolId-bytes32-}[`++_updateLastAddedLiquidityBlock(poolId, positionKey)++`]
+* {xref-LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-}[`++_takeFeesToHook(key, positionKey, feeDelta)++`]
+* {xref-LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-}[`++_settleFeesFromHook(key, positionKey)++`]
 * {xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-}[`++_calculateLiquidityPenalty(feeDelta, poolId, positionKey)++`]
+* {xref-LiquidityPenaltyHook-getBlockNumberOffset--}[`++getBlockNumberOffset()++`]
+* {xref-LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-}[`++getLastAddedLiquidityBlock(poolId, positionKey)++`]
+* {xref-LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-}[`++getWithheldFees(poolId, positionKey)++`]
 * {xref-LiquidityPenaltyHook-getHookPermissions--}[`++getHookPermissions()++`]
-* {xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256}[`++MIN_BLOCK_NUMBER_OFFSET()++`]
-* {xref-LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--}[`++lastAddedLiquidity()++`]
-* {xref-LiquidityPenaltyHook-blockNumberOffset-uint256}[`++blockNumberOffset()++`]
+* {xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48}[`++MIN_BLOCK_NUMBER_OFFSET()++`]
 
 [.contract-subindex-inherited]
 .BaseHook
@@ -237,51 +252,112 @@ _Available since v0.1.1_
 --
 
 [.contract-item]
-[[LiquidityPenaltyHook-constructor-contract-IPoolManager-uint256-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager, uint256 _blockNumberOffset)++` [.item-kind]#public#
+[[LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-]]
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager poolManager_, uint48 blockNumberOffset_)++` [.item-kind]#public#
 
-Set the `PoolManager` address and the block number offset.
+Sets the `PoolManager` address and the {getBlockNumberOffset}.
 
 [.contract-item]
 [[LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
-==== `[.contract-item-name]#++_afterAddLiquidity++#++(address sender, struct PoolKey key, struct ModifyLiquidityParams params, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
+==== `[.contract-item-name]#++_afterAddLiquidity++#++(address sender, struct PoolKey key, struct ModifyLiquidityParams params, BalanceDelta, BalanceDelta feeDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
-Hooks into the `afterAddLiquidity` hook to record the block number when the liquidity was added to track
-JIT liquidity positions.
+Tracks `lastAddedLiquidityBlock` and withholds `feeDelta` if liquidity was added within the `blockNumberOffset` period.
+See {_afterRemoveLiquidity} for claiming the withheld fees back.
 
 [.contract-item]
 [[LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterRemoveLiquidity++#++(address sender, struct PoolKey key, struct ModifyLiquidityParams params, BalanceDelta, BalanceDelta feeDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
-Hooks into the `afterRemoveLiquidity` hook to donate accumulated fees for a JIT liquidity position created.
+Penalizes the collection of LP `feesDelta` and `withheldFees` after liquidity removal if liquidity was
+recently added to the position.
+
+NOTE: The penalty is applied on both `withheldFees` and `feeDelta` equally.
+Therefore, regardless of how many times liquidity was added to the position within the `blockNumberOffset` period,
+all accrued fees are penalized as if the liquidity was added only once during that period. This ensures that splitting
+liquidity additions within the `blockNumberOffset` period does not reduce or increase the penalty.
+
+IMPORTANT: The penalty is donated to the pool's liquidity providers in range at the time of liquidity removal,
+which may be different from the liquidity providers in range at the time of liquidity addition.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_getBlockNumber--]]
+==== `[.contract-item-name]#++_getBlockNumber++#++() → uint48++` [.item-kind]#internal#
+
+Returns the current block number.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_updateLastAddedLiquidityBlock-PoolId-bytes32-]]
+==== `[.contract-item-name]#++_updateLastAddedLiquidityBlock++#++(PoolId poolId, bytes32 positionKey)++` [.item-kind]#internal#
+
+Updates the `lastAddedLiquidityBlock` for a liquidity position.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-]]
+==== `[.contract-item-name]#++_takeFeesToHook++#++(struct PoolKey key, bytes32 positionKey, BalanceDelta feeDelta)++` [.item-kind]#internal#
+
+Takes `feeDelta` from a liquidity position as `withheldFees` into this hook.
+
+[.contract-item]
+[[LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-]]
+==== `[.contract-item-name]#++_settleFeesFromHook++#++(struct PoolKey key, bytes32 positionKey) → BalanceDelta withheldFees++` [.item-kind]#internal#
+
+Returns `withheldFees` from this hook to the liquidity provider.
 
 [.contract-item]
 [[LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-PoolId-bytes32-]]
 ==== `[.contract-item-name]#++_calculateLiquidityPenalty++#++(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey) → BalanceDelta liquidityPenalty++` [.item-kind]#internal#
 
-Calculates the fee donation when a liquidity position is removed before the block number offset.
+Calculates the penalty to be applied to JIT liquidity provisioning.
+
+The penalty is calculated as a linear function of the block number difference between the `lastAddedLiquidityBlock` and the `currentBlockNumber`.
+
+The formula is:
+liquidityPenalty = feeDelta * ( 1 - (currentBlockNumber - lastAddedLiquidityBlock) / blockNumberOffset)
+
+The penalty is 100% at the block where liquidity was last added and 0% after the `blockNumberOffset` block.
+
+NOTE: This function is called only if the liquidity is removed before the `blockNumberOffset`, i.e.,
+(currentBlockNumber - lastAddedLiquidityBlock) < blockNumberOffset, so the subtraction is safe and won't overflow.
+
+[.contract-item]
+[[LiquidityPenaltyHook-getBlockNumberOffset--]]
+==== `[.contract-item-name]#++getBlockNumberOffset++#++() → uint48++` [.item-kind]#public#
+
+The minimum time window (in blocks) that must pass after adding liquidity before it can be
+removed without penalty. During this period, JIT attacks are deterred through fee withholding
+and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
+
+[.contract-item]
+[[LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-]]
+==== `[.contract-item-name]#++getLastAddedLiquidityBlock++#++(PoolId poolId, bytes32 positionKey) → uint48++` [.item-kind]#public#
+
+Tracks the `withheldFees` for a liquidity position.
+
+`withheldFees` are UniswapV4's `feesAccrued` retained by this hook during liquidity addition if liquidity
+has been added within the `blockNumberOffset` time window. This is intended to disable fee collection during
+JIT liquidity provisioning attacks. See {_afterRemoveLiquidity} for claiming the fees back.
+
+[.contract-item]
+[[LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-]]
+==== `[.contract-item-name]#++getWithheldFees++#++(PoolId poolId, bytes32 positionKey) → BalanceDelta++` [.item-kind]#public#
+
+Returns the `withheldFees` for a liquidity position.
 
 [.contract-item]
 [[LiquidityPenaltyHook-getHookPermissions--]]
 ==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
 
-[.contract-item]
-[[LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint256]]
-==== `[.contract-item-name]#++MIN_BLOCK_NUMBER_OFFSET++#++() → uint256++` [.item-kind]#public#
+Set the hooks permissions, specifically `afterAddLiquidity`, `afterAddLiquidityReturnDelta`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.
 
 [.contract-item]
-[[LiquidityPenaltyHook-lastAddedLiquidity-mapping-PoolId----mapping-bytes32----uint256--]]
-==== `[.contract-item-name]#++lastAddedLiquidity++#++() → mapping(PoolId &#x3D;&gt; mapping(bytes32 &#x3D;&gt; uint256))++` [.item-kind]#public#
-
-[.contract-item]
-[[LiquidityPenaltyHook-blockNumberOffset-uint256]]
-==== `[.contract-item-name]#++blockNumberOffset++#++() → uint256++` [.item-kind]#public#
+[[LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48]]
+==== `[.contract-item-name]#++MIN_BLOCK_NUMBER_OFFSET++#++() → uint48++` [.item-kind]#public#
 
 [.contract-item]
 [[LiquidityPenaltyHook-BlockNumberOffsetTooLow--]]
 ==== `[.contract-item-name]#++BlockNumberOffsetTooLow++#++()++` [.item-kind]#error#
 
-Hook was attempted to be deployed with a block number offset that is too low.
+The hook was attempted to be constructed with a `blockNumberOffset` lower than `MIN_BLOCK_NUMBER_OFFSET`.
 
 :Checkpoint: pass:normal[xref:#AntiSandwichHook-Checkpoint[`++Checkpoint++`]]
 :constructor: pass:normal[xref:#AntiSandwichHook-constructor-contract-IPoolManager-[`++constructor++`]]
