@@ -23,11 +23,19 @@ import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/typ
 /**
  * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.
  *
- * This hook disincentivizes JIT attacks by penalizing LP fee collection during `afterRemoveLiquidity`,
- * and disabling it during `afterAddLiquidity` if liquidity was recently added to the position.
+ * This hook disincentivizes JIT attacks by penalizing LP fee collection during {_afterRemoveLiquidity},
+ * and disabling it during {_afterAddLiquidity} if liquidity was recently added to the position.
  * The penalty is donated to the pool's liquidity providers in range at the time of removal.
  *
  * See {_calculateLiquidityPenalty} for penalty calculation.
+ *
+ * NOTE: If a long term liquidity provider adds liquidity continuously, a pause of `blockNumberOffset`
+ * before removing will be needed if `feesAccrued` collection is intended, in order to avoid getting
+ * penalized by the JIT protection mechanism.
+ *
+ * WARNING: Altrough this hook achieves it's objective of protecting long term LP's in most scenarios,
+ * low liquidity pools and long-tail assets may still be vulnerable depending on the configured `blockNumberOffset`.
+ * Larger values of such are recommended in those cases in order to decrease the profitability of the attack.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -45,35 +53,16 @@ contract LiquidityPenaltyHook is BaseHook {
      */
     error BlockNumberOffsetTooLow();
 
-    /**
-     * @dev The minimum number of blocks for the `blockNumberOffset`.
-     */
     uint48 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
-    /**
-     * @dev The minimum time window (in blocks) that must pass after adding liquidity before it can be
-     * removed without penalty. During this period, JIT attacks are deterred through fee withholding
-     * and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
-     */
     uint48 private immutable _blockNumberOffset;
 
-    /**
-     * @dev Tracks the last block during which liquidity was added to a position.
-     */
     mapping(PoolId poolId => mapping(bytes32 positionKey => uint48 blockNumber)) private _lastAddedLiquidityBlock;
 
-    /**
-     * @dev Tracks the `withheldFeesAccrued` for a liquidity position.
-     *
-     * `withheldFeesAccrued` are UniswapV4's `feesAccrued` retained by this hook during liquidity addition if liquidity
-     * has been added within the `blockNumberOffset` period. See {_afterRemoveLiquidity} for claiming the fees back.
-     *
-     * This effectively disables fee collection during JIT liquidity provisioning.
-     */
-    mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFeesAccrued;
+    mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFees;
 
     /**
-     * @dev Sets the `PoolManager` address and the `blockNumberOffset`.
+     * @dev Sets the `PoolManager` address and the {getBlockNumberOffset}.
      */
     constructor(IPoolManager poolManager_, uint48 blockNumberOffset_) BaseHook(poolManager_) {
         if (blockNumberOffset_ < MIN_BLOCK_NUMBER_OFFSET) revert BlockNumberOffsetTooLow();
@@ -81,7 +70,7 @@ contract LiquidityPenaltyHook is BaseHook {
     }
 
     /**
-     * @dev Tracks `lastAddedLiquidityBlock` and withholds `feesAccrued` if liquidity was added within the `blockNumberOffset` period.
+     * @dev Tracks `lastAddedLiquidityBlock` and withholds `feeDelta` if liquidity was added within the `blockNumberOffset` period.
      * See {_afterRemoveLiquidity} for claiming the withheld fees back.
      */
     function _afterAddLiquidity(
@@ -95,7 +84,7 @@ contract LiquidityPenaltyHook is BaseHook {
         PoolId poolId = key.toId();
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        // If liquidity was added recently within the `blockNumberOffset`, retain the `feesAccrued` in this hook.
+        // If liquidity was added recently within the `blockNumberOffset`, retain the feeDelta in this hook.
         if (_getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < getBlockNumberOffset()) {
             _updateLastAddedLiquidityBlock(poolId, positionKey);
             _takeFeesToHook(key, positionKey, feeDelta);
@@ -109,9 +98,10 @@ contract LiquidityPenaltyHook is BaseHook {
     }
 
     /**
-     * @dev Penalizes the collection of LP `feesAccrued` after liquidity removal if liquidity was recently added to the position.
+     * @dev Penalizes the collection of LP `feesDelta` and `withheldFees` after liquidity removal if liquidity was
+     * recently added to the position.
      *
-     * NOTE: The penalty is applied on both `withheldFees` and the current `feeDelta` equally.
+     * NOTE: The penalty is applied on both `withheldFees` and `feeDelta` equally.
      * Therefore, regardless of how many times liquidity was added to the position within the `blockNumberOffset` period,
      * all accrued fees are penalized as if the liquidity was added only once during that period. This ensures that splitting
      * liquidity additions within the `blockNumberOffset` period does not reduce or increase the penalty.
@@ -130,7 +120,7 @@ contract LiquidityPenaltyHook is BaseHook {
         PoolId poolId = key.toId();
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
-        // Receive back the `withheldFeesAccrued` retained during previous liquidity additions within the `blockNumberOffset`.
+        // Receive back the `withheldFees` retained during previous liquidity additions within the `blockNumberOffset`.
         BalanceDelta withheldFees = _settleFeesFromHook(key, positionKey);
 
         // We need to ensure the liquidity is greater than 0 to prevent donating when there are no liquidity positions,
@@ -141,15 +131,14 @@ contract LiquidityPenaltyHook is BaseHook {
             _getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < getBlockNumberOffset()
                 && liquidity > 0
         ) {
-            // The total fees accrued by the LP are the sum of the current `feeDelta` plus the potentially withheldFees.
+            // The total fees accrued by the LP are the sum of the `feeDelta` plus the `withheldFees`.
             BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta + withheldFees, key.toId(), positionKey);
 
-            BalanceDelta deltaHook = poolManager.donate(
+            poolManager.donate(
                 key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
             );
 
-            BalanceDelta returnDelta = toBalanceDelta(-deltaHook.amount0(), -deltaHook.amount1());
-            return (this.afterRemoveLiquidity.selector, returnDelta);
+            return (this.afterRemoveLiquidity.selector, liquidityPenalty - withheldFees);
         }
 
         // If the liquidity removal was not penalized, return the withheld fees if any.
@@ -176,19 +165,19 @@ contract LiquidityPenaltyHook is BaseHook {
     }
 
     /**
-     * @dev Takes `feeDelta` from a liquidity position as `withheldFeesAccrued` into this hook.
+     * @dev Takes `feeDelta` from a liquidity position as `withheldFees` into this hook.
      */
     function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal {
         PoolId poolId = key.toId();
 
-        _withheldFeesAccrued[poolId][positionKey] = _withheldFeesAccrued[poolId][positionKey] + feeDelta;
+        _withheldFees[poolId][positionKey] = _withheldFees[poolId][positionKey] + feeDelta;
 
         key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
         key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
     }
 
     /**
-     * @dev Returns `withheldFeesAccrued` from this hook to the liquidity provider.
+     * @dev Returns `withheldFees` from this hook to the liquidity provider.
      */
     function _settleFeesFromHook(PoolKey calldata key, bytes32 positionKey)
         internal
@@ -198,10 +187,10 @@ contract LiquidityPenaltyHook is BaseHook {
 
         withheldFees = getWithheldFees(poolId, positionKey);
 
-        // Reset the `withheldFeesAccrued`.
-        _withheldFeesAccrued[poolId][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
+        // Reset the `withheldFees`.
+        _withheldFees[poolId][positionKey] = BalanceDeltaLibrary.ZERO_DELTA;
 
-        // Settle the `withheldFeesAccrued` for the liquidity position.
+        // Settle the `withheldFees` for the liquidity position.
         if (withheldFees.amount0() > 0) {
             key.currency0.settle(poolManager, address(this), uint256(uint128(withheldFees.amount0())), true);
         }
@@ -253,24 +242,30 @@ contract LiquidityPenaltyHook is BaseHook {
     }
 
     /**
-     * @dev Returns the `blockNumberOffset`.
+     * @dev The minimum time window (in blocks) that must pass after adding liquidity before it can be
+     * removed without penalty. During this period, JIT attacks are deterred through fee withholding
+     * and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
      */
     function getBlockNumberOffset() public view returns (uint48) {
         return _blockNumberOffset;
     }
 
     /**
-     * @dev Returns the `lastAddedLiquidityBlock` for a liquidity position.
+     * @dev Tracks the `withheldFees` for a liquidity position.
+     *
+     * `withheldFees` are UniswapV4's `feesAccrued` retained by this hook during liquidity addition if liquidity
+     * has been added within the `blockNumberOffset` time window. This is intended to disable fee collection during
+     * JIT liquidity provisioning attacks. See {_afterRemoveLiquidity} for claiming the fees back.
      */
     function getLastAddedLiquidityBlock(PoolId poolId, bytes32 positionKey) public view virtual returns (uint48) {
         return _lastAddedLiquidityBlock[poolId][positionKey];
     }
 
     /**
-     * @dev Returns the `withheldFeesAccrued` for a liquidity position.
+     * @dev Returns the `withheldFees` for a liquidity position.
      */
     function getWithheldFees(PoolId poolId, bytes32 positionKey) public view returns (BalanceDelta) {
-        return _withheldFeesAccrued[poolId][positionKey];
+        return _withheldFees[poolId][positionKey];
     }
 
     /**
