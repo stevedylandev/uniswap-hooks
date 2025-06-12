@@ -55,7 +55,7 @@ contract LiquidityPenaltyHook is BaseHook {
     error BlockNumberOffsetTooLow();
 
     /**
-     * @dev A penalty was attempted to be applied donated to LP's in range, but there aren't any.
+     * @dev A penalty was attempted to be applied and donated to LP's in range, but there aren't any.
      */
     error NoLiquidityToReceiveDonation();
 

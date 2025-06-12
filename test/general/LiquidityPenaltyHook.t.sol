@@ -137,10 +137,10 @@ contract LiquidityPenaltyHookTest is HookTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 CustomRevert.WrappedError.selector,
-                address(hook),                                    // target address
-                IHooks.afterRemoveLiquidity.selector,            // function selector
+                address(hook), // target address
+                IHooks.afterRemoveLiquidity.selector, // function selector
                 abi.encodeWithSelector(LiquidityPenaltyHook.NoLiquidityToReceiveDonation.selector), // reason
-                abi.encodeWithSelector(Hooks.HookCallFailed.selector)  // details
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector) // details
             )
         );
         BalanceDelta hookDelta = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
