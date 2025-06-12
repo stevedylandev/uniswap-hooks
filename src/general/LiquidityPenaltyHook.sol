@@ -19,6 +19,7 @@ import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {Pool} from "v4-core/src/libraries/Pool.sol";
 
 /**
  * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.
@@ -52,6 +53,11 @@ contract LiquidityPenaltyHook is BaseHook {
      * @dev The hook was attempted to be constructed with a `blockNumberOffset` lower than `MIN_BLOCK_NUMBER_OFFSET`.
      */
     error BlockNumberOffsetTooLow();
+
+    /**
+     * @dev A penalty was attempted to be applied donated to LP's in range, but there aren't any.
+     */
+    error NoLiquidityToReceiveDonation();
 
     uint48 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
@@ -117,22 +123,20 @@ contract LiquidityPenaltyHook is BaseHook {
         BalanceDelta feeDelta,
         bytes calldata
     ) internal virtual override returns (bytes4, BalanceDelta) {
-        PoolId poolId = key.toId();
         bytes32 positionKey = Position.calculatePositionKey(sender, params.tickLower, params.tickUpper, params.salt);
 
         // Receive back the `withheldFees` retained during previous liquidity additions within the `blockNumberOffset`.
         BalanceDelta withheldFees = _settleFeesFromHook(key, positionKey);
 
-        // We need to ensure the liquidity is greater than 0 to prevent donating when there are no liquidity positions,
-        // otherwise the PoolManager would revert and block the removal of liquidity.
-        uint128 liquidity = poolManager.getLiquidity(poolId);
+        // The total fees accrued by the LP are the sum of the `feeDelta` plus the `withheldFees`.
+        BalanceDelta totalFees = feeDelta + withheldFees;
 
-        if (
-            _getBlockNumber() - getLastAddedLiquidityBlock(poolId, positionKey) < getBlockNumberOffset()
-                && liquidity > 0
-        ) {
-            // The total fees accrued by the LP are the sum of the `feeDelta` plus the `withheldFees`.
-            BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(feeDelta + withheldFees, key.toId(), positionKey);
+        BalanceDelta liquidityPenalty = _calculateLiquidityPenalty(totalFees, key.toId(), positionKey);
+
+        if (liquidityPenalty != BalanceDeltaLibrary.ZERO_DELTA) {
+            // If there is a penalty to be applied but there are no active liquidity positions in range to
+            // receive the donation, then the liquidity removal is not possible and the offset must be awaited.
+            if (poolManager.getLiquidity(key.toId()) == 0) revert NoLiquidityToReceiveDonation();
 
             poolManager.donate(
                 key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
@@ -208,30 +212,30 @@ contract LiquidityPenaltyHook is BaseHook {
      * liquidityPenalty = feeDelta * ( 1 - (currentBlockNumber - lastAddedLiquidityBlock) / blockNumberOffset)
      *
      * The penalty is 100% at the block where liquidity was last added and 0% after the `blockNumberOffset` block.
-     *
-     * NOTE: This function is called only if the liquidity is removed before the `blockNumberOffset`, i.e.,
-     * (currentBlockNumber - lastAddedLiquidityBlock) < blockNumberOffset, so the subtraction is safe and won't overflow.
      */
     function _calculateLiquidityPenalty(BalanceDelta feeDelta, PoolId poolId, bytes32 positionKey)
         internal
         virtual
         returns (BalanceDelta liquidityPenalty)
     {
+        // Avoid getting state variables if the feeDelta is zero.
+        if (feeDelta == BalanceDeltaLibrary.ZERO_DELTA) return BalanceDeltaLibrary.ZERO_DELTA;
+
         uint48 currentBlockNumber = _getBlockNumber();
         uint48 lastAddedLiquidityBlock = getLastAddedLiquidityBlock(poolId, positionKey);
         uint48 blockNumberOffset = getBlockNumberOffset();
 
-        // Note that `amount0` and `amount1` are necessarily greater than or equal to 0, since they are fee rewards.
-        (int128 amount0FeeDelta, int128 amount1FeeDelta) = (feeDelta.amount0(), feeDelta.amount1());
+        // Avoid calculations if the penalty window has passed.
+        if (currentBlockNumber - lastAddedLiquidityBlock > blockNumberOffset) return BalanceDeltaLibrary.ZERO_DELTA;
 
         unchecked {
             uint256 amount0LiquidityPenalty = FullMath.mulDiv(
-                SafeCast.toUint128(amount0FeeDelta),
+                SafeCast.toUint128(feeDelta.amount0()),
                 blockNumberOffset - (currentBlockNumber - lastAddedLiquidityBlock), // won't overflow.
                 blockNumberOffset
             );
             uint256 amount1LiquidityPenalty = FullMath.mulDiv(
-                SafeCast.toUint128(amount1FeeDelta),
+                SafeCast.toUint128(feeDelta.amount1()),
                 blockNumberOffset - (currentBlockNumber - lastAddedLiquidityBlock), // won't overflow.
                 blockNumberOffset
             );
