@@ -170,7 +170,7 @@ contract LiquidityPenaltyHook is BaseHook {
     /**
      * @dev Takes `feeDelta` from a liquidity position as `withheldFees` into this hook.
      */
-    function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal {
+    function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal virtual {
         PoolId poolId = key.toId();
 
         _withheldFees[poolId][positionKey] = _withheldFees[poolId][positionKey] + feeDelta;
@@ -184,6 +184,7 @@ contract LiquidityPenaltyHook is BaseHook {
      */
     function _settleFeesFromHook(PoolKey calldata key, bytes32 positionKey)
         internal
+        virtual
         returns (BalanceDelta withheldFees)
     {
         PoolId poolId = key.toId();
@@ -249,7 +250,7 @@ contract LiquidityPenaltyHook is BaseHook {
      * removed without penalty. During this period, JIT attacks are deterred through fee withholding
      * and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
      */
-    function getBlockNumberOffset() public view returns (uint48) {
+    function getBlockNumberOffset() public view virtual returns (uint48) {
         return _blockNumberOffset;
     }
 
@@ -267,7 +268,7 @@ contract LiquidityPenaltyHook is BaseHook {
     /**
      * @dev Returns the `withheldFees` for a liquidity position.
      */
-    function getWithheldFees(PoolId poolId, bytes32 positionKey) public view returns (BalanceDelta) {
+    function getWithheldFees(PoolId poolId, bytes32 positionKey) public view virtual returns (BalanceDelta) {
         return _withheldFees[poolId][positionKey];
     }
 
