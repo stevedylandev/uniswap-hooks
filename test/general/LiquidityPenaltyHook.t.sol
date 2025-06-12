@@ -18,6 +18,7 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
 
 contract LiquidityPenaltyHookTest is HookTest {
     LiquidityPenaltyHook hook;
@@ -129,10 +130,28 @@ contract LiquidityPenaltyHookTest is HookTest {
         uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
 
         // remove entire liquidity
-        BalanceDelta hookDelta = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
         BalanceDelta noHookDelta = modifyPoolLiquidity(noHookKey, -600, 600, -int128(liquidityNoHookKey), 0);
 
-        assertEq(hookDelta, noHookDelta, "Hooked: penalty not applied when removing entire liquidity");
+        // Can't withdraw all liquidity in the hooked since the attacker is the sole lp in range, and there
+        // is no other active liquidity positions in range to receive the donation. Offset must be awaited.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(hook), // target address
+                IHooks.afterRemoveLiquidity.selector, // function selector
+                abi.encodeWithSelector(LiquidityPenaltyHook.NoLiquidityToReceiveDonation.selector), // reason
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector) // details
+            )
+        );
+        BalanceDelta hookDelta = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+
+        // advance block
+        vm.roll(block.number + 1);
+
+        // now the attacker can remove without penalty
+        BalanceDelta hookDeltaAfterOffset = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+
+        assertEq(hookDeltaAfterOffset, noHookDelta, "Hooked: penalty not applied after offset.");
     }
 
     function test_JIT_Swap() public {
