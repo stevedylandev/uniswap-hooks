@@ -199,6 +199,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // set the last tick lower for the pool
         tickLowerLasts[key.toId()] = tickLower;
 
+        
+
         // note that a zeroForOne swap means that the pool is actually gaining token0, so limit
         // order fills are the opposite of swap fills, hence the inversion below
         bool zeroForOne = !params.zeroForOne;
@@ -619,7 +621,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         internal
         view
         returns (int24 tickLower, int24 lower, int24 upper)
-    {
+    {   
         tickLower = getTickLower(getTick(poolId), tickSpacing);
         int24 tickLowerLast = getTickLowerLast(poolId);
 
@@ -684,7 +686,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
      * from the pool's current sqrt price.
      */
-    function getTick(PoolId poolId) private view returns (int24 tick) {
+    function getTick(PoolId poolId) public view returns (int24 tick) { // AAAAAAAA back to private
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
         tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
     }
