@@ -686,7 +686,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
      * from the pool's current sqrt price.
      */
-    function getTick(PoolId poolId) public view returns (int24 tick) { // AAAAAAAA back to private
+    function getTick(PoolId poolId) private view returns (int24 tick) {
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
         tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
     }
