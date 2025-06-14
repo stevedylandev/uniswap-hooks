@@ -78,6 +78,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
+        virtual
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
@@ -87,41 +88,23 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != _getBlockNumber()) {
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
-
             _lastCheckpoint.blockNumber = _getBlockNumber();
 
             // iterate over ticks
-            (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
+            (, int24 currentTick,,) = poolManager.getSlot0(poolId);
 
-            if (tickAfter > _lastCheckpoint.state.slot0.tick()) {
-                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
-                    (
-                        uint128 liquidityGross,
-                        int128 liquidityNet,
-                        uint256 feeGrowthOutside0X128,
-                        uint256 feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
+            int24 lastTick = _lastCheckpoint.state.slot0.tick();
+            int24 step = currentTick > lastTick ? key.tickSpacing : -key.tickSpacing;
 
-                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-                }
-            } else {
-                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick > tickAfter; tick -= key.tickSpacing) {
-                    (
-                        uint128 liquidityGross,
-                        int128 liquidityNet,
-                        uint256 feeGrowthOutside0X128,
-                        uint256 feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
-
-                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-                }
+            for (int24 tick = lastTick; tick != currentTick; tick += step) {
+                (
+                    _lastCheckpoint.state.ticks[tick].liquidityGross,
+                    _lastCheckpoint.state.ticks[tick].liquidityNet,
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
+                ) = poolManager.getTickInfo(poolId, tick);
             }
+
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
@@ -147,7 +130,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) internal override returns (bytes4, int128) {
+    ) internal virtual override returns (bytes4, int128) {
         if (!_applyTargetOutput) {
             return (this.afterSwap.selector, 0);
         }
