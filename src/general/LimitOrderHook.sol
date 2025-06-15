@@ -11,11 +11,12 @@ import {BaseHook} from "../base/BaseHook.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
@@ -61,6 +62,7 @@ library OrderIdLibrary {
  */
 contract LimitOrderHook is BaseHook, IUnlockCallback {
     using StateLibrary for IPoolManager;
+    using TransientStateLibrary for IPoolManager;
     using OrderIdLibrary for OrderIdLibrary.OrderId;
     using CurrencySettler for Currency;
 
@@ -199,8 +201,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // set the last tick lower for the pool
         tickLowerLasts[key.toId()] = tickLower;
 
-        
-
         // note that a zeroForOne swap means that the pool is actually gaining token0, so limit
         // order fills are the opposite of swap fills, hence the inversion below
         bool zeroForOne = !params.zeroForOne;
@@ -258,13 +258,27 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // in `unlockCallback`. In this case, it will add liquidity out of range.
         // IMPORTANT: `tick` must be valid, i.e. within the range of `MIN_TICK` and `MAX_TICK`, defined in the `TickMath` library and it must be
         // a multiple of `key.tickSpacing`.
-        poolManager.unlock(
-            abi.encode(
-                CallbackData(
-                    Callbacks.PlaceOrder, abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+        (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
+            poolManager.unlock(
+                abi.encode(
+                    CallbackData(
+                        Callbacks.PlaceOrder,
+                        abi.encode(CallbackDataPlace(key, msg.sender, zeroForOne, tick, liquidity))
+                    )
                 )
-            )
+            ),
+            (uint256, uint256)
         );
+
+        // add the fees to the order info
+        // note that the currency totals must be updated after poolManager call as they depend on the returned values of the callback.
+        // This is safe as these functions are only callable on the trusted poolManager
+        unchecked {
+            // slither-disable-next-line reentrancy-no-eth
+            orderInfo.currency0Total += amount0Fee;
+            // slither-disable-next-line reentrancy-no-eth
+            orderInfo.currency1Total += amount1Fee;
+        }
 
         // emit the place event
         emit Place(msg.sender, orderId, key, tick, zeroForOne, liquidity);
@@ -406,7 +420,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             // decode the callback data
             CallbackDataPlace memory placeData = abi.decode(callbackData.data, (CallbackDataPlace));
 
-            _handlePlaceCallback(placeData);
+            (uint256 amount0Fee, uint256 amount1Fee) = _handlePlaceCallback(placeData);
+
+            return abi.encode(amount0Fee, amount1Fee);
         } else if (callbackData.callbackType == Callbacks.CancelOrder) {
             // decode the callback data
             CallbackDataCancel memory cancelData = abi.decode(callbackData.data, (CallbackDataCancel));
@@ -427,7 +443,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * specified liquidity to the pool out of range. Reverts if the order would be placed in range or on the wrong
      * side of the range.
      */
-    function _handlePlaceCallback(CallbackDataPlace memory placeData) internal {
+    function _handlePlaceCallback(CallbackDataPlace memory placeData)
+        internal
+        returns (uint256 amount0Fee, uint256 amount1Fee)
+    {
         // get the pool key
         PoolKey memory key = placeData.key;
 
@@ -443,7 +462,19 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             ZERO_BYTES
         );
 
+        if (feesAccrued.amount0() > 0) {
+            //key.currency0.take(poolManager, address(this), uint256(uint128(feesAccrued.amount0())), true);
+            key.currency0.take(poolManager, address(this), amount0Fee = uint256(uint128(feesAccrued.amount0())), true);
+
+            //poolManager.mint(address(this), key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0()));
+        }
+        if (feesAccrued.amount1() > 0) {
+            //poolManager.mint(address(this), key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount0()));
+            key.currency1.take(poolManager, address(this), amount1Fee = uint256(uint128(feesAccrued.amount1())), true);
+        }
+
         BalanceDelta delta = principalDelta - feesAccrued;
+
 
         // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
         if (delta.amount0() < 0) {
@@ -621,7 +652,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         internal
         view
         returns (int24 tickLower, int24 lower, int24 upper)
-    {   
+    {
         tickLower = getTickLower(getTick(poolId), tickSpacing);
         int24 tickLowerLast = getTickLowerLast(poolId);
 
