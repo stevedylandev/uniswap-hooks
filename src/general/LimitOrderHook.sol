@@ -314,6 +314,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         if (removingAllLiquidity) {
             setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
+            orderInfo.currency0Total = 0;
+            orderInfo.currency1Total = 0;
         }
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`

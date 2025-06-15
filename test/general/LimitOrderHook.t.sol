@@ -312,6 +312,59 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(balance1AfterCancel - balance1Before, int256(delta.amount1()) - int256(currency1Total));
     }
 
+    function test_cancelOrder_removingAllLiquidity() public {
+        bool zeroForOne = true;
+        uint128 liquidity = 1000000;
+
+        // first user places an order
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+
+        // second user places an order
+        vm.startPrank(user);
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+        // add liquidity equivalent to two orders
+        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2 * liquidity)), 0);
+        vm.stopPrank();
+
+        // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        vm.stopPrank();
+
+        // first user cancels the order
+        hook.cancelOrder(key, 0, zeroForOne, address(this));
+
+        // now second user cancels the order
+        vm.startPrank(user);
+        int256 balanceUser0Before = int256(currency0.balanceOf(user));
+        int256 balanceUser1Before = int256(currency1.balanceOf(user));
+        hook.cancelOrder(key, 0, zeroForOne, user);
+        int256 balanceUser0After = int256(currency0.balanceOf(user));
+        int256 balanceUser1After = int256(currency1.balanceOf(user));
+        vm.stopPrank();
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        assertEq(filled, false, "order should not be filled");
+        assertEq(liquidityTotal, 0, "liquidityTotal should be liquidity");
+        assertEq(currency0Total, 0, "currency0Total should be 0");
+        assertEq(currency1Total, 0, "currency1Total should be 0");
+
+        // cancel the order is the same as remove liquidity from the pool in the range (0, tickSpacing)
+        vm.startPrank(user);
+        (int128 feesExpected0, int128 feesExpected1) =
+            calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
+        BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, -int256(uint256(liquidity)), 0);
+        vm.stopPrank();
+
+        assertTrue(feesExpected0 > 0 || feesExpected1 > 0);
+
+        // all fees accrued go to the last user to cancel the order
+        assertEq(balanceUser0After - balanceUser0Before, int256(delta.amount0()) - int256(feesExpected0));
+        assertEq(balanceUser1After - balanceUser1Before, int256(delta.amount1()) - int256(feesExpected1));
+    }
+
     function test_placeOrder_feesAccrued() public {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
@@ -323,9 +376,8 @@ contract LimitOrderHookTest is Test, Deployers {
         hook.placeOrder(key, 0, zeroForOne, liquidity);
 
         // add liquidity equivalent to two orders
-        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2*liquidity)), 0);
+        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2 * liquidity)), 0);
         vm.stopPrank();
-
 
         // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
         vm.startPrank(swapper);
@@ -335,7 +387,6 @@ contract LimitOrderHookTest is Test, Deployers {
         // swap outside of the range (0, tickSpacing) without filling the order to be able to place orders again
         swapOnPool(noHookKey, true, -1e15, TickMath.getSqrtPriceAtTick(-key.tickSpacing));
         swapOnPool(key, true, -1e15, TickMath.getSqrtPriceAtTick(-key.tickSpacing));
-        
 
         vm.stopPrank();
 
@@ -354,12 +405,11 @@ contract LimitOrderHookTest is Test, Deployers {
         int256 balance1AfterPlace = int256(currency1.balanceOf(address(this)));
 
         // place the order is the same as add liquidity to the pool in the range (0, tickSpacing)
-        
 
         vm.startPrank(user);
-            (int128 feesExpected0, int128 feesExpected1) =
-                calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
-            BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(liquidity)), 0);
+        (int128 feesExpected0, int128 feesExpected1) =
+            calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
+        BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(liquidity)), 0);
         vm.stopPrank();
         (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
