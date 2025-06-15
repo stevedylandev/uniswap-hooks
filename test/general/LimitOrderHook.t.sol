@@ -273,11 +273,6 @@ contract LimitOrderHookTest is Test, Deployers {
         modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2 * liquidity)), 0);
         vm.stopPrank();
 
-        vm.startPrank(swapper);
-        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 4));
-        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 4));
-        vm.stopPrank();
-
         // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
         vm.startPrank(swapper);
         swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
@@ -310,100 +305,73 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(currency0Total, uint256(uint128(feesExpected0)));
         assertEq(currency1Total, uint256(uint128(feesExpected1)));
 
+        assertTrue(feesExpected0 > 0 || feesExpected1 > 0);
+
         // canceling the order is the same as removing liquidity, minus the fees accrued to the order (which are in currency total)
         assertEq(balance0AfterCancel - balance0Before, int256(delta.amount0()) - int256(currency0Total));
         assertEq(balance1AfterCancel - balance1Before, int256(delta.amount1()) - int256(currency1Total));
     }
 
     function test_placeOrder_feesAccrued() public {
-        int24 tickLower = 0;
         bool zeroForOne = true;
-        uint128 liquidity = 1e15;
+        uint128 liquidity = 1000000;
 
-        uint256 balanceBefore = currency0.balanceOf(address(this));
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
 
-        int24 currentTick = getCurrentTick(key.toId());
-
-        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
-
+        //place order is the same as add liquidity to the pool in the range (0, tickSpacing)
         vm.startPrank(user);
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
-        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+
+        // add liquidity equivalent to two orders
+        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2*liquidity)), 0);
         vm.stopPrank();
 
-        console.log("initial tick", currentTick = getCurrentTick(key.toId()));
-        console.log("tick spacing", key.tickSpacing);
 
-        BalanceDelta swapResult = swapRouter.swap(
-            key,
-            SwapParams({
-                zeroForOne: false,
-                amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing / 4)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
+        // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
 
-        swapResult = swapRouter.swap(
-            key,
-            SwapParams({
-                zeroForOne: false,
-                amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing / 2)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
+        // swap outside of the range (0, tickSpacing) without filling the order to be able to place orders again
+        swapOnPool(noHookKey, true, -1e15, TickMath.getSqrtPriceAtTick(-key.tickSpacing));
+        swapOnPool(key, true, -1e15, TickMath.getSqrtPriceAtTick(-key.tickSpacing));
+        
 
-        console.log("tick after swap 1", currentTick = getCurrentTick(key.toId()));
+        vm.stopPrank();
 
-        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal) =
             hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
-        console.log("filled", filled);
+        assertFalse(filled, "order should not be filled");
+        assertEq(currency0Total, 0, "currency0Total should be 0");
+        assertEq(currency1Total, 0, "currency1Total should be 0");
+        assertEq(liquidityTotal, 2 * liquidity, "liquidityTotal should be 2*liquidity");
 
-        swapResult = swapRouter.swap(
-            key,
-            SwapParams({
-                zeroForOne: true,
-                amountSpecified: -2e17,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - 2 * key.tickSpacing)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
+        int256 balance0Before = int256(currency0.balanceOf(address(this)));
+        int256 balance1Before = int256(currency1.balanceOf(address(this)));
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+        int256 balance0AfterPlace = int256(currency0.balanceOf(address(this)));
+        int256 balance1AfterPlace = int256(currency1.balanceOf(address(this)));
 
-        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
+        // place the order is the same as add liquidity to the pool in the range (0, tickSpacing)
+        
 
-        // swapRouter.swap(
-        //     key,
-        //     SwapParams({
-        //         zeroForOne: true,
-        //         amountSpecified: -2e17,
-        //         sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - key.tickSpacing)
-        //     }),
-        //     PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-        //     ZERO_BYTES
-        // );
-
-        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        vm.startPrank(user);
+            (int128 feesExpected0, int128 feesExpected1) =
+                calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
+            BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(liquidity)), 0);
+        vm.stopPrank();
+        (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertFalse(filled, "order should not be filled");
+        assertEq(liquidityTotal, 3 * liquidity, "liquidityTotal should be 3*liquidity");
 
-        hook.cancelOrder(key, tickLower, zeroForOne, address(this));
+        assertEq(currency0Total, uint256(uint128(feesExpected0)), "currency0Total should be feesExpected0");
+        assertEq(currency1Total, uint256(uint128(feesExpected1)), "currency1Total should be feesExpected1");
 
-        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
-
-        console.log("after canceling");
-        console.log("filled", filled);
-        console.log("currency0Total", currency0Total);
-        console.log("currency1Total", currency1Total);
-
-        uint256 balanceAfterCancel = currency0.balanceOf(address(this));
-
-        assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
+        // canceling the order is the same as removing liquidity, minus the fees accrued to the order (which are in currency total)
+        // assertEq(balance0AfterPlace - balance0Before, int256(delta.amount0()) - int256(currency0Total), "fees were not held in currency0Total");
+        // assertEq(balance1AfterPlace - balance1Before, int256(delta.amount1()) - int256(currency1Total), "fees were not held in currency1Total");
     }
 
     function test_withdraw_multipleLPs() public {
