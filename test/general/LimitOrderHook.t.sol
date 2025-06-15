@@ -17,6 +17,9 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {LimitOrderHook, OrderIdLibrary} from "src/general/LimitOrderHook.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
+import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
+import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {console} from "forge-std/console.sol";
 
@@ -24,6 +27,11 @@ contract LimitOrderHookTest is Test, Deployers {
     using StateLibrary for IPoolManager;
 
     LimitOrderHook hook;
+
+    PoolKey noHookKey;
+
+    address user = makeAddr("user");
+    address swapper = makeAddr("swapper");
 
     function setUp() public {
         deployFreshManagerAndRouters();
@@ -34,12 +42,77 @@ contract LimitOrderHookTest is Test, Deployers {
         deployCodeTo("src/general/LimitOrderHook.sol:LimitOrderHook", abi.encode(manager), address(hook));
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_1);
+        (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_1);
 
         IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
         IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
+        IERC20Minimal(Currency.unwrap(currency0)).transfer(user, 1e30);
+        IERC20Minimal(Currency.unwrap(currency1)).transfer(user, 1e30);
+        IERC20Minimal(Currency.unwrap(currency0)).transfer(swapper, 1e30);
+        IERC20Minimal(Currency.unwrap(currency1)).transfer(swapper, 1e30);
+
+        vm.startPrank(user);
+        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(currency0)).approve(address(modifyLiquidityRouter), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(currency1)).approve(address(modifyLiquidityRouter), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(swapper);
+        IERC20Minimal(Currency.unwrap(currency0)).approve(address(swapRouter), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(currency1)).approve(address(swapRouter), type(uint256).max);
+        vm.stopPrank();
+
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
+    }
+
+    function calculateExpectedFees(
+        IPoolManager manager,
+        PoolId poolId,
+        address owner,
+        int24 tickLower,
+        int24 tickUpper,
+        bytes32 salt
+    ) internal view returns (int128, int128) {
+        bytes32 positionKey = Position.calculatePositionKey(owner, tickLower, tickUpper, salt);
+        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
+            StateLibrary.getPositionInfo(manager, poolId, positionKey);
+
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+            StateLibrary.getFeeGrowthInside(manager, poolId, tickLower, tickUpper);
+
+        uint256 feesExpected0 =
+            FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
+        uint256 feesExpected1 =
+            FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+
+        return (int128(int256(feesExpected0)), int128(int256(feesExpected1)));
+    }
+
+    function modifyPoolLiquidity(
+        PoolKey memory poolKey,
+        int24 tickLower,
+        int24 tickUpper,
+        int256 liquidity,
+        bytes32 salt
+    ) internal returns (BalanceDelta) {
+        ModifyLiquidityParams memory modifyLiquidityParams =
+            ModifyLiquidityParams({tickLower: tickLower, tickUpper: tickUpper, liquidityDelta: liquidity, salt: salt});
+        return modifyLiquidityRouter.modifyLiquidity(poolKey, modifyLiquidityParams, "");
+    }
+
+    function swapOnPool(PoolKey memory poolKey, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96)
+        internal
+        returns (BalanceDelta)
+    {
+        return swapRouter.swap(
+            poolKey,
+            SwapParams({zeroForOne: zeroForOne, amountSpecified: amountSpecified, sqrtPriceLimitX96: sqrtPriceLimitX96}),
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            ZERO_BYTES
+        );
     }
 
     // Helpers
@@ -143,12 +216,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
-        currency0.transfer(vm.addr(1), 1e18);
-        currency1.transfer(vm.addr(2), 1e18);
-
-        vm.startPrank(vm.addr(1));
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), 1e18);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), 1e18);
+        vm.startPrank(user);
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
         vm.stopPrank();
 
@@ -172,7 +240,7 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(currency1Total, 0);
         assertEq(liquidityTotal, liquidity * 2);
         assertEq(hook.getOrderLiquidity(OrderIdLibrary.OrderId.wrap(1), address(this)), liquidity);
-        assertEq(hook.getOrderLiquidity(OrderIdLibrary.OrderId.wrap(1), vm.addr(1)), liquidity);
+        assertEq(hook.getOrderLiquidity(OrderIdLibrary.OrderId.wrap(1), user), liquidity);
     }
 
     function test_cancelOrder() public {
@@ -191,20 +259,63 @@ contract LimitOrderHookTest is Test, Deployers {
         assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
     }
 
+    function test_cancelOrder_feesAccrued() public {
+        bool zeroForOne = true;
+        uint128 liquidity = 1e15;
+
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+
+        //place order is the same as add liquidity to the pool in the range (0, tickSpacing)
+        vm.startPrank(user);
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+
+        // add liquidity equivalent to two orders
+        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2 * liquidity)), 0);
+        vm.stopPrank();
+
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 4));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 4));
+        vm.stopPrank();
+
+        // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        vm.stopPrank();
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertFalse(filled, "order should not be filled");
+        assertEq(currency0Total, 0, "currency0Total should be 0");
+        assertEq(currency1Total, 0, "currency1Total should be 0");
+        assertEq(liquidityTotal, 2 * liquidity, "liquidityTotal should be 2*liquidity");
+
+        int256 balance0Before = int256(currency0.balanceOf(address(this)));
+        int256 balance1Before = int256(currency1.balanceOf(address(this)));
+        hook.cancelOrder(key, 0, zeroForOne, address(this));
+        int256 balance0AfterCancel = int256(currency0.balanceOf(address(this)));
+        int256 balance1AfterCancel = int256(currency1.balanceOf(address(this)));
+
+        // cancel the order is the same as remove liquidity from the pool in the range (0, tickSpacing)
+        vm.startPrank(user);
+        (int128 feesExpected0, int128 feesExpected1) =
+            calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
+        BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, -int256(uint256(liquidity)), 0);
+        vm.stopPrank();
+
+        (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertEq(currency0Total, uint256(uint128(feesExpected0)));
+        assertEq(currency1Total, uint256(uint128(feesExpected1)));
+
+        // canceling the order is the same as removing liquidity, minus the fees accrued to the order (which are in currency total)
+        assertEq(balance0AfterCancel - balance0Before, int256(delta.amount0()) - int256(currency0Total));
+        assertEq(balance1AfterCancel - balance1Before, int256(delta.amount1()) - int256(currency1Total));
+    }
+
     function test_placeOrder_feesAccrued() public {
-        LimitOrderHook hookHighFee =
-            LimitOrderHook(address(uint160(Hooks.AFTER_INITIALIZE_FLAG | Hooks.AFTER_SWAP_FLAG)));
-        deployCodeTo("src/general/LimitOrderHook.sol:LimitOrderHook", abi.encode(manager), address(hookHighFee));
-
-        (PoolKey memory keyHighFee,) =
-            initPool(currency0, currency1, IHooks(address(hookHighFee)), 10000, SQRT_PRICE_1_1); // 1% fee
-
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hookHighFee), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hookHighFee), type(uint256).max);
-
-        IERC20Minimal(Currency.unwrap(currency0)).transfer(address(vm.addr(1)), 1e30);
-        IERC20Minimal(Currency.unwrap(currency1)).transfer(address(vm.addr(1)), 1e30);
-
         int24 tickLower = 0;
         bool zeroForOne = true;
         uint128 liquidity = 1e15;
@@ -213,77 +324,77 @@ contract LimitOrderHookTest is Test, Deployers {
 
         int24 currentTick = getCurrentTick(key.toId());
 
-        hookHighFee.placeOrder(keyHighFee, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
-        vm.startPrank(vm.addr(1));
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hookHighFee), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hookHighFee), type(uint256).max);
-        hookHighFee.placeOrder(keyHighFee, tickLower, zeroForOne, liquidity);
+        vm.startPrank(user);
+        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
         vm.stopPrank();
 
-        console.log("initial tick", currentTick = getCurrentTick(keyHighFee.toId()));
-        console.log("tick spacing", keyHighFee.tickSpacing);
+        console.log("initial tick", currentTick = getCurrentTick(key.toId()));
+        console.log("tick spacing", key.tickSpacing);
 
         BalanceDelta swapResult = swapRouter.swap(
-            keyHighFee,
+            key,
             SwapParams({
                 zeroForOne: false,
                 amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + keyHighFee.tickSpacing / 4)
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing / 4)
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             ZERO_BYTES
         );
 
         swapResult = swapRouter.swap(
-            keyHighFee,
+            key,
             SwapParams({
                 zeroForOne: false,
                 amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + keyHighFee.tickSpacing / 2)
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + key.tickSpacing / 2)
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             ZERO_BYTES
         );
 
-        console.log("tick after swap 1", currentTick = getCurrentTick(keyHighFee.toId()));
+        console.log("tick after swap 1", currentTick = getCurrentTick(key.toId()));
 
         (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
-            hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         console.log("filled", filled);
 
         swapResult = swapRouter.swap(
-            keyHighFee,
+            key,
             SwapParams({
                 zeroForOne: true,
                 amountSpecified: -2e17,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - 2 * keyHighFee.tickSpacing)
+                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - 2 * key.tickSpacing)
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             ZERO_BYTES
         );
 
-        hookHighFee.placeOrder(keyHighFee, tickLower, zeroForOne, liquidity);
+        hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
         // swapRouter.swap(
-        //     keyHighFee,
+        //     key,
         //     SwapParams({
         //         zeroForOne: true,
         //         amountSpecified: -2e17,
-        //         sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - keyHighFee.tickSpacing)
+        //         sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - key.tickSpacing)
         //     }),
         //     PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
         //     ZERO_BYTES
         // );
 
-        (filled,,, currency0Total, currency1Total,) = hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertFalse(filled, "order should not be filled");
 
-        hookHighFee.cancelOrder(keyHighFee, tickLower, zeroForOne, address(this));
+        hook.cancelOrder(key, tickLower, zeroForOne, address(this));
 
-        (filled,,, currency0Total, currency1Total,) = hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         console.log("after canceling");
         console.log("filled", filled);
@@ -295,108 +406,6 @@ contract LimitOrderHookTest is Test, Deployers {
         assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
     }
 
-    function test_cancelOrder_feesAccrued() public {
-        LimitOrderHook hookHighFee =
-            LimitOrderHook(address(uint160(Hooks.AFTER_INITIALIZE_FLAG | Hooks.AFTER_SWAP_FLAG)));
-        deployCodeTo("src/general/LimitOrderHook.sol:LimitOrderHook", abi.encode(manager), address(hookHighFee));
-
-        (PoolKey memory keyHighFee,) =
-            initPool(currency0, currency1, IHooks(address(hookHighFee)), 10000, SQRT_PRICE_1_1); // 1% fee
-
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hookHighFee), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hookHighFee), type(uint256).max);
-
-        IERC20Minimal(Currency.unwrap(currency0)).transfer(address(vm.addr(1)), 1e30);
-        IERC20Minimal(Currency.unwrap(currency1)).transfer(address(vm.addr(1)), 1e30);
-
-        int24 tickLower = 0;
-        bool zeroForOne = true;
-        uint128 liquidity = 1e15;
-
-        uint256 balanceBefore = currency0.balanceOf(address(this));
-
-        int24 currentTick = getCurrentTick(key.toId());
-
-        hookHighFee.placeOrder(keyHighFee, tickLower, zeroForOne, liquidity);
-
-        vm.startPrank(vm.addr(1));
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hookHighFee), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hookHighFee), type(uint256).max);
-        hookHighFee.placeOrder(keyHighFee, tickLower, zeroForOne, liquidity);
-        vm.stopPrank();
-
-        console.log("initial tick", currentTick = getCurrentTick(keyHighFee.toId()));
-        console.log("tick spacing", keyHighFee.tickSpacing);
-
-        BalanceDelta swapResult = swapRouter.swap(
-            keyHighFee,
-            SwapParams({
-                zeroForOne: false,
-                amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + keyHighFee.tickSpacing / 4)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
-
-        swapResult = swapRouter.swap(
-            keyHighFee,
-            SwapParams({
-                zeroForOne: false,
-                amountSpecified: -1e20,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower + keyHighFee.tickSpacing / 2)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
-
-        console.log("tick after swap 1", currentTick = getCurrentTick(keyHighFee.toId()));
-
-        (bool filled,,, uint256 currency0Total, uint256 currency1Total,) =
-            hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
-
-        console.log("filled", filled);
-
-        swapResult = swapRouter.swap(
-            keyHighFee,
-            SwapParams({
-                zeroForOne: true,
-                amountSpecified: -2e17,
-                sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - 2 * keyHighFee.tickSpacing)
-            }),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            ZERO_BYTES
-        );
-
-        // swapRouter.swap(
-        //     keyHighFee,
-        //     SwapParams({
-        //         zeroForOne: true,
-        //         amountSpecified: -2e17,
-        //         sqrtPriceLimitX96: TickMath.getSqrtPriceAtTick(tickLower - keyHighFee.tickSpacing)
-        //     }),
-        //     PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-        //     ZERO_BYTES
-        // );
-
-        (filled,,, currency0Total, currency1Total,) = hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
-
-        assertFalse(filled, "order should not be filled");
-
-        hookHighFee.cancelOrder(keyHighFee, tickLower, zeroForOne, address(this));
-
-        (filled,,, currency0Total, currency1Total,) = hookHighFee.orderInfos(OrderIdLibrary.OrderId.wrap(1));
-
-        console.log("after canceling");
-        console.log("filled", filled);
-        console.log("currency0Total", currency0Total);
-        console.log("currency1Total", currency1Total);
-
-        uint256 balanceAfterCancel = currency0.balanceOf(address(this));
-
-        //assertApproxEqAbs(balanceBefore, balanceAfterCancel, 1);
-    }
-
     function test_withdraw_multipleLPs() public {
         int24 tickLower = 0;
         bool zeroForOne = true;
@@ -404,12 +413,10 @@ contract LimitOrderHookTest is Test, Deployers {
 
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
-        currency0.transfer(vm.addr(1), 1e18);
-        currency1.transfer(vm.addr(2), 1e18);
+        currency0.transfer(user, 1e18);
+        currency1.transfer(user, 1e18);
 
-        vm.startPrank(vm.addr(1));
-        IERC20Minimal(Currency.unwrap(currency0)).approve(address(hook), 1e18);
-        IERC20Minimal(Currency.unwrap(currency1)).approve(address(hook), 1e18);
+        vm.startPrank(user);
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
         vm.stopPrank();
 
@@ -436,8 +443,8 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(currency0Total, 0, "wrong amount of currency0");
         assertEq(currency1Total, 2 * (2996 + 17), "wrong amount of currency1");
 
-        vm.startPrank(vm.addr(1));
-        hook.withdraw(OrderIdLibrary.OrderId.wrap(1), vm.addr(1));
+        vm.startPrank(user);
+        hook.withdraw(OrderIdLibrary.OrderId.wrap(1), user);
         vm.stopPrank();
 
         (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
@@ -531,6 +538,4 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(currency0Amount, 0);
         assertEq(currency1Amount, 0);
     }
-
-    
 }

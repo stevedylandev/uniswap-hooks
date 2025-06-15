@@ -475,7 +475,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         BalanceDelta delta = principalDelta - feesAccrued;
 
-
         // if the amount of currency0 is negative, the limit order is to sell `currency0` for `currency1`
         if (delta.amount0() < 0) {
             // if the amount of currency1 is not 0, the limit order is in range
