@@ -18,14 +18,12 @@ import {console} from "forge-std/console.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
 
 contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
-    using SignedMath for int256;
-
     AntiSandwichHook hook;
     PoolKey noHookKey;
 
     BaseDynamicFeeMock dynamicFeesHooks;
 
-    // @dev expected values for pools with 1e18 liquidity. 
+    // @dev expected values for pools with 1e18 liquidity.
     int128 constant SWAP_AMOUNT_1e15 = 1e15;
     int128 constant SWAP_RESULT_1e15 = 999000999000999;
 
@@ -67,7 +65,9 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_swap_zeroForOne_exactInput_backrunExactInput() public {
-        // front run, first attacker transaction, exactInput
+        // front run, exactInput
+        // - sends token0 (SWAP_AMOUNT)
+        // - receives token1 (unknown amount)
         BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
         BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
@@ -82,32 +82,43 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
-        // back run, second attacker transaction, exactInput
+        // back run, exactInput
+        // - sends token1 (amount received in front run)
+        // - receives token0 (unknown amount)
+        // To make a profit, the ataccker must receive more token0 than he sent in the frontrun.
+        console.log("deltaAttack1WithKey.amount1()", int256(deltaAttack1WithKey.amount1()));
         BalanceDelta deltaAttack2WithKey = swap(key, false, -int256(deltaAttack1WithKey.amount1()), ZERO_BYTES);
         BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, -int256(deltaAttack1WithKey.amount1()), ZERO_BYTES);
 
-        assertGt(
-            deltaAttack2WithoutKey.amount0(),
-            -deltaAttack1WithoutKey.amount0(),
-            "attacker should make a profit in the unhooked pool"
-        );
+        console.log("deltaAttack2WithKey.amount0()", int256(deltaAttack2WithKey.amount0()));
+        console.log("deltaAttack1WithKey.amount0()", int256(deltaAttack1WithKey.amount0()));
+
+        // If the attacker receives equal or less token0 than he sent in the frontrun, he loses money.
         assertLe(
             deltaAttack2WithKey.amount0(),
             -deltaAttack1WithKey.amount0(),
             "attacker should lose money in the hooked pool"
         );
 
+        assertGt(
+            deltaAttack2WithoutKey.amount0(),
+            -deltaAttack1WithoutKey.amount0(),
+            "attacker should make a profit in the unhooked pool"
+        );
+
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetState = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaNextBlock = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
-        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "hook should reset state");
+        assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
 
-    function test_swap_zeroForOne_exactInput_backRunExactOutput() public {
-        // front run, first attacker transaction, exactInput
+    function test_swap_zeroForOne_exactInput_backrunExactOutput() public {
+        // front run, exactInput
+        // - sends token0 (SWAP_AMOUNT)
+        // - receives token1 (unknown amount)
         BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
         BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
@@ -122,32 +133,43 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
-        // back run, second attacker transaction, exactOutput
+        // back run, exactOutput
+        // - sends token1 (unknown amount)
+        // - receives token0 (amount sent in front run)
+        // To make a profit, the attacker must send less token1 than he received in the frontrun.
+        console.log("deltaAttack1WithKey.amount0()", int256(deltaAttack1WithKey.amount0()));
         BalanceDelta deltaAttack2WithKey = swap(key, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
         BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
 
-        assertGt(
-            deltaAttack2WithoutKey.amount0(),
-            -deltaAttack1WithoutKey.amount0(),
-            "attacker should make a profit in the unhooked pool"
-        );
-        assertLe(
-            deltaAttack2WithKey.amount0(),
-            -deltaAttack1WithKey.amount0(),
+        console.log("deltaAttack2WithKey.amount1()", int256(deltaAttack2WithKey.amount1()));
+        console.log("deltaAttack1WithKey.amount1()", int256(deltaAttack1WithKey.amount1()));
+
+        // If the attacker gives more or equal token1 than he received in the frontrun, he loses money.
+        assertGe(
+            -deltaAttack2WithKey.amount1(),
+            deltaAttack1WithKey.amount1(),
             "attacker should lose money in the hooked pool"
+        );
+
+        assertLt(
+            -deltaAttack2WithoutKey.amount1(),
+            deltaAttack1WithoutKey.amount1(),
+            "attacker should make a profit in the unhooked pool"
         );
 
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetState = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaNextBlock = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
-        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "hook should reset state");
+        assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
 
-    function test_swap_zeroForOne_exactOutput_backRunExactInput() public {
-        // front run, first attacker transaction, exactOutput
+    function test_swap_zeroForOne_exactOutput_backrunExactInput() public {
+        // front run, exactOutput
+        // - gives token1 (unknown amount)
+        // - receives token0 (SWAP_AMOUNT)
         BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
         BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
 
@@ -162,32 +184,43 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
-        // back run, second attacker transaction, exactInput
-        BalanceDelta deltaAttack2WithKey = swap(key, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
-        BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
+        // back run, exactInput, gives token1 receives token0
+        // - gives token0 (amount received in front run)
+        // - receives token1 (unknown amount)
+        // To make a profit, the attacker must receive more token1 than he gave in the frontrun.
+        console.log("deltaAttack1WithKey.amount0()", int256(deltaAttack1WithKey.amount0()));
+        BalanceDelta deltaAttack2WithKey = swap(key, false, int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
+        BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
+
+        console.log("deltaAttack2WithKey.amount1()", int256(deltaAttack2WithKey.amount1()));
+        console.log("deltaAttack1WithKey.amount1()", int256(deltaAttack1WithKey.amount1()));
+
+        // If the attacker receives equal or less token1 than he gave in the frontrun, he loses money.
+        assertLe(
+            -deltaAttack2WithKey.amount1(),
+            deltaAttack1WithKey.amount1(),
+            "attacker should lose money in the hooked pool"
+        );
 
         assertGt(
-            deltaAttack2WithoutKey.amount0(),
-            -deltaAttack1WithoutKey.amount0(),
+            -deltaAttack2WithoutKey.amount1(),
+            deltaAttack1WithoutKey.amount1(),
             "attacker should make a profit in the unhooked pool"
-        );
-        assertLe(
-            deltaAttack2WithKey.amount0(),
-            -deltaAttack1WithKey.amount0(),
-            "attacker should lose money in the hooked pool"
         );
 
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetState = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaNextBlock = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
-        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "hook should reset state");
+        assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
 
-    function test_swap_zeroForOne_exactOutput_frontRunExactOutput() public {
-        // front run, first attacker transaction, exactOutput
+    function test_swap_zeroForOne_exactOutput_backrunExactOutput() public {
+        // front run, exactOutput
+        // - sends token0 (unknown amount)
+        // - receives token1 (SWAP_AMOUNT)
         BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
         BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
 
@@ -202,28 +235,33 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
-        // back run, second attacker transaction, exactOutput
-        BalanceDelta deltaAttack2WithKey = swap(key, false, -int256(deltaAttack1WithKey.amount1()), ZERO_BYTES);
-        BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, -int256(deltaAttack1WithKey.amount1()), ZERO_BYTES);
+        // back run, exactOutput
+        // - sends token1 (unknown amount)
+        // - receives token0 (amount of token0 sent in front run)
+        // To make a profit, the attacker must send less token1 than he received in the frontrun.
+        BalanceDelta deltaAttack2WithKey = swap(key, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
+        BalanceDelta deltaAttack2WithoutKey = swap(noHookKey, false, -int256(deltaAttack1WithKey.amount0()), ZERO_BYTES);
 
-        assertGt(
-            deltaAttack2WithoutKey.amount0(),
-            -deltaAttack1WithoutKey.amount0(),
-            "attacker should make a profit in the unhooked pool"
-        );
-        assertLe(
-            deltaAttack2WithKey.amount0(),
-            -deltaAttack1WithKey.amount0(),
+        // If the attacker sends more or equal token1 than he received in the frontrun, he loses money.
+        assertGe(
+            -deltaAttack2WithKey.amount1(),
+            deltaAttack1WithKey.amount1(),
             "attacker should lose money in the hooked pool"
+        );
+
+        assertLt(
+            -deltaAttack2WithoutKey.amount1(),
+            deltaAttack1WithoutKey.amount1(),
+            "attacker should make a profit in the unhooked pool"
         );
 
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetState = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaNextBlock = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
 
-        assertEq(deltaResetState.amount0(), deltaNextBlock.amount0(), "hook should reset state");
+        assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
 
     /// @notice Unit test for a failed sandwich attack using the hook.
