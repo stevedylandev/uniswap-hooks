@@ -365,6 +365,7 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(balanceUser1After - balanceUser1Before, int256(delta.amount1()) - int256(feesExpected1));
     }
 
+
     function test_placeOrder_feesAccrued() public {
         bool zeroForOne = true;
         uint128 liquidity = 1000000;
@@ -478,6 +479,77 @@ contract LimitOrderHookTest is Test, Deployers {
         assertTrue(filled, "order should be filled");
         assertEq(currency0Total, 0, "wrong amount of currency0");
         assertEq(currency1Total, 0, "wrong amount of currency1");
+    }
+
+    function test_withdraw_feesAccruedFromCancel() public {
+        bool zeroForOne = true;
+        uint128 liquidity = 1000000;
+
+        // first user places an order
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+
+        // second user places an order
+        vm.startPrank(user);
+        hook.placeOrder(key, 0, zeroForOne, liquidity);
+        // add liquidity equivalent to two orders
+        modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, int256(uint256(2 * liquidity)), 0);
+        vm.stopPrank();
+
+        // this swap should accrue fees to the order, since tick is in range (0, tickSpacing)
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(key.tickSpacing / 2));
+        vm.stopPrank();
+
+        // first user cancels the order
+        hook.cancelOrder(key, 0, zeroForOne, address(this));
+
+        vm.startPrank(user);
+        (int128 initialFeesExpected0, int128 initialFeesExpected1) =
+            calculateExpectedFees(manager, noHookKey.toId(), address(modifyLiquidityRouter), 0, key.tickSpacing, 0);
+        BalanceDelta delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, -int256(uint256(liquidity)), 0);
+        vm.stopPrank();
+
+        assertTrue(initialFeesExpected0 > 0 || initialFeesExpected1 > 0, "fees should be accrued");
+
+        (bool filled,,, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertFalse(filled, "order should not be filled");
+        assertEq(liquidityTotal, liquidity, "liquidityTotal should be liquidity");
+        assertEq(currency0Total, uint256(uint128(initialFeesExpected0)), "currency0Total should be feesExpected0");
+        assertEq(currency1Total, uint256(uint128(initialFeesExpected1)), "currency1Total should be feesExpected1");
+
+        // this swap should fill the order, cross the range (0, tickSpacing)
+        vm.startPrank(swapper);
+        swapOnPool(key, false, -1e20, TickMath.getSqrtPriceAtTick(2 * key.tickSpacing));
+        swapOnPool(noHookKey, false, -1e20, TickMath.getSqrtPriceAtTick(2 * key.tickSpacing));
+        vm.stopPrank();
+
+        // second user withdraws the order
+        vm.startPrank(user);
+        int256 balanceUser0Before = int256(currency0.balanceOf(user));
+        int256 balanceUser1Before = int256(currency1.balanceOf(user));
+        hook.withdraw(OrderIdLibrary.OrderId.wrap(1), user);
+        int256 balanceUser0After = int256(currency0.balanceOf(user));
+        int256 balanceUser1After = int256(currency1.balanceOf(user));
+        vm.stopPrank();
+
+        (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+
+        assertTrue(filled, "order should be filled");
+        assertEq(currency0Total, 0, "currency0Total should be 0");
+        assertEq(currency1Total, 0, "currency1Total should be 0");
+        assertEq(liquidityTotal, 0, "liquidityTotal should be 0");
+
+        // cancel the order is the same as remove liquidity from the pool in the range (0, tickSpacing)
+        vm.startPrank(user);
+        delta = modifyPoolLiquidity(noHookKey, 0, key.tickSpacing, -int256(uint256(liquidity)), 0);
+        vm.stopPrank();
+
+        // the fees are added to the balance of the user who withdraws the order
+        assertEq(balanceUser0After - balanceUser0Before, int256(delta.amount0()) + int256(initialFeesExpected0));
+        assertEq(balanceUser1After - balanceUser1Before, int256(delta.amount1()) + int256(initialFeesExpected1));
     }
 
     function test_swapAcrossRange() public {
