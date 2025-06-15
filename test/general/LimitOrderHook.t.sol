@@ -136,7 +136,7 @@ contract LimitOrderHookTest is Test, Deployers {
     }
 
     function test_orderIdNext() public view {
-        assertTrue(OrderIdLibrary.equals(hook.orderIdNext(), OrderIdLibrary.OrderId.wrap(1)));
+        assertTrue(OrderIdLibrary.equals(hook.getOrderIdNext(), OrderIdLibrary.OrderId.wrap(1)));
     }
 
     function test_zeroLiquidityRevert() public {

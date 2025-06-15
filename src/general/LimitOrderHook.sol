@@ -130,13 +130,13 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     OrderIdLibrary.OrderId private constant ORDER_ID_DEFAULT = OrderIdLibrary.OrderId.wrap(0);
 
     /// @dev The next order id to be used.
-    OrderIdLibrary.OrderId public orderIdNext = OrderIdLibrary.OrderId.wrap(1);
+    OrderIdLibrary.OrderId private orderIdNext = OrderIdLibrary.OrderId.wrap(1);
 
     /// @dev The last tick lower for each pool.
-    mapping(PoolId poolId => int24 tickLowerLast) public tickLowerLasts;
+    mapping(PoolId poolId => int24 tickLowerLast) private tickLowerLasts;
 
     /// @dev Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
-    mapping(bytes32 orderIdKey => OrderIdLibrary.OrderId orderId) public orders;
+    mapping(bytes32 orderIdKey => OrderIdLibrary.OrderId orderId) private orders;
 
     /// @dev Tracks the order info for each order id.
     mapping(OrderIdLibrary.OrderId orderId => OrderInfo orderInfo) public orderInfos;
@@ -728,6 +728,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     function getOrderLiquidity(OrderIdLibrary.OrderId orderId, address owner) external view returns (uint256) {
         return orderInfos[orderId].liquidity[owner];
+    }
+
+    function getOrderIdNext() external view returns (OrderIdLibrary.OrderId) {
+        return orderIdNext;
     }
 
     /**
