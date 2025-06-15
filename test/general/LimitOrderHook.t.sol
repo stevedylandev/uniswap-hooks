@@ -669,10 +669,10 @@ contract LimitOrderHookTest is Test, Deployers {
         assertTrue(filled, "order should be filled");
         assertEq(liquidityTotal, liquidity, "liquidityTotal should be liquidity");
         assertApproxEqAbs(
-            currency0Total2, currency0Total/2, 1, "attacker should withdraw half of the currency0Total"
+            currency0Total2, currency0Total, 1, "attacker should not withdraw fees accrued"
         );
         assertApproxEqAbs(
-            currency1Total2, currency1Total/2, 1, "attacker should withdraw half of the currency1Total"
+            currency1Total2, currency1Total/2 + uint256(uint128(initialFeesExpected1))/2, 1, "attacker should not withdraw fees accrued"
         );
 
         // cancel the order is the same as remove liquidity from the pool in the range (0, tickSpacing)
@@ -692,20 +692,17 @@ contract LimitOrderHookTest is Test, Deployers {
         assertEq(currency0Total, 0, "currency0Total should be 0");
         assertEq(currency1Total, 0, "currency1Total should be 0");
 
-        console.log("balanceAttacker0Before - balanceAttacker0After", balanceAttacker0After - balanceAttacker0Before);
-        console.log("balanceAttacker1Before - balanceAttacker1After", balanceAttacker1After - balanceAttacker1Before);
-
         assertApproxEqAbs(
             balanceAttacker0After - balanceAttacker0Before,
-            balanceUser0AfterWithdraw - balanceUser0BeforeWithdraw,
+            balanceUser0AfterWithdraw - balanceUser0BeforeWithdraw - int256(uint256(uint128(initialFeesExpected0))),
             1,
-            "attacker should withdraw the same as user in currency0"
+            "fees should go to the user who withdraws the order"
         );
         assertApproxEqAbs(
             balanceAttacker1After - balanceAttacker1Before,
-            balanceUser1AfterWithdraw - balanceUser1BeforeWithdraw,
+            balanceUser1AfterWithdraw - balanceUser1BeforeWithdraw - int256(uint256(uint128(initialFeesExpected1))),
             1,
-            "attacker should withdraw the same as user in currency1"
+            "fees should go to the user who withdraws the order"
         );
     }
 

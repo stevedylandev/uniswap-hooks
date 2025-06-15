@@ -75,6 +75,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint256 currency1Total;
         uint128 liquidityTotal;
         mapping(address owner => uint128 amount) liquidity;
+        mapping(address owner => CheckpointCurrencies checkpoint) checkpoints;
     }
 
     /// @dev Enum of callbacks for the hook, used to determine the type of callback called from the poolManager to `{unlockCallback}`
@@ -115,6 +116,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint256 currency0Amount;
         uint256 currency1Amount;
         address to;
+    }
+
+    struct CheckpointCurrencies {
+        uint256 amountCurrency0;
+        uint256 amountCurrency1;
     }
 
     /// @dev The zero bytes.
@@ -252,6 +258,13 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             orderInfo.liquidityTotal += liquidity;
             orderInfo.liquidity[msg.sender] += liquidity;
         }
+        // set the checkpoints for the msg.sender
+        if(orderInfo.checkpoints[msg.sender].amountCurrency0 == 0) {
+            orderInfo.checkpoints[msg.sender].amountCurrency0 = orderInfo.currency0Total;
+        }
+        if(orderInfo.checkpoints[msg.sender].amountCurrency1 == 0) {
+            orderInfo.checkpoints[msg.sender].amountCurrency1 = orderInfo.currency1Total;
+        }
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // note that multiple functions trigger `unlockCallback`, so the `callbackData.callbackType` will determine what happens
@@ -376,9 +389,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // get the total liquidity in the order
         uint128 liquidityTotal = orderInfo.liquidityTotal;
 
+        uint256 checkpointAmountCurrency0 = orderInfo.checkpoints[msg.sender].amountCurrency0;
+        uint256 checkpointAmountCurrency1 = orderInfo.checkpoints[msg.sender].amountCurrency1;
+
         // calculate the amount of currency0 and currency1 owed to the msg.sender
-        amount0 = FullMath.mulDiv(orderInfo.currency0Total, liquidity, liquidityTotal);
-        amount1 = FullMath.mulDiv(orderInfo.currency1Total, liquidity, liquidityTotal);
+        amount0 = FullMath.mulDiv(orderInfo.currency0Total - checkpointAmountCurrency0, liquidity, liquidityTotal);
+        amount1 = FullMath.mulDiv(orderInfo.currency1Total - checkpointAmountCurrency1, liquidity, liquidityTotal);
 
         // subtract the amount of currency0 and currency1 from the order info
         orderInfo.currency0Total -= amount0;
