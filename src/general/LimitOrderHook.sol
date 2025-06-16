@@ -53,6 +53,9 @@ library OrderIdLibrary {
  * Users can cancel their limit orders at any time until it is filled and liquidity is removed from the pool. Users can also withdraw
  * their liquidity after the limit order is filled.
  *
+ * IMPORTANT: when cancelling or placing an order into an existing one, it's possible that fees were accrued in the past. In those cases,
+ * the accrued fees are added to the order info, benefitting the remaining limit order placers.
+ *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
@@ -408,6 +411,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint256 checkpointAmountCurrency1 = orderInfo.checkpoints[msg.sender].amountCurrency1;
 
         // calculate the amount of currency0 and currency1 owed to the msg.sender
+        // note that the user is not able to withdraw funds that were accrued before their checkpoint.
         amount0 = FullMath.mulDiv(orderInfo.currency0Total - checkpointAmountCurrency0, liquidity, liquidityTotal);
         amount1 = FullMath.mulDiv(orderInfo.currency1Total - checkpointAmountCurrency1, liquidity, liquidityTotal);
 
