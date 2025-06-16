@@ -85,10 +85,12 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
+        uint48 currentBlock = _getBlockNumber();
+
         // update the top-of-block `slot0` if new block
-        if (_lastCheckpoint.blockNumber != _getBlockNumber()) {
+        if (_lastCheckpoint.blockNumber != currentBlock) {
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
-            _lastCheckpoint.blockNumber = _getBlockNumber();
+            _lastCheckpoint.blockNumber = currentBlock;
 
             // iterate over ticks
             (, int24 currentTick,,) = poolManager.getSlot0(poolId);
