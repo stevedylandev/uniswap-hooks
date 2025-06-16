@@ -91,10 +91,8 @@
 :xref-LimitOrderHook-getTickLowerLast-PoolId-: xref:general.adoc#LimitOrderHook-getTickLowerLast-PoolId-
 :xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-
 :xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-: xref:general.adoc#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-
+:xref-LimitOrderHook-getOrderIdNext--: xref:general.adoc#LimitOrderHook-getOrderIdNext--
 :xref-LimitOrderHook-getHookPermissions--: xref:general.adoc#LimitOrderHook-getHookPermissions--
-:xref-LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId: xref:general.adoc#LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId
-:xref-LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-: xref:general.adoc#LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-
-:xref-LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-: xref:general.adoc#LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-
 :xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-: xref:general.adoc#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-
 :xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
@@ -123,7 +121,6 @@
 :xref-LimitOrderHook-ZeroLiquidity--: xref:general.adoc#LimitOrderHook-ZeroLiquidity--
 :xref-LimitOrderHook-InRange--: xref:general.adoc#LimitOrderHook-InRange--
 :xref-LimitOrderHook-CrossedRange--: xref:general.adoc#LimitOrderHook-CrossedRange--
-:xref-LimitOrderHook-AlreadyInitialized--: xref:general.adoc#LimitOrderHook-AlreadyInitialized--
 :xref-LimitOrderHook-Filled--: xref:general.adoc#LimitOrderHook-Filled--
 :xref-LimitOrderHook-NotFilled--: xref:general.adoc#LimitOrderHook-NotFilled--
 :xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
@@ -566,15 +563,12 @@ Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwap
 :CallbackDataPlace: pass:normal[xref:#LimitOrderHook-CallbackDataPlace[`++CallbackDataPlace++`]]
 :CallbackDataCancel: pass:normal[xref:#LimitOrderHook-CallbackDataCancel[`++CallbackDataCancel++`]]
 :CallbackDataWithdraw: pass:normal[xref:#LimitOrderHook-CallbackDataWithdraw[`++CallbackDataWithdraw++`]]
+:CheckpointCurrencies: pass:normal[xref:#LimitOrderHook-CheckpointCurrencies[`++CheckpointCurrencies++`]]
 :ZERO_BYTES: pass:normal[xref:#LimitOrderHook-ZERO_BYTES-bytes[`++ZERO_BYTES++`]]
-:orderIdNext: pass:normal[xref:#LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId[`++orderIdNext++`]]
-:tickLowerLasts: pass:normal[xref:#LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-[`++tickLowerLasts++`]]
-:orders: pass:normal[xref:#LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-[`++orders++`]]
 :orderInfos: pass:normal[xref:#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-[`++orderInfos++`]]
 :ZeroLiquidity: pass:normal[xref:#LimitOrderHook-ZeroLiquidity--[`++ZeroLiquidity++`]]
 :InRange: pass:normal[xref:#LimitOrderHook-InRange--[`++InRange++`]]
 :CrossedRange: pass:normal[xref:#LimitOrderHook-CrossedRange--[`++CrossedRange++`]]
-:AlreadyInitialized: pass:normal[xref:#LimitOrderHook-AlreadyInitialized--[`++AlreadyInitialized++`]]
 :Filled: pass:normal[xref:#LimitOrderHook-Filled--[`++Filled++`]]
 :NotFilled: pass:normal[xref:#LimitOrderHook-NotFilled--[`++NotFilled++`]]
 :Place: pass:normal[xref:#LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-[`++Place++`]]
@@ -596,6 +590,7 @@ Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwap
 :getTickLowerLast: pass:normal[xref:#LimitOrderHook-getTickLowerLast-PoolId-[`++getTickLowerLast++`]]
 :getOrderId: pass:normal[xref:#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-[`++getOrderId++`]]
 :getOrderLiquidity: pass:normal[xref:#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-[`++getOrderLiquidity++`]]
+:getOrderIdNext: pass:normal[xref:#LimitOrderHook-getOrderIdNext--[`++getOrderIdNext++`]]
 :getHookPermissions: pass:normal[xref:#LimitOrderHook-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -617,6 +612,9 @@ instead of both, as in an in-range addition.
 
 Users can cancel their limit orders at any time until it is filled and liquidity is removed from the pool. Users can also withdraw
 their liquidity after the limit order is filled.
+
+IMPORTANT: when cancelling or placing an order into an existing one, it's possible that fees were accrued in the past. In those cases,
+the accrued fees are added to the order info, benefitting the remaining limit order placers.
 
 WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
 not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -642,10 +640,8 @@ _Available since v1.1.0_
 * {xref-LimitOrderHook-getTickLowerLast-PoolId-}[`++getTickLowerLast(poolId)++`]
 * {xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-}[`++getOrderId(key, tickLower, zeroForOne)++`]
 * {xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-}[`++getOrderLiquidity(orderId, owner)++`]
+* {xref-LimitOrderHook-getOrderIdNext--}[`++getOrderIdNext()++`]
 * {xref-LimitOrderHook-getHookPermissions--}[`++getHookPermissions()++`]
-* {xref-LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId}[`++orderIdNext()++`]
-* {xref-LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-}[`++tickLowerLasts()++`]
-* {xref-LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-}[`++orders()++`]
 * {xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-}[`++orderInfos()++`]
 
 [.contract-subindex-inherited]
@@ -704,7 +700,6 @@ _Available since v1.1.0_
 * {xref-LimitOrderHook-ZeroLiquidity--}[`++ZeroLiquidity()++`]
 * {xref-LimitOrderHook-InRange--}[`++InRange()++`]
 * {xref-LimitOrderHook-CrossedRange--}[`++CrossedRange()++`]
-* {xref-LimitOrderHook-AlreadyInitialized--}[`++AlreadyInitialized()++`]
 * {xref-LimitOrderHook-Filled--}[`++Filled()++`]
 * {xref-LimitOrderHook-NotFilled--}[`++NotFilled()++`]
 
@@ -795,7 +790,7 @@ otherwise. Only callable by the PoolManager.
 
 [.contract-item]
 [[LimitOrderHook-_handlePlaceCallback-struct-LimitOrderHook-CallbackDataPlace-]]
-==== `[.contract-item-name]#++_handlePlaceCallback++#++(struct LimitOrderHook.CallbackDataPlace placeData)++` [.item-kind]#internal#
+==== `[.contract-item-name]#++_handlePlaceCallback++#++(struct LimitOrderHook.CallbackDataPlace placeData) → uint256 amount0Fee, uint256 amount1Fee++` [.item-kind]#internal#
 
 Internal handler for place order callbacks. Takes `placeData` containing the order details and adds the
 specified liquidity to the pool out of range. Reverts if the order would be placed in range or on the wrong
@@ -855,29 +850,17 @@ Get the liquidity of an order for a given order id and owner. Takes an {OrderId}
 and returns the amount of liquidity the owner has contributed to the order.
 
 [.contract-item]
+[[LimitOrderHook-getOrderIdNext--]]
+==== `[.contract-item-name]#++getOrderIdNext++#++() → OrderIdLibrary.OrderId++` [.item-kind]#external#
+
+Get the next order id.
+
+[.contract-item]
 [[LimitOrderHook-getHookPermissions--]]
 ==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
 
 Get the hook permissions for this contract. Returns a `Hooks.Permissions` struct configured to enable
 `afterInitialize` and `afterSwap` hooks while disabling all other hooks.
-
-[.contract-item]
-[[LimitOrderHook-orderIdNext-OrderIdLibrary-OrderId]]
-==== `[.contract-item-name]#++orderIdNext++#++() → OrderIdLibrary.OrderId++` [.item-kind]#public#
-
-The next order id to be used.
-
-[.contract-item]
-[[LimitOrderHook-tickLowerLasts-mapping-PoolId----int24-]]
-==== `[.contract-item-name]#++tickLowerLasts++#++() → mapping(PoolId &#x3D;&gt; int24)++` [.item-kind]#public#
-
-The last tick lower for each pool.
-
-[.contract-item]
-[[LimitOrderHook-orders-mapping-bytes32----OrderIdLibrary-OrderId-]]
-==== `[.contract-item-name]#++orders++#++() → mapping(bytes32 &#x3D;&gt; OrderIdLibrary.OrderId)++` [.item-kind]#public#
-
-Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
 
 [.contract-item]
 [[LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-]]
@@ -889,25 +872,31 @@ Tracks the order info for each order id.
 [[LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-]]
 ==== `[.contract-item-name]#++Place++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity)++` [.item-kind]#event#
 
-Event emitted when a limit order is placed.
+Emitted when an `owner` places a limit order with the given `orderId`, in the pool identified by `key`,
+at the given `tickLower`, `zeroForOne` indicating the direction of the order, and `liquidity` the amount of liquidity
+added.
 
 [.contract-item]
 [[LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-]]
 ==== `[.contract-item-name]#++Fill++#++(OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne)++` [.item-kind]#event#
 
-Event emitted when a limit order is filled.
+Emitted when a limit order with the given `orderId` is filled in the pool identified by `key`,
+at the given `tickLower`, `zeroForOne` indicating the direction of the order.
 
 [.contract-item]
 [[LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-]]
 ==== `[.contract-item-name]#++Cancel++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, struct PoolKey key, int24 tickLower, bool zeroForOne, uint128 liquidity)++` [.item-kind]#event#
 
-Event emitted when a limit order is canceled.
+Emitted when an `owner` cancels a limit order with the given `orderId`, in the pool identified by `key`,
+at the given `tickLower`, `zeroForOne` indicating the direction of the order, and `liquidity` the amount of liquidity
+removed.
 
 [.contract-item]
 [[LimitOrderHook-Withdraw-address-OrderIdLibrary-OrderId-uint128-]]
 ==== `[.contract-item-name]#++Withdraw++#++(address indexed owner, OrderIdLibrary.OrderId indexed orderId, uint128 liquidity)++` [.item-kind]#event#
 
-Event emitted when a limit order is withdrawn.
+Emitted when an `owner` withdraws their `liquidity` from a limit order with the given `orderId`, in the pool identified by `key`,
+at the given `tickLower`, `zeroForOne` indicating the direction of the order.
 
 [.contract-item]
 [[LimitOrderHook-ZeroLiquidity--]]
@@ -926,12 +915,6 @@ Limit order was placed in range.
 ==== `[.contract-item-name]#++CrossedRange++#++()++` [.item-kind]#error#
 
 Limit order placed on the wrong side of the range.
-
-[.contract-item]
-[[LimitOrderHook-AlreadyInitialized--]]
-==== `[.contract-item-name]#++AlreadyInitialized++#++()++` [.item-kind]#error#
-
-Hook was already initialized.
 
 [.contract-item]
 [[LimitOrderHook-Filled--]]
