@@ -157,7 +157,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     /// @dev Limit order is not filled.
     error NotFilled();
 
-    /// @dev Event emitted when a limit order is placed.
+    /**
+     * @dev Emitted when an `owner` places a limit order with the given `orderId`, in the pool identified by `key`,
+     * at the given `tickLower`, `zeroForOne` indicating the direction of the order, and `liquidity` the amount of liquidity
+     * added.
+     */
     event Place(
         address indexed owner,
         OrderIdLibrary.OrderId indexed orderId,
@@ -167,10 +171,17 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint128 liquidity
     );
 
-    /// @dev Event emitted when a limit order is filled.
+    /**
+     * @dev Emitted when a limit order with the given `orderId` is filled in the pool identified by `key`,
+     * at the given `tickLower`, `zeroForOne` indicating the direction of the order.
+     */
     event Fill(OrderIdLibrary.OrderId indexed orderId, PoolKey key, int24 tickLower, bool zeroForOne);
 
-    /// @dev Event emitted when a limit order is canceled.
+    /**
+     * @dev Emitted when an `owner` cancels a limit order with the given `orderId`, in the pool identified by `key`,
+     * at the given `tickLower`, `zeroForOne` indicating the direction of the order, and `liquidity` the amount of liquidity
+     * removed.
+     */
     event Cancel(
         address indexed owner,
         OrderIdLibrary.OrderId indexed orderId,
@@ -180,7 +191,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         uint128 liquidity
     );
 
-    /// @dev Event emitted when a limit order is withdrawn.
+    /**
+     * @dev Emitted when an `owner` withdraws their `liquidity` from a limit order with the given `orderId`, in the pool identified by `key`,
+     * at the given `tickLower`, `zeroForOne` indicating the direction of the order.
+     */
     event Withdraw(address indexed owner, OrderIdLibrary.OrderId indexed orderId, uint128 liquidity);
 
     /// @dev Set the `PoolManager` address.
