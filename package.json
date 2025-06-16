@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "docs": "npm run prepare-docs && oz-docs",
-    "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
+    "docs:watch": "oz-docs watch src docs/templates docs/config.js",
     "prepare-docs": "scripts/prepare-docs.sh"
   },
   "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
@@ -19,7 +19,7 @@
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
-    "@openzeppelin/docs-utils": "^0.1.5",
+    "@openzeppelin/docs-utils": "^0.1.6",
     "hardhat": "^2.22.15",
     "solidity-docgen": "^0.6.0-beta.36"
   }
