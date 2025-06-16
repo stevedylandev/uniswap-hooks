@@ -178,6 +178,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
     function _getTargetOutput(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
         override
+        virtual
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
         if (params.zeroForOne) {
@@ -223,7 +224,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         BalanceDelta,
         uint256,
         uint256 feeAmount
-    ) internal override {
+    ) internal virtual override {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
         (uint256 amount0, uint256 amount1) = unspecified == key.currency0
             ? (uint256(uint128(feeAmount)), uint256(0))
