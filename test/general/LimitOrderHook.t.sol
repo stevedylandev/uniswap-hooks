@@ -763,6 +763,5 @@ contract LimitOrderHookTest is Test, Deployers {
 
         vm.expectRevert(LimitOrderHook.NotFilled.selector);
         hook.withdraw(OrderIdLibrary.OrderId.wrap(1), address(this));
-
     }
 }
