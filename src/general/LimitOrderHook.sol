@@ -279,14 +279,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         }
         // set the checkpoints for the msg.sender. These amounts are stored so that the user cannot steal
         // fees accrued before the checkpoint. Note that the amounts in the checkpoints can only be from fees accrued,
-        // never from order fills. The checkpoint is made only once, even if the user places the same order multiple times
-        // This means that the user is entitle to the fees accrued from the checkpoint until the order is filled.
-        if (orderInfo.checkpoints[msg.sender].amountCurrency0 == 0) {
-            orderInfo.checkpoints[msg.sender].amountCurrency0 = orderInfo.currency0Total;
-        }
-        if (orderInfo.checkpoints[msg.sender].amountCurrency1 == 0) {
-            orderInfo.checkpoints[msg.sender].amountCurrency1 = orderInfo.currency1Total;
-        }
+        // never from order fills. The checkpoint is updated every time the user places an order.
+        // This means possible fees accrued in between checkpoints are not taken into account, so the user is not entitled to them.
+        orderInfo.checkpoints[msg.sender].amountCurrency0 = orderInfo.currency0Total;
+        orderInfo.checkpoints[msg.sender].amountCurrency1 = orderInfo.currency1Total;
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // note that multiple functions trigger `unlockCallback`, so the `callbackData.callbackType` will determine what happens
