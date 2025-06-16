@@ -36,7 +36,7 @@ interface IHookEvents {
     event HookModifyLiquidity(bytes32 indexed poolId, address indexed sender, int128 amount0, int128 amount1);
 
     /**
-     * @dev Emitted when a bonus is added to a swap in a pool identified by `poolId`, being `amount0` and `amount1` the amounts
+     * @dev Emitted when a bonus is added to an operation in a pool identified by `poolId`, being `amount0` and `amount1` the amounts
      * added in currency0 and currency1, defined by the `poolId`.
      */
     event HookBonus(bytes32 indexed poolId, uint128 amount0, uint128 amount1);
