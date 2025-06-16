@@ -20,6 +20,7 @@ import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+
 /**
  * @dev Sandwich-resistant hook, based on
  * https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
