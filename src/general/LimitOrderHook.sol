@@ -259,10 +259,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             orderInfo.liquidity[msg.sender] += liquidity;
         }
         // set the checkpoints for the msg.sender
-        if(orderInfo.checkpoints[msg.sender].amountCurrency0 == 0) {
+        if (orderInfo.checkpoints[msg.sender].amountCurrency0 == 0) {
             orderInfo.checkpoints[msg.sender].amountCurrency0 = orderInfo.currency0Total;
         }
-        if(orderInfo.checkpoints[msg.sender].amountCurrency1 == 0) {
+        if (orderInfo.checkpoints[msg.sender].amountCurrency1 == 0) {
             orderInfo.checkpoints[msg.sender].amountCurrency1 = orderInfo.currency1Total;
         }
 

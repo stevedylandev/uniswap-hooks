@@ -21,7 +21,6 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {console} from "forge-std/console.sol";
 
 contract LimitOrderHookTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -243,14 +242,10 @@ contract LimitOrderHookTest is Test, Deployers {
         bytes32 positionId = Position.calculatePositionKey(address(hook), tickLower, tickLower + key.tickSpacing, 0);
         assertEq(manager.getPositionLiquidity(key.toId(), positionId), liquidity * 2);
 
-        (
-            bool filled,
-            Currency orderCurrency0,
-            Currency orderCurrency1,
-            uint256 currency0Total,
-            uint256 currency1Total,
-            uint128 liquidityTotal
-        ) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        Currency orderCurrency0;
+        Currency orderCurrency1;
+        (filled, orderCurrency0, orderCurrency1, currency0Total, currency1Total, liquidityTotal) =
+            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
         assertFalse(filled);
         assertTrue(currency0 == orderCurrency0);
         assertTrue(currency1 == orderCurrency1);
@@ -479,8 +474,7 @@ contract LimitOrderHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        (filled,,, currency0Total, currency1Total,) =
-            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertTrue(filled, "order should be filled");
         assertEq(currency0Total, 0, "wrong amount of currency0");
@@ -536,8 +530,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
         assertTrue(initialFeesExpected0 > 0 || initialFeesExpected1 > 0, "fees should be accrued");
 
-        (filled,,, currency0Total, currency1Total, liquidityTotal) =
-            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertFalse(filled, "order should not be filled");
         assertEq(liquidityTotal, liquidity, "liquidityTotal should be liquidity");
@@ -618,8 +611,7 @@ contract LimitOrderHookTest is Test, Deployers {
 
         assertTrue(initialFeesExpected0 > 0 || initialFeesExpected1 > 0, "fees should be accrued");
 
-        (filled,,, currency0Total, currency1Total, liquidityTotal) =
-            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertFalse(filled, "order should not be filled");
         assertEq(liquidityTotal, 1e15 * 2, "liquidityTotal should be 2 * liquidity");
@@ -666,15 +658,16 @@ contract LimitOrderHookTest is Test, Deployers {
         uint256 currency0Total2;
         uint256 currency1Total2;
 
-        (filled,,, currency0Total2, currency1Total2,liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total2, currency1Total2, liquidityTotal) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         assertTrue(filled, "order should be filled");
         assertEq(liquidityTotal, 1e15, "liquidityTotal should be liquidity");
+        assertApproxEqAbs(currency0Total2, currency0Total, 1, "attacker should not withdraw fees accrued");
         assertApproxEqAbs(
-            currency0Total2, currency0Total, 1, "attacker should not withdraw fees accrued"
-        );
-        assertApproxEqAbs(
-            currency1Total2, currency1Total/2 + uint256(uint128(initialFeesExpected1))/2, 1, "attacker should not withdraw fees accrued"
+            currency1Total2,
+            currency1Total / 2 + uint256(uint128(initialFeesExpected1)) / 2,
+            1,
+            "attacker should not withdraw fees accrued"
         );
 
         // cancel the order is the same as remove liquidity from the pool in the range (0, tickSpacing)
@@ -714,13 +707,9 @@ contract LimitOrderHookTest is Test, Deployers {
 
         hook.placeOrder(key, tickLower, zeroForOne, liquidity);
 
-        int24 tickLowerLast = hook.getTickLowerLast(key.toId());
         int24 currentTick = getCurrentTick(key.toId());
 
         assertEq(currentTick, tickLower, "Initial tick is wrong");
-
-        console.log("initial tick", currentTick);
-        console.log("tick spacing", key.tickSpacing);
 
         swapRouter.swap(
             key,
@@ -733,7 +722,8 @@ contract LimitOrderHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        console.log("tick after swap 1", currentTick = getCurrentTick(key.toId()));
+        currentTick = getCurrentTick(key.toId());
+        assertEq(currentTick, tickLower - 10 * key.tickSpacing, "Tick after swap 1 is wrong");
 
         swapRouter.swap(
             key,
@@ -746,14 +736,10 @@ contract LimitOrderHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        console.log("tick after swap 2", currentTick = getCurrentTick(key.toId()));
+        currentTick = getCurrentTick(key.toId());
+        assertEq(currentTick, tickLower + key.tickSpacing / 2, "Tick after swap 2 is wrong");
 
-        //assertEq(hook.getTickLowerLast(key.toId()), tickLower + key.tickSpacing);
-        (, int24 tick,,) = manager.getSlot0(key.toId());
-        //assertEq(tick, tickLower + key.tickSpacing);
-
-        (filled,,, currency0Total, currency1Total,) =
-            hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
+        (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
         swapRouter.swap(
             key,
@@ -766,17 +752,16 @@ contract LimitOrderHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        console.log("tick after swap 1", currentTick = getCurrentTick(key.toId()));
-
         (filled,,, currency0Total, currency1Total,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
 
-        assertTrue(filled, "order should be filled");
+        assertFalse(filled, "order should be filled");
         assertEq(currency0Total, 0, "wrong amount of currency0");
-        assertEq(currency1Total, 2996 + 17, "wrong amount of currency1"); // 3013, 2 wei of dust
+        assertEq(currency1Total, 0, "wrong amount of currency1"); // 3013, 2 wei of dust
 
         bytes32 positionId = Position.calculatePositionKey(address(hook), tickLower, tickLower + key.tickSpacing, 0);
-        assertEq(manager.getPositionLiquidity(key.toId(), positionId), 0);
+        assertEq(manager.getPositionLiquidity(key.toId(), positionId), liquidity);
 
+        vm.expectRevert(LimitOrderHook.NotFilled.selector);
         hook.withdraw(OrderIdLibrary.OrderId.wrap(1), address(this));
 
         (,,, uint256 currency0Amount, uint256 currency1Amount,) = hook.orderInfos(OrderIdLibrary.OrderId.wrap(1));
