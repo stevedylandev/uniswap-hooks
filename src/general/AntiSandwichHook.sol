@@ -47,7 +47,6 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
  *
  * _Available since v1.1.0_
  */
-
 contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
@@ -178,8 +177,8 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      */
     function _getTargetOutput(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
-        override
         virtual
+        override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
         if (params.zeroForOne) {
