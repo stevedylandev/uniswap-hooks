@@ -10,7 +10,6 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
 // External imports
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
@@ -20,6 +19,8 @@ import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {Slot0} from "v4-core/src/types/Slot0.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
+
 /**
  * @dev Sandwich-resistant hook, based on
  * https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
@@ -46,12 +47,11 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
  *
  * _Available since v1.1.0_
  */
-
 contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
-    using SafeCast for uint256;
+    using SafeCast for *;
 
     /// @dev Represents a checkpoint of the pool state at the beginning of a block.
     struct Checkpoint {
@@ -78,50 +78,35 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
+        virtual
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         PoolId poolId = key.toId();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
-        // update the top-of-block `slot0` if new block
-        if (_lastCheckpoint.blockNumber != _getBlockNumber()) {
-            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+        uint48 currentBlock = _getBlockNumber();
 
-            _lastCheckpoint.blockNumber = _getBlockNumber();
+        // update the top-of-block `slot0` if new block
+        if (_lastCheckpoint.blockNumber != currentBlock) {
+            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+            _lastCheckpoint.blockNumber = currentBlock;
 
             // iterate over ticks
-            (, int24 tickAfter,,) = poolManager.getSlot0(poolId);
+            (, int24 currentTick,,) = poolManager.getSlot0(poolId);
 
-            if (tickAfter > _lastCheckpoint.state.slot0.tick()) {
-                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick < tickAfter; tick += key.tickSpacing) {
-                    (
-                        uint128 liquidityGross,
-                        int128 liquidityNet,
-                        uint256 feeGrowthOutside0X128,
-                        uint256 feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
+            int24 lastTick = _lastCheckpoint.state.slot0.tick();
+            int24 step = currentTick > lastTick ? key.tickSpacing : -key.tickSpacing;
 
-                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-                }
-            } else {
-                for (int24 tick = _lastCheckpoint.state.slot0.tick(); tick > tickAfter; tick -= key.tickSpacing) {
-                    (
-                        uint128 liquidityGross,
-                        int128 liquidityNet,
-                        uint256 feeGrowthOutside0X128,
-                        uint256 feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
-
-                    _lastCheckpoint.state.ticks[tick].liquidityGross = liquidityGross;
-                    _lastCheckpoint.state.ticks[tick].liquidityNet = liquidityNet;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128 = feeGrowthOutside0X128;
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128 = feeGrowthOutside1X128;
-                }
+            for (int24 tick = lastTick; tick != currentTick; tick += step) {
+                (
+                    _lastCheckpoint.state.ticks[tick].liquidityGross,
+                    _lastCheckpoint.state.ticks[tick].liquidityNet,
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
+                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
+                ) = poolManager.getTickInfo(poolId, tick);
             }
+
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
                 poolManager.getFeeGrowthGlobals(poolId);
             _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
@@ -147,7 +132,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) internal override returns (bytes4, int128) {
+    ) internal virtual override returns (bytes4, int128) {
         if (!_applyTargetOutput) {
             return (this.afterSwap.selector, 0);
         }
@@ -158,16 +143,16 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
         bool exactInput = params.amountSpecified < 0;
 
-        if (!exactInput && _targetOutput > uint256(uint128(unspecifiedAmount))) {
+        if (!exactInput && _targetOutput > unspecifiedAmount.toUint256()) {
             // In this case, the swapper has a fixed output and `_targetOutput` is greater than the input amount.
             // In order to protect against the sandwich attack, we increase the input amount to `_targetOutput`.
-            uint256 payAmount = _targetOutput - uint256(uint128(unspecifiedAmount));
+            uint256 payAmount = _targetOutput - unspecifiedAmount.toUint256();
 
             unspecified.take(poolManager, address(this), payAmount, true);
 
             _afterSwapHandler(key, params, delta, _targetOutput, payAmount);
 
-            return (this.afterSwap.selector, int128(uint128(payAmount)));
+            return (this.afterSwap.selector, payAmount.toInt256().toInt128());
         }
 
         return super._afterSwap(sender, key, params, delta, hookData);
@@ -194,6 +179,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      */
     function _getTargetOutput(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
+        virtual
         override
         returns (uint256 targetOutput, bool applyTargetOutput)
     {
@@ -224,7 +210,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
         if (target < 0) target = -target;
 
-        targetOutput = uint256(uint128(target));
+        targetOutput = target.toUint256();
         applyTargetOutput = true;
     }
 
@@ -240,11 +226,10 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         BalanceDelta,
         uint256,
         uint256 feeAmount
-    ) internal override {
+    ) internal virtual override {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
-        (uint256 amount0, uint256 amount1) = unspecified == key.currency0
-            ? (uint256(uint128(feeAmount)), uint256(0))
-            : (uint256(0), uint256(uint128(feeAmount)));
+        (uint256 amount0, uint256 amount1) =
+            unspecified == key.currency0 ? (feeAmount, 0.toUint256()) : (0.toUint256(), feeAmount);
 
         // reset apply flag
         _applyTargetOutput = false;

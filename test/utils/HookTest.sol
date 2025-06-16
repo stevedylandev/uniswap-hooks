@@ -15,10 +15,9 @@ import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {IPoolManagerEvents} from "./IPoolManagerEvents.sol";
-import {BalanceDeltaAssertions} from "./BalanceDeltaAssertions.sol";
 
 // @dev Set of utilities to test Hooks.
-contract HookTest is Test, Deployers, IPoolManagerEvents, BalanceDeltaAssertions {
+contract HookTest is Test, Deployers, IPoolManagerEvents {
     // @dev Calculate the current `feesAccrued` for a given position.
     function calculateFees(
         IPoolManager manager,
@@ -67,27 +66,10 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, BalanceDeltaAssertions
         return modifyLiquidityRouter.modifyLiquidity(poolKey, modifyLiquidityParams, "");
     }
 
-    // @dev Swap tokens in a given pool.
-    function swap(PoolKey memory poolKey, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96)
-        internal
-        returns (BalanceDelta)
-    {
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
-        SwapParams memory swapParams =
-            SwapParams({zeroForOne: zeroForOne, amountSpecified: amountSpecified, sqrtPriceLimitX96: sqrtPriceLimitX96});
-        return swapRouter.swap(poolKey, swapParams, testSettings, "");
-    }
-
     // @dev Swaps all combinations of `zeroForOne` (true/false) and `amountSpecified` (+,-) in a given pool.
     function swapAllCombinations(PoolKey memory poolKey, uint256 amount) internal {
         for (uint256 i = 0; i < 4; i++) {
-            swap(
-                poolKey,
-                i < 2 ? false : true,
-                i % 2 == 0 ? -int256(amount) : int256(amount),
-                i < 2 ? MAX_PRICE_LIMIT : MIN_PRICE_LIMIT
-            );
+            swap(poolKey, i < 2 ? false : true, i % 2 == 0 ? -int256(amount) : int256(amount), ZERO_BYTES);
         }
     }
 }
