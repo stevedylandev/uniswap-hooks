@@ -16,7 +16,7 @@ import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
@@ -481,13 +481,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         );
 
         if (feesAccrued.amount0() > 0) {
-            //key.currency0.take(poolManager, address(this), uint256(uint128(feesAccrued.amount0())), true);
             key.currency0.take(poolManager, address(this), amount0Fee = uint256(uint128(feesAccrued.amount0())), true);
-
-            //poolManager.mint(address(this), key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0()));
         }
         if (feesAccrued.amount1() > 0) {
-            //poolManager.mint(address(this), key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount0()));
             key.currency1.take(poolManager, address(this), amount1Fee = uint256(uint128(feesAccrued.amount1())), true);
         }
 
