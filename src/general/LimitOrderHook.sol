@@ -118,6 +118,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         address to;
     }
 
+    /**
+     * @dev Struct of checkpoint currencies
+     */
     struct CheckpointCurrencies {
         uint256 amountCurrency0;
         uint256 amountCurrency1;
@@ -726,6 +729,9 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         return orderInfos[orderId].liquidity[owner];
     }
 
+    /**
+     * @dev Get the next order id.
+     */
     function getOrderIdNext() external view returns (OrderIdLibrary.OrderId) {
         return orderIdNext;
     }
