@@ -11,8 +11,8 @@ pragma solidity ^0.8.24;
 interface IHookEvents {
     /**
      * @dev Emitted when a hook executes a swap outside of Uniswap's default concentrated liquidity AMM in a pool
-     * identified by `poolId`, being `sender` the initiator of the swap, `amount0` and `amount1` represent the swap amounts
-     * (positive for input, negative for output), and `hookLPfeeAmount0` and `hookLPfeeAmount1` are the LP fees.
+     * identified by `poolId`, being `sender` the initiator of the swap, `amount0` and `amount1` the swap amounts
+     * (positive for input, negative for output), and `hookLPfeeAmount0`, `hookLPfeeAmount1` the LP fees.
      */
     event HookSwap(
         bytes32 indexed poolId,
