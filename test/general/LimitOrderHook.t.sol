@@ -21,8 +21,9 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {HookTest} from "test/utils/HookTest.sol";
 
-contract LimitOrderHookTest is Test, Deployers {
+contract LimitOrderHookTest is HookTest {
     using StateLibrary for IPoolManager;
 
     LimitOrderHook hook;
