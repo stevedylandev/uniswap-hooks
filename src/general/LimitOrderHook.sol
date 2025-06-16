@@ -120,7 +120,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Struct of checkpoint currencies
+     * @dev Struct of checkpoint currencies. These are the amounts of `currency0` and `currency1` marked as
+     * `currency0Total` and `currency1Total` in the `OrderInfo` struct at the time of the checkpoint.
      */
     struct CheckpointCurrencies {
         uint256 amountCurrency0;
@@ -276,7 +277,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             orderInfo.liquidityTotal += liquidity;
             orderInfo.liquidity[msg.sender] += liquidity;
         }
-        // set the checkpoints for the msg.sender
+        // set the checkpoints for the msg.sender. These amounts are stored so that the user cannot steal
+        // fees accrued before the checkpoint. Note that the amounts in the checkpoints can only be from fees accrued,
+        // never from order fills. The checkpoint is made only once, even if the user places the same order multiple times
+        // This means that the user is entitle to the fees accrued from the checkpoint until the order is filled.
         if (orderInfo.checkpoints[msg.sender].amountCurrency0 == 0) {
             orderInfo.checkpoints[msg.sender].amountCurrency0 = orderInfo.currency0Total;
         }
