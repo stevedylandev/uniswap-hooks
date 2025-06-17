@@ -14,7 +14,7 @@ contract AntiSandwichMock is AntiSandwichHook {
         }
     }
 
-    function _handleFeeAmount(PoolKey calldata key, Currency currency, uint256 feeAmount) internal override {
+    function _handleCollectedFees(PoolKey calldata key, Currency currency, uint256 feeAmount) internal override {
         // empty
     }
 
