@@ -32,7 +32,7 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * the xy=k curve. However, the bid price remains constant, instead increasing the
  * amount of liquidity on the bid. Subsequent sells eat into this liquidity, while
  * decreasing the offer price according to xy=k.
- * 
+ *
  * In order to use this hook, the inheriting contract must implement the {_handleCollectedFees} function
  * to determine how to handle the collected fees from the anti-sandwich mechanism.
  *
@@ -67,9 +67,9 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
     /**
      * @dev Handles the before swap hook.
-     * 
+     *
      * For the first swap in a block, it saves the current pool state as a checkpoint.
-     * 
+     *
      * For subsequent swaps in the same block, it calculates a target output based on the beginning-of-block state,
      * and sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits in {_afterSwap}.
      */
@@ -161,11 +161,11 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
      * @dev Calculates the output amount based on the pool state at the beginning of the block.
      * This prevents sandwich attacks by ensuring trades can't get better prices than what was available
      * at the start of the block. Note that the calculated output could either be input or output, depending
-     * if it's an exactInput or outputOutput swap. In cases of zeroForOne == true, the target output is not 
+     * if it's an exactInput or outputOutput swap. In cases of zeroForOne == true, the target output is not
      * applicable, and the max uint256 value is returned as a flag only.
      *
      * The anti-sandwich mechanism works such as:
-
+     *
      * - For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve.
      * - For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
      *   price, which prevents attackers from manipulating the price within a block.
@@ -229,7 +229,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
     /**
      * @dev Handles the fees collected via the anti-sandwich protection in {_afterSwap}.
-     * 
+     *
      * NOTE: Must be implemented by the inheriting contract.
      */
     function _handleCollectedFees(PoolKey calldata key, Currency currency, uint256 feeAmount) internal virtual;
