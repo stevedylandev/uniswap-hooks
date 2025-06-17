@@ -41,6 +41,9 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * compared to the initial price before the first swap in the block, i.e. the anti sandwich mechanism
  * is only applied when zeroForOne = true.
  *
+ * IMPORTANT: Since this hook changes make MEV not profitable in a direction, there's not as much arbitrage
+ * in the pool, making prices at beginning of the block not necessarily close to market price.
+ *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
