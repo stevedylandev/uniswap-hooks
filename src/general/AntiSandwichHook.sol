@@ -22,11 +22,7 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 
 /**
- * @dev Sandwich-resistant hook, based on
- * https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
- * implementation.
- *
- * This hook implements the sandwich-resistant AMM design introduced
+ * @dev This hook implements the sandwich-resistant AMM design introduced
  * https://www.umbraresearch.xyz/writings/sandwich-resistant-amm[here]. Specifically,
  * this hook guarantees that no swaps get filled at a price better than the price at
  * the beginning of the slot window (i.e. one block).
@@ -36,13 +32,15 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * the xy=k curve. However, the bid price remains constant, instead increasing the
  * amount of liquidity on the bid. Subsequent sells eat into this liquidity, while
  * decreasing the offer price according to xy=k.
+ * 
+ * In order to use this hook, the inheriting contract must implement the {_handleCollectedFees} function
+ * to determine how to handle the collected fees from the anti-sandwich mechanism.
  *
- * NOTE: Swaps in the other direction do not get the positive price difference
- * compared to the initial price before the first swap in the block, i.e. the anti sandwich mechanism
- * is only applied when zeroForOne = true.
+ * NOTE: The Anti-sandwich mechanism only protects swaps in the zeroForOne swap direction.
+ * Swaps in the !zeroForOne direction are not protected by this hook design.
  *
- * IMPORTANT: Since this hook changes make MEV not profitable in a direction, there's not as much arbitrage
- * in the pool, making prices at beginning of the block not necessarily close to market price.
+ * WARNING: Since this hook makes MEV not profitable, there's not as much arbitrage in
+ * the pool, making prices at beginning of the block not necessarily close to market price.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -68,16 +66,12 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     /**
-     * @dev Handles the before swap hook, setting up checkpoints at the beginning of blocks
-     * and calculating target outputs for subsequent swaps.
-     *
-     * For the first swap in a block:
-     * - Saves the current pool state as a checkpoint
-     *
-     * For subsequent swaps in the same block:
-     * - Calculates a target output based on the beginning-of-block state
-     * - Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
-     *
+     * @dev Handles the before swap hook.
+     * 
+     * For the first swap in a block, it saves the current pool state as a checkpoint.
+     * 
+     * For subsequent swaps in the same block, it calculates a target output based on the beginning-of-block state,
+     * and sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits in {_afterSwap}.
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
@@ -119,15 +113,10 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     }
 
     /**
-     * @dev Handles the after swap hook, initializing the full pool state checkpoint for the first
-     * swap in a block and updating the target output if needed.
+     * @dev Handles the after swap hook.
      *
-     * For the first swap in a block:
-     * - Saves a detailed checkpoint of the pool state including liquidity and tick information
-     * - This checkpoint will be used for subsequent swaps to calculate fair execution prices
-     *
-     * For all swaps:
-     * - Caps the target output to the actual swap amount to prevent excessive fee collection
+     * Caps the obtained output from the swap to the target output determined during the {_beforeSwap} hook.
+     * Handles the excess output afterwards via {_afterSwapHandler}.
      */
     function _afterSwap(
         address sender,
@@ -169,16 +158,17 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     }
 
     /**
-     * @dev Calculates the fair output amount based on the pool state at the beginning of the block.
+     * @dev Calculates the output amount based on the pool state at the beginning of the block.
      * This prevents sandwich attacks by ensuring trades can't get better prices than what was available
-     * at the start of the block. Note that the output calculated could mean either input or output, depending
-     * if it's an exact input or output swap. In cases of zeroForOne == true, the target output is not applicable,
-     * the max uint256 value is returned only as a flag.
+     * at the start of the block. Note that the calculated output could either be input or output, depending
+     * if it's an exactInput or outputOutput swap. In cases of zeroForOne == true, the target output is not 
+     * applicable, and the max uint256 value is returned as a flag only.
      *
-     * The anti-sandwich mechanism works by:
-     * * For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve
-     * * For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
-     *   price, which prevents attackers from manipulating the price within a block
+     * The anti-sandwich mechanism works such as:
+
+     * - For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve.
+     * - For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
+     *   price, which prevents attackers from manipulating the price within a block.
      */
     function _getTargetOutput(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
@@ -192,8 +182,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
             return (type(uint256).max, false);
         }
 
-        PoolId poolId = key.toId();
-        Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
+        Checkpoint storage _lastCheckpoint = _lastCheckpoints[key.toId()];
 
         // calculate target output
         // NOTE: this functions does not execute the swap, it only calculates the output of a swap in the given state
@@ -220,8 +209,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     /**
      * @dev Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
      * When a swap executes at a worse price than what's currently available in the pool (due to
-     * enforcing the beginning-of-block price), the excess tokens are donated back to the pool
-     * to benefit all liquidity providers.
+     * enforcing the beginning-of-block price).
      */
     function _afterSwapHandler(
         PoolKey calldata key,
@@ -236,13 +224,15 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         // slither-disable-next-line reentrancy-no-eth
         _applyTargetOutput = false;
 
-        _handleFeeAmount(key, unspecified, feeAmount);
+        _handleCollectedFees(key, unspecified, feeAmount);
     }
 
     /**
-     * @dev Handles the fee amount collected during the swap.
+     * @dev Handles the fees collected via the anti-sandwich protection in {_afterSwap}.
+     * 
+     * NOTE: Must be implemented by the inheriting contract.
      */
-    function _handleFeeAmount(PoolKey calldata key, Currency currency, uint256 feeAmount) internal virtual;
+    function _handleCollectedFees(PoolKey calldata key, Currency currency, uint256 feeAmount) internal virtual;
 
     /**
      * @dev Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwapReturnDelta`.
