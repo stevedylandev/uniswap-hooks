@@ -50,7 +50,7 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v1.1.0_
  */
-contract AntiSandwichHook is BaseDynamicAfterFee {
+abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -231,16 +231,17 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         uint256 feeAmount
     ) internal virtual override {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
-        (uint256 amount0, uint256 amount1) =
-            unspecified == key.currency0 ? (feeAmount, 0.toUint256()) : (0.toUint256(), feeAmount);
 
         // reset apply flag
         _applyTargetOutput = false;
 
-        // settle and donate execess tokens to the pool
-        poolManager.donate(key, amount0, amount1, "");
-        unspecified.settle(poolManager, address(this), feeAmount, true);
+        _handleFeeAmount(key, unspecified, feeAmount);
     }
+
+    /**
+     * @dev Handles the fee amount collected during the swap.
+     */
+    function _handleFeeAmount(PoolKey calldata key, Currency currency, uint256 feeAmount) internal virtual;
 
     /**
      * @dev Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwapReturnDelta`.

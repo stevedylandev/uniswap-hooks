@@ -3,21 +3,18 @@ pragma solidity ^0.8.26;
 
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
-import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {BaseDynamicFeeMock} from "../mocks/BaseDynamicFeeMock.sol";
-import {AntiSandwichHook} from "src/general/AntiSandwichHook.sol";
+import {AntiSandwichMock} from "../mocks/AntiSandwichMock.sol";
 import {HookTest} from "../utils/HookTest.sol";
 import {toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
 
 contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
-    AntiSandwichHook hook;
+    AntiSandwichMock hook;
     PoolKey noHookKey;
 
     BaseDynamicFeeMock dynamicFeesHooks;
@@ -30,10 +27,10 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = AntiSandwichHook(
+        hook = AntiSandwichMock(
             address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
         );
-        deployCodeTo("src/general/AntiSandwichHook.sol:AntiSandwichHook", abi.encode(manager), address(hook));
+        deployCodeTo("test/mocks/AntiSandwichMock.sol:AntiSandwichMock", abi.encode(manager), address(hook));
 
         dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
@@ -94,6 +91,14 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
             -deltaAttack1WithKey.amount0(),
             "attacker should lose money in the hooked pool"
         );
+
+        int128 balance0Before = int128(uint128(manager.balanceOf(address(this), currency0.toId())));
+        Currency[] memory currencies = new Currency[](1);
+        currencies[0] = currency0;
+        hook.withdrawFees(currencies);
+        int128 balance0After = int128(uint128(manager.balanceOf(address(this), currency0.toId())));
+
+        assertTrue(balance0After - balance0Before > 0, "there should be fees to withdraw");
 
         assertGt(
             deltaAttack2WithoutKey.amount0(),
