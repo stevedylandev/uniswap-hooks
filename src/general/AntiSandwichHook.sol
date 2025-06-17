@@ -233,6 +233,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
 
         // reset apply flag
+        // slither-disable-next-line reentrancy-no-eth
         _applyTargetOutput = false;
 
         _handleFeeAmount(key, unspecified, feeAmount);
