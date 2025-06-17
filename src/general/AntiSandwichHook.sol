@@ -175,8 +175,7 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
             return (type(uint256).max, false);
         }
 
-        PoolId poolId = key.toId();
-        Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
+        Checkpoint storage _lastCheckpoint = _lastCheckpoints[key.toId()];
 
         // calculate target output
         // NOTE: this functions does not execute the swap, it only calculates the output of a swap in the given state
