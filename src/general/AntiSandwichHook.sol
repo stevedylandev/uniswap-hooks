@@ -36,13 +36,16 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * WARNING: The Anti-sandwich mechanism is only applied in the zeroForOne swap direction.
  * Swaps in the !zeroForOne direction are not protected by this hook design.
  *
+ * IMPORTANT: Since this hook changes make MEV not profitable in a direction, there's not as much arbitrage
+ * in the pool, making prices at beginning of the block not necessarily close to market price.
+ *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
  *
  * _Available since v1.1.0_
  */
-contract AntiSandwichHook is BaseDynamicAfterFee {
+abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -213,16 +216,18 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         uint256 feeAmount
     ) internal virtual override {
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
-        (uint256 amount0, uint256 amount1) =
-            unspecified == key.currency0 ? (feeAmount, 0.toUint256()) : (0.toUint256(), feeAmount);
 
         // reset apply flag
+        // slither-disable-next-line reentrancy-no-eth
         _applyTargetOutput = false;
 
-        // settle and donate execess tokens to the pool
-        poolManager.donate(key, amount0, amount1, "");
-        unspecified.settle(poolManager, address(this), feeAmount, true);
+        _handleFeeAmount(key, unspecified, feeAmount);
     }
+
+    /**
+     * @dev Handles the fee amount collected during the swap.
+     */
+    function _handleFeeAmount(PoolKey calldata key, Currency currency, uint256 feeAmount) internal virtual;
 
     /**
      * @dev Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwapReturnDelta`.
