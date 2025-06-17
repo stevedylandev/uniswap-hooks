@@ -72,4 +72,30 @@ contract BalanceDeltaAssertions is Test {
         bool amount0Gt = BalanceDeltaLibrary.amount0(delta1) > BalanceDeltaLibrary.amount0(delta2);
         assertTrue(amount1Gt || amount0Gt, err);
     }
+
+    // @dev Asserts that delta1 is less than delta2 for both amount0 and amount1
+    function assertLt(BalanceDelta delta1, BalanceDelta delta2) internal pure {
+        assertLt(BalanceDeltaLibrary.amount1(delta1), BalanceDeltaLibrary.amount1(delta2));
+        assertLt(BalanceDeltaLibrary.amount0(delta1), BalanceDeltaLibrary.amount0(delta2));
+    }
+
+    // @dev Asserts that delta1 is less than delta2 for both amount0 and amount1 with a custom error message
+    function assertLt(BalanceDelta delta1, BalanceDelta delta2, string memory err) internal pure {
+        assertLt(BalanceDeltaLibrary.amount1(delta1), BalanceDeltaLibrary.amount1(delta2), err);
+        assertLt(BalanceDeltaLibrary.amount0(delta1), BalanceDeltaLibrary.amount0(delta2), err);
+    }
+
+    // @dev Asserts that delta1 is less than delta2 for either amount0 or amount1
+    function assertEitherLt(BalanceDelta delta1, BalanceDelta delta2) internal pure {
+        bool amount1Lt = BalanceDeltaLibrary.amount1(delta1) < BalanceDeltaLibrary.amount1(delta2);
+        bool amount0Lt = BalanceDeltaLibrary.amount0(delta1) < BalanceDeltaLibrary.amount0(delta2);
+        assertTrue(amount1Lt || amount0Lt);
+    }
+
+    // @dev Asserts that delta1 is less than delta2 for either amount0 or amount1 with a custom error message
+    function assertEitherLt(BalanceDelta delta1, BalanceDelta delta2, string memory err) internal pure {
+        bool amount1Lt = BalanceDeltaLibrary.amount1(delta1) < BalanceDeltaLibrary.amount1(delta2);
+        bool amount0Lt = BalanceDeltaLibrary.amount0(delta1) < BalanceDeltaLibrary.amount0(delta2);
+        assertTrue(amount1Lt || amount0Lt, err);
+    }
 }

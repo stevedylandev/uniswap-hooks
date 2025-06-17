@@ -19,8 +19,9 @@ import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
+import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
 
-contract LiquidityPenaltyHookTest is HookTest {
+contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
     LiquidityPenaltyHook hook;
     PoolKey noHookKey;
     uint24 fee = 1000; // 0.1%
