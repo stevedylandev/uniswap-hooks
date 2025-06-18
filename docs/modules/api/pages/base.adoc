@@ -304,10 +304,10 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .IHookEvents
-* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(id, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
-* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(id, sender, feeAmount0, feeAmount1)++`]
-* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(id, sender, amount0, amount1)++`]
-* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(id, amount0, amount1)++`]
+* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(poolId, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
+* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(poolId, sender, feeAmount0, feeAmount1)++`]
+* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(poolId, sender, amount0, amount1)++`]
+* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(poolId, amount0, amount1)++`]
 
 [.contract-subindex-inherited]
 .BaseHook
@@ -592,10 +592,10 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .IHookEvents
-* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(id, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
-* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(id, sender, feeAmount0, feeAmount1)++`]
-* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(id, sender, amount0, amount1)++`]
-* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(id, amount0, amount1)++`]
+* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(poolId, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
+* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(poolId, sender, feeAmount0, feeAmount1)++`]
+* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(poolId, sender, amount0, amount1)++`]
+* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(poolId, amount0, amount1)++`]
 
 [.contract-subindex-inherited]
 .BaseHook
@@ -1075,10 +1075,10 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .IHookEvents
-* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(id, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
-* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(id, sender, feeAmount0, feeAmount1)++`]
-* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(id, sender, amount0, amount1)++`]
-* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(id, amount0, amount1)++`]
+* {xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-}[`++HookSwap(poolId, sender, amount0, amount1, hookLPfeeAmount0, hookLPfeeAmount1)++`]
+* {xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-}[`++HookFee(poolId, sender, feeAmount0, feeAmount1)++`]
+* {xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-}[`++HookModifyLiquidity(poolId, sender, amount0, amount1)++`]
+* {xref-IHookEvents-HookBonus-bytes32-uint128-uint128-}[`++HookBonus(poolId, amount0, amount1)++`]
 
 [.contract-subindex-inherited]
 .BaseHook
