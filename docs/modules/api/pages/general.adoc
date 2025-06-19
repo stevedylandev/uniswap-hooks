@@ -44,8 +44,10 @@
 :xref-AntiSandwichHook-constructor-contract-IPoolManager-: xref:general.adoc#AntiSandwichHook-constructor-contract-IPoolManager-
 :xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:general.adoc#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
+:xref-AntiSandwichHook-_getBlockNumber--: xref:general.adoc#AntiSandwichHook-_getBlockNumber--
 :xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:general.adoc#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
+:xref-AntiSandwichHook-_handleCollectedFees-struct-PoolKey-Currency-uint256-: xref:general.adoc#AntiSandwichHook-_handleCollectedFees-struct-PoolKey-Currency-uint256-
 :xref-AntiSandwichHook-getHookPermissions--: xref:general.adoc#AntiSandwichHook-getHookPermissions--
 :xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
@@ -368,8 +370,10 @@ A penalty was attempted to be applied and donated to LP's in range, but there ar
 :constructor: pass:normal[xref:#AntiSandwichHook-constructor-contract-IPoolManager-[`++constructor++`]]
 :_beforeSwap: pass:normal[xref:#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
 :_afterSwap: pass:normal[xref:#AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
+:_getBlockNumber: pass:normal[xref:#AntiSandwichHook-_getBlockNumber--[`++_getBlockNumber++`]]
 :_getTargetOutput: pass:normal[xref:#AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getTargetOutput++`]]
 :_afterSwapHandler: pass:normal[xref:#AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-[`++_afterSwapHandler++`]]
+:_handleCollectedFees: pass:normal[xref:#AntiSandwichHook-_handleCollectedFees-struct-PoolKey-Currency-uint256-[`++_handleCollectedFees++`]]
 :getHookPermissions: pass:normal[xref:#AntiSandwichHook-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -380,10 +384,6 @@ A penalty was attempted to be applied and donated to LP's in range, but there ar
 ```solidity
 import "uniswap-hooks/src/general/AntiSandwichHook.sol";
 ```
-
-Sandwich-resistant hook, based on
-https://github.com/cairoeth/sandwich-resistant-hook/blob/master/src/srHook.sol[this]
-implementation.
 
 This hook implements the sandwich-resistant AMM design introduced
 https://www.umbraresearch.xyz/writings/sandwich-resistant-amm[here]. Specifically,
@@ -396,8 +396,14 @@ the xy=k curve. However, the bid price remains constant, instead increasing the
 amount of liquidity on the bid. Subsequent sells eat into this liquidity, while
 decreasing the offer price according to xy=k.
 
-NOTE: Swaps in the other direction do not get the positive price difference
-compared to the initial price before the first swap in the block.
+In order to use this hook, the inheriting contract must implement the {_handleCollectedFees} function
+to determine how to handle the collected fees from the anti-sandwich mechanism.
+
+NOTE: The Anti-sandwich mechanism only protects swaps in the zeroForOne swap direction.
+Swaps in the !zeroForOne direction are not protected by this hook design.
+
+WARNING: Since this hook makes MEV not profitable, there's not as much arbitrage in
+the pool, making prices at beginning of the block not necessarily close to market price.
 
 WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
 not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -411,8 +417,10 @@ _Available since v1.1.0_
 * {xref-AntiSandwichHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
 * {xref-AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, hookData)++`]
+* {xref-AntiSandwichHook-_getBlockNumber--}[`++_getBlockNumber()++`]
 * {xref-AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getTargetOutput(, key, params, )++`]
 * {xref-AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, , , feeAmount)++`]
+* {xref-AntiSandwichHook-_handleCollectedFees-struct-PoolKey-Currency-uint256-}[`++_handleCollectedFees(key, currency, feeAmount)++`]
 * {xref-AntiSandwichHook-getHookPermissions--}[`++getHookPermissions()++`]
 
 [.contract-subindex-inherited]
@@ -496,51 +504,49 @@ _Available since v1.1.0_
 
 [.contract-item]
 [[AntiSandwichHook-constructor-contract-IPoolManager-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#public#
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#internal#
 
 [.contract-item]
 [[AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct SwapParams params, bytes hookData) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
 
-Handles the before swap hook, setting up checkpoints at the beginning of blocks
-and calculating target outputs for subsequent swaps.
+Handles the before swap hook.
 
-For the first swap in a block:
-- Saves the current pool state as a checkpoint
+For the first swap in a block, it saves the current pool state as a checkpoint.
 
-For subsequent swaps in the same block:
-- Calculates a target output based on the beginning-of-block state
-- Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
-
-NOTE: This implementation skips calling `super._beforeSwap` in the first swap of the block. Consider
-execution side effects might be missed if there is more than one definition for this function.
+For subsequent swaps in the same block, it calculates a target output based on the beginning-of-block state,
+and sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits in {_afterSwap}.
 
 [.contract-item]
 [[AntiSandwichHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterSwap++#++(address sender, struct PoolKey key, struct SwapParams params, BalanceDelta delta, bytes hookData) → bytes4, int128++` [.item-kind]#internal#
 
-Handles the after swap hook, initializing the full pool state checkpoint for the first
-swap in a block and updating the target output if needed.
+Handles the after swap hook.
 
-For the first swap in a block:
-- Saves a detailed checkpoint of the pool state including liquidity and tick information
-- This checkpoint will be used for subsequent swaps to calculate fair execution prices
+Caps the obtained output from the swap to the target output determined during the {_beforeSwap} hook.
+Handles the excess output afterwards via {_afterSwapHandler}.
 
-For all swaps:
-- Caps the target output to the actual swap amount to prevent excessive fee collection
+[.contract-item]
+[[AntiSandwichHook-_getBlockNumber--]]
+==== `[.contract-item-name]#++_getBlockNumber++#++() → uint48++` [.item-kind]#internal#
+
+Returns the current block number.
 
 [.contract-item]
 [[AntiSandwichHook-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-]]
 ==== `[.contract-item-name]#++_getTargetOutput++#++(address, struct PoolKey key, struct SwapParams params, bytes) → uint256 targetOutput, bool applyTargetOutput++` [.item-kind]#internal#
 
-Calculates the fair output amount based on the pool state at the beginning of the block.
+Calculates the output amount based on the pool state at the beginning of the block.
 This prevents sandwich attacks by ensuring trades can't get better prices than what was available
-at the start of the block.
+at the start of the block. Note that the calculated output could either be input or output, depending
+if it's an exactInput or outputOutput swap. In cases of zeroForOne == true, the target output is not
+applicable, and the max uint256 value is returned as a flag only.
 
-The anti-sandwich mechanism works by:
-* For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve
-* For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
-  price, which prevents attackers from manipulating the price within a block
+The anti-sandwich mechanism works such as:
+
+- For currency0 to currency1 swaps (zeroForOne = true): The pool behaves normally with xy=k curve.
+- For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
+  price, which prevents attackers from manipulating the price within a block.
 
 [.contract-item]
 [[AntiSandwichHook-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-]]
@@ -548,8 +554,15 @@ The anti-sandwich mechanism works by:
 
 Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
 When a swap executes at a worse price than what's currently available in the pool (due to
-enforcing the beginning-of-block price), the excess tokens are donated back to the pool
-to benefit all liquidity providers.
+enforcing the beginning-of-block price).
+
+[.contract-item]
+[[AntiSandwichHook-_handleCollectedFees-struct-PoolKey-Currency-uint256-]]
+==== `[.contract-item-name]#++_handleCollectedFees++#++(struct PoolKey key, Currency currency, uint256 feeAmount)++` [.item-kind]#internal#
+
+Handles the fees collected via the anti-sandwich protection in {_afterSwap}.
+
+NOTE: Must be implemented by the inheriting contract.
 
 [.contract-item]
 [[AntiSandwichHook-getHookPermissions--]]
