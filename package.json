@@ -8,13 +8,8 @@
   ],
   "scripts": {
     "docs": "npm run prepare-docs && oz-docs",
-    "docs:watch": "oz-docs watch contracts docs/templates docs/config.js",
-    "prepare-docs": "scripts/prepare-docs.sh",
-    "lint": "prettier --log-level warn '{src,test}/**/*.sol' --check; npm run solhint; npm run solhint:test",
-    "lint:fix": "prettier --log-level warn '{src,test}/**/*.sol' --write",
-    "solhint": "solhint --noPoster 'src/**/*.sol'",
-    "solhint:test": "solhint --noPoster --config solhint.test.config.js 'test/**/*.sol'",
-    "prepare": "husky"
+    "docs:watch": "oz-docs watch src docs/templates docs/config.js",
+    "prepare-docs": "scripts/prepare-docs.sh"
   },
   "repository": "https://github.com/OpenZeppelin/uniswap-hooks.git",
   "bugs": {
@@ -24,7 +19,7 @@
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
-    "@openzeppelin/docs-utils": "^0.1.5",
+    "@openzeppelin/docs-utils": "^0.1.6",
     "hardhat": "^2.22.15",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.0",
