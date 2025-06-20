@@ -278,22 +278,21 @@ contract LiquidityPenaltyHook is BaseHook {
      * @dev Set the hooks permissions, specifically `afterAddLiquidity`, `afterAddLiquidityReturnDelta`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
-        return
-            Hooks.Permissions({
-                beforeInitialize: false,
-                afterInitialize: false,
-                beforeAddLiquidity: false,
-                afterAddLiquidity: true,
-                beforeRemoveLiquidity: false,
-                afterRemoveLiquidity: true,
-                beforeSwap: false,
-                afterSwap: false,
-                beforeDonate: false,
-                afterDonate: false,
-                beforeSwapReturnDelta: false,
-                afterSwapReturnDelta: false,
-                afterAddLiquidityReturnDelta: true,
-                afterRemoveLiquidityReturnDelta: true
-            });
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: false,
+            beforeAddLiquidity: false,
+            afterAddLiquidity: true,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: true,
+            beforeSwap: false,
+            afterSwap: false,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: true,
+            afterRemoveLiquidityReturnDelta: true
+        });
     }
 }
