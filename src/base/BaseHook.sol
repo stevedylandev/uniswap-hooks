@@ -27,7 +27,6 @@ import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation
  * _Available since v0.1.0_
  */
 abstract contract BaseHook is IHooks {
-
     /*
      * @dev The pool manager singleton contract.
      */

@@ -39,6 +39,8 @@ library OrderIdLibrary {
             return OrderId.wrap(OrderId.unwrap(a) + 1);
         }
     }
+
+
 }
 
 /**
@@ -47,7 +49,7 @@ library OrderIdLibrary {
  * Allows users to place limit orders at specific ticks outside of the current price range,
  * which will be filled if the pool's price crosses the order's tick.
  *
- * Note that given the way UniswapV4 pools works, when liquidity is added out of the current range, 
+ * Note that given the way UniswapV4 pools works, when liquidity is added out of the current range,
  * a single currency will be provided, instead of both currencies as in in-range liquidity additions.
  *
  * Orders can be cancelled at any time until they are filled and their liquidity is removed from the pool.
@@ -80,14 +82,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         mapping(address owner => CheckpointCurrencies checkpoint) checkpoints;
     }
 
-    /// @dev Enum of callback types for the hook, used to determine the type of callback called from the poolManager to `{unlockCallback}`
+    /// @dev Types of callbacks performed by the poolManager in `{unlockCallback}`
     enum CallbackType {
         Place,
         Cancel,
         Withdraw
     }
 
-    /// @dev Struct of callback data (sent from the poolManager to `{unlockCallback}`).
+    /// @dev Struct of callback data passed by the poolManager in `{unlockCallback}`.
     struct CallbackData {
         CallbackType callbackType;
         bytes data;
@@ -121,8 +123,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Struct of checkpoint currencies. These are the amounts of `currency0` and `currency1` marked as
-     * `currency0Total` and `currency1Total` in the `OrderInfo` struct at the time of the checkpoint.
+     * @dev Struct of checkpoint currencies. These are the amounts of `currency0` and `currency1` marked
+     * as `currency0Total` and `currency1Total` in the `OrderInfo` struct at the time of the checkpoint.
      */
     struct CheckpointCurrencies {
         uint256 amountCurrency0;
@@ -142,7 +144,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     mapping(PoolId poolId => int24 tickLowerLast) private tickLowerLasts;
 
     /// @dev Tracks each order id for a given identifier, defined by keccak256 of the key, tick lower, and zero for one.
-    mapping(bytes32 orderIdKey => OrderIdLibrary.OrderId orderId) private orders;
+    mapping(bytes32 orderKey => OrderIdLibrary.OrderId orderId) private orders;
 
     /// @dev Tracks the order info for each order id.
     mapping(OrderIdLibrary.OrderId orderId => OrderInfo orderInfo) public orderInfos;
@@ -737,13 +739,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      */
     function getOrderLiquidity(OrderIdLibrary.OrderId orderId, address owner) external view returns (uint256) {
         return orderInfos[orderId].liquidity[owner];
-    }
-
-    /**
-     * @dev Get the next order id.
-     */
-    function getOrderIdNext() external view returns (OrderIdLibrary.OrderId) {
-        return orderIdNext;
     }
 
     /**
