@@ -105,12 +105,12 @@ contract LiquidityPenaltyHook is BaseHook {
     }
 
     /**
-     * @dev Penalizes the collection of any existing LP `feesDelta` and `withheldFees` after liquidity removal if 
+     * @dev Penalizes the collection of any existing LP `feesDelta` and `withheldFees` after liquidity removal if
      * liquidity was recently added to the position.
      *
      * NOTE: The penalty is applied on both `withheldFees` and `feeDelta` equally.
      * Therefore, regardless of how many times liquidity was added to the position within the `blockNumberOffset` period,
-     * all accrued fees are penalized as if the liquidity was added only once during that period. This ensures that 
+     * all accrued fees are penalized as if the liquidity was added only once during that period. This ensures that
      * splitting liquidity additions within the `blockNumberOffset` period does not reduce or increase the penalty.
      *
      * IMPORTANT: The penalty is donated to the pool's liquidity providers in range at the time of liquidity removal,
