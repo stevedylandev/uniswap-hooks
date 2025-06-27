@@ -448,30 +448,24 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         onlyPoolManager
         returns (bytes memory returnData)
     {
-        // decode the callback data
         CallbackData memory callbackData = abi.decode(rawData, (CallbackData));
 
-        // handle the callback based on the type
         if (callbackData.callbackType == CallbackType.Place) {
             PlaceCallbackData memory placeData = abi.decode(callbackData.data, (PlaceCallbackData));
-
             (uint256 amount0Fee, uint256 amount1Fee) = _handlePlaceCallback(placeData);
-
             return abi.encode(amount0Fee, amount1Fee);
         }
 
         if (callbackData.callbackType == CallbackType.Cancel) {
             CancelCallbackData memory cancelData = abi.decode(callbackData.data, (CancelCallbackData));
-
             (uint256 amount0Fee, uint256 amount1Fee) = _handleCancelCallback(cancelData);
-
             return abi.encode(amount0Fee, amount1Fee);
         }
 
         if (callbackData.callbackType == CallbackType.Withdraw) {
             WithdrawCallbackData memory withdrawData = abi.decode(callbackData.data, (WithdrawCallbackData));
-
             _handleWithdrawCallback(withdrawData);
+            return ZERO_BYTES;
         }
     }
 
