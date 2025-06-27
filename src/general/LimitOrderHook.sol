@@ -647,8 +647,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 ZERO_BYTES
             );
 
-            uint128 amount0 = 0;
-            uint128 amount1 = 0;
+            uint128 amount0;
+            uint128 amount1;
 
             // if the amount of currency0 is positive, mint the currency0 to the hook
             if (delta.amount0() > 0) {
