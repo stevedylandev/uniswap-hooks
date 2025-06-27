@@ -58,12 +58,24 @@ contract LiquidityPenaltyHook is BaseHook {
      */
     error NoLiquidityToReceiveDonation();
 
+    /**
+     * @dev The minimum block number offset.
+     */
     uint48 public constant MIN_BLOCK_NUMBER_OFFSET = 1;
 
+    /**
+     * @dev The block number offset.
+     */
     uint48 private immutable _blockNumberOffset;
 
+    /**
+     * @dev Tracks the `lastAddedLiquidityBlock` for a liquidity position.
+     */
     mapping(PoolId poolId => mapping(bytes32 positionKey => uint48 blockNumber)) private _lastAddedLiquidityBlock;
 
+    /**
+     * @dev Tracks the `withheldFees` for a liquidity position.
+     */
     mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFees;
 
     /**
