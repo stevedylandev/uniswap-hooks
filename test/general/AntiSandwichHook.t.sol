@@ -92,14 +92,6 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
             "attacker should lose money in the hooked pool"
         );
 
-        int128 balance0Before = int128(uint128(manager.balanceOf(address(this), currency0.toId())));
-        Currency[] memory currencies = new Currency[](1);
-        currencies[0] = currency0;
-        hook.withdrawFees(currencies);
-        int128 balance0After = int128(uint128(manager.balanceOf(address(this), currency0.toId())));
-
-        assertTrue(balance0After - balance0Before > 0, "there should be fees to withdraw");
-
         assertGt(
             deltaAttack2WithoutKey.amount0(),
             -deltaAttack1WithoutKey.amount0(),

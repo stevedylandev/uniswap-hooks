@@ -9,20 +9,20 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-
+import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
  *
- * In order to use this hook, the inheriting contract must define the {_getTargetOutput} and
- * {_afterSwapHandler} functions. The {_getTargetOutput} function returns the target output to
- * apply to the swap depending on the given apply flag. The {_afterSwapHandler} function is called
- * after the target output is applied to the swap and currency amount is received.
+ * Enables to enforce a dynamic target determined by {_getTargetUnspecifiedAmount} for the unspecified currency
+ * of the swap, taking any positive difference as fee, handling or distributing the fees via {_afterSwapHandler}.
+ *
+ * NOTE: In order to use this hook, the inheriting contract must implement {_getTargetUnspecifiedAmount} and
+ * {_afterSwapHandler}.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -30,18 +30,20 @@ import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
  *
  * _Available since v0.1.0_
  */
+
 abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
-    using SafeCast for uint256;
+    using SafeCast for *;
     using CurrencySettler for Currency;
 
-    uint256 internal _targetOutput;
-
-    bool internal _applyTargetOutput;
+    /**
+     * @dev Target unspecified amount to be enforced by the `afterSwap`, taking any surplus as fees.
+     */
+    uint256 internal _targetUnspecifiedAmount;
 
     /**
-     * @dev Target output exceeds swap amount.
+     * @dev Determines if the target unspecified amount should be applied to the swap.
      */
-    error TargetOutputExceeds();
+    bool internal _applyTargetUnspecifiedAmount;
 
     /**
      * @dev Set the `PoolManager` address.
@@ -49,9 +51,9 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Sets the target output and apply flag to be used in the `afterSwap` hook.
+     * @dev Sets the target unspecified amount and apply flag to be used in the `afterSwap` hook.
      *
-     * NOTE: The target output is reset to 0 in the `afterSwap` hook regardless of the apply flag.
+     * NOTE: The target unspecified amount and the apply flag are reset in the `afterSwap`.
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
@@ -59,25 +61,23 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // Get the target output and apply flag
-        (uint256 targetOutput, bool applyTargetOutput) = _getTargetOutput(sender, key, params, hookData);
-
-        // Set the target output and apply flag, overriding any previous values.
-        _applyTargetOutput = applyTargetOutput;
-        _targetOutput = targetOutput;
-
+        // Get and store the target unspecified amount and the apply flag, overriding any previous values.
+        (_targetUnspecifiedAmount, _applyTargetUnspecifiedAmount) =
+            _getTargetUnspecifiedAmount(sender, key, params, hookData);
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     /**
-     * @dev Apply the target output to the unspecified currency of the swap using fees.
-     * The fees are minted as ERC-6909 tokens, which can then be redeemed in the
-     * {_afterSwapHandler} function. Note that if the underlying unspecified currency
-     * is native, the implementing contract must ensure that it can receive native tokens
-     * when redeeming.
+     * @dev Enforce the target unspecified amount to the unspecified currency of the swap.
      *
-     * NOTE: The target output is reset to 0, both when the apply flag is set to `false`
-     * and when set to `true`.
+     * When the swap is exactInput and the output target is surpassed, the difference is decreased from the output as a fee.
+     * Accordingly, when the swap is exactOutput and the input target is not reached, the difference is increased to the
+     * input as a fee. Note that the fee is always applied to the unspecified currency of the swap, regardless of the swap
+     * direction.
+     *
+     * The fees are minted to this hook as ERC-6909 tokens, which can then be distribuited in {_afterSwapHandler}
+     *
+     * NOTE: The target unspecified amount and the apply flag are reset on purpose to avoid state overlapping across swaps.
      */
     function _afterSwap(
         address sender,
@@ -86,34 +86,56 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         BalanceDelta delta,
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
-        uint256 targetOutput = _targetOutput;
+        // Cache the target unspecified amount in memory
+        uint256 targetUnspecifiedAmount = _targetUnspecifiedAmount;
 
-        // Reset storage target output to 0 and use one stored in memory
-        _targetOutput = 0;
+        // Reset stored target unspecified amount to 0, use the cached value in memory.
+        _targetUnspecifiedAmount = 0;
 
-        // Skip if target output is not active
-        if (!_applyTargetOutput) {
+        // Skip if the target unspecified amount should not be applied
+        if (!_applyTargetUnspecifiedAmount) {
             return (this.afterSwap.selector, 0);
         }
+
+        // Reset the stored apply flag
+        _applyTargetUnspecifiedAmount = false;
 
         // Fee defined in the unspecified currency of the swap
         (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
             ? (key.currency1, delta.amount1())
             : (key.currency0, delta.amount0());
 
-        // If fee is on output, get the absolute output amount
+        // Get the absolute unspecified amount
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
-        // Revert if the target output exceeds the swap amount
-        if (targetOutput > uint128(unspecifiedAmount)) revert TargetOutputExceeds();
+        bool exactInput = params.amountSpecified < 0;
 
-        // Calculate the fee amount, which is the difference between the swap amount and the target output
-        uint256 feeAmount = uint128(unspecifiedAmount) - targetOutput;
+        uint256 feeAmount;
+
+        // If the swap is exact input => any fee should be decreased from the output
+        if (exactInput) {
+            // If the user is getting more than the target
+            if (unspecifiedAmount.toUint256() > targetUnspecifiedAmount) {
+                // decrease what he will receive (outputAmount)
+                feeAmount = unspecifiedAmount.toUint256() - targetUnspecifiedAmount;
+            }
+            // If the user is getting less or equal than the target.. do nothing @tbd 
+        }
+
+        // If the swap is exact output => any fee should be increased to the input
+        if (!exactInput) {
+            // If the user is paying less than the target
+            if (unspecifiedAmount.toUint256() < targetUnspecifiedAmount) {
+                // Increase what he will pay (inputAmount)
+                feeAmount = targetUnspecifiedAmount - unspecifiedAmount.toUint256();
+            }
+            // If the user is paying more or equal than the target.. do nothing @tbd
+        }
 
         // Mint ERC-6909 tokens for unspecified currency fee and call handler
         if (feeAmount > 0) {
             unspecified.take(poolManager, address(this), feeAmount, true);
-            _afterSwapHandler(key, params, delta, targetOutput, feeAmount);
+            _afterSwapHandler(key, params, delta, targetUnspecifiedAmount, feeAmount);
         }
 
         // Emit the swap event with the amounts ordered correctly
@@ -123,32 +145,30 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
             emit HookFee(PoolId.unwrap(key.toId()), sender, 0, feeAmount.toUint128());
         }
 
-        return (this.afterSwap.selector, feeAmount.toInt128());
+        return (this.afterSwap.selector, feeAmount.toInt256().toInt128());
     }
 
     /**
-     * @dev Return the target output to be enforced by the `afterSwap` hook using fees.
+     * @dev Return the target unspecified amount to be enforced by the `afterSwap` hook using fees.
      *
-     * IMPORTANT: The swap will revert if the target output exceeds the output unspecified amount from the swap.
-     * In order to consume all of the output from the swap, set the target output to equal the output unspecified
-     * amount and set the apply flag to `true`.
+     * TIP: In order to consume all of the swap unspecified amount, set the target equal to zero and set the apply
+     * flag to `true`.
      *
-     * @return targetOutput The target output, defined in the unspecified currency of the swap.
-     * @return applyTargetOutput The apply flag, which can be set to `false` to skip applying the target output.
+     * @return targetUnspecifiedAmount The target unspecified amount, defined in the unspecified currency of the swap.
+     * @return applyTargetUnspecifiedAmount The apply flag, which can be set to `false` to skip applying the target output.
      */
-    function _getTargetOutput(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
-        internal
-        virtual
-        returns (uint256 targetOutput, bool applyTargetOutput);
+    function _getTargetUnspecifiedAmount(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata params,
+        bytes calldata hookData
+    ) internal virtual returns (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount);
 
     /**
-     * @dev Handler called after applying the target output to a swap and receiving the currency amount.
+     * @dev Customizable handler called after `_afterSwap` to handle or distribuite the fees.
      *
-     * @param key The pool key.
-     * @param params The swap parameters.
-     * @param delta The balance delta from the swap.
-     * @param targetOutput The target output, defined in the unspecified currency of the swap.
-     * @param feeAmount The amount of the unspecified currency taken from the swap.
+     * WARNING: If the underlying unspecified currency is native, the implementing contract must ensure that it can
+     * receive and handle it when redeeming.
      */
     function _afterSwapHandler(
         PoolKey calldata key,

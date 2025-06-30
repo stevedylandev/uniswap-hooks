@@ -79,10 +79,10 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
     }
 
     function test_swap_100PercentLPFeeExactInput_succeeds() public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
 
-        dynamicFeesHook.setTargetOutput(0, true);
-        uint256 currentOutput = dynamicFeesHook.getTargetOutput();
+        dynamicFeesHook.setTargetUnspecifiedAmount(0, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetUnspecifiedAmount();
         assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
@@ -95,7 +95,7 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
 
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
         assertEq(currency1.balanceOf(address(dynamicFeesHook)), 99);
         assertEq(currency1.balanceOf(address(this)), balanceBefore);
     }
@@ -120,10 +120,10 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
 
         deal(address(this), 10 ether);
 
-        assertEq(nativeHook.getTargetOutput(), 0);
+        assertEq(nativeHook.getTargetUnspecifiedAmount(), 0);
 
-        nativeHook.setTargetOutput(0, true);
-        uint256 currentOutput = nativeHook.getTargetOutput();
+        nativeHook.setTargetUnspecifiedAmount(0, true);
+        uint256 currentOutput = nativeHook.getTargetUnspecifiedAmount();
         assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
@@ -136,16 +136,16 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
 
         swapRouter.swap{value: 100}(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(nativeHook.getTargetOutput(), 0);
+        assertEq(nativeHook.getTargetUnspecifiedAmount(), 0);
         assertEq(currency1.balanceOf(address(nativeHook)), 99);
         assertEq(currency1.balanceOf(address(this)), balanceBefore);
     }
 
     function test_swap_50PercentLPFeeExactInput_succeeds() public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
 
-        dynamicFeesHook.setTargetOutput(49, true);
-        uint256 currentOutput = dynamicFeesHook.getTargetOutput();
+        dynamicFeesHook.setTargetUnspecifiedAmount(49, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetUnspecifiedAmount();
         assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
@@ -158,16 +158,16 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
 
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
         assertEq(currency1.balanceOf(address(dynamicFeesHook)), 50);
         assertEq(currency1.balanceOf(address(this)), balanceBefore + 49);
     }
 
     function test_swap_skipped_succeeds() public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
 
-        dynamicFeesHook.setTargetOutput(999, false);
-        uint256 currentOutput = dynamicFeesHook.getTargetOutput();
+        dynamicFeesHook.setTargetUnspecifiedAmount(999, false);
+        uint256 currentOutput = dynamicFeesHook.getTargetUnspecifiedAmount();
         assertEq(currentOutput, 0);
 
         PoolSwapTest.TestSettings memory testSettings =
@@ -177,14 +177,14 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
         emit Swap(key.toId(), address(swapRouter), -100, 99, 79228162514264329670727698910, 1e18, -1, 0);
         swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
 
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
     }
 
     function test_swap_50PercentLPFeeExactOutput_succeeds() public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
 
-        dynamicFeesHook.setTargetOutput(50, true);
-        uint256 currentOutput = dynamicFeesHook.getTargetOutput();
+        dynamicFeesHook.setTargetUnspecifiedAmount(50, true);
+        uint256 currentOutput = dynamicFeesHook.getTargetUnspecifiedAmount();
         assertEq(currentOutput, 0);
 
         SwapParams memory params =
@@ -198,35 +198,11 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
         // No fee is applied because this is an exact-output swap
         swapRouter.swap(key, params, testSettings, ZERO_BYTES);
 
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
-    }
-
-    function test_swap_deltaExceeds_succeeds() public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
-
-        dynamicFeesHook.setTargetOutput(101, true);
-        uint256 currentOutput = dynamicFeesHook.getTargetOutput();
-        assertEq(currentOutput, 0);
-
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CustomRevert.WrappedError.selector,
-                address(dynamicFeesHook),
-                IHooks.afterSwap.selector,
-                abi.encodeWithSelector(BaseDynamicAfterFee.TargetOutputExceeds.selector),
-                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
-            )
-        );
-        swapRouter.swap(key, SWAP_PARAMS, testSettings, ZERO_BYTES);
-
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
     }
 
     function test_swap_fuzz_succeeds(bool zeroForOne, uint24 lpFee, uint128 amountSpecified) public {
-        assertEq(dynamicFeesHook.getTargetOutput(), 0);
+        assertEq(dynamicFeesHook.getTargetUnspecifiedAmount(), 0);
 
         lpFee = uint24(bound(lpFee, 0, 1e6));
         amountSpecified = uint128(bound(amountSpecified, 1, 6017734268818166));
@@ -240,7 +216,7 @@ contract BaseDynamicAfterFeeTest is Test, Deployers {
         );
         uint256 deltaFee = (amountUnspecified * lpFee) / 1e6;
         uint256 targetAmount = amountUnspecified - deltaFee;
-        dynamicFeesHook.setTargetOutput(targetAmount, true);
+        dynamicFeesHook.setTargetUnspecifiedAmount(targetAmount, true);
 
         SwapParams memory params = SwapParams({
             zeroForOne: zeroForOne,
