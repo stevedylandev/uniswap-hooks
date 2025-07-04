@@ -42,6 +42,10 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * WARNING: Since this hook makes MEV not profitable, there's not as much arbitrage in
  * the pool, making prices at beginning of the block not necessarily close to market price.
  *
+ * WARNING: In `_beforeSwap`, the hook iterates over all ticks between last tick and current tick.
+ * Developers must be aware that for large price changes in pools with small tick spacing, the `for`
+ * loop will iterate over a large number of ticks, which could lead to `MemoryOOG` error.
+ *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
