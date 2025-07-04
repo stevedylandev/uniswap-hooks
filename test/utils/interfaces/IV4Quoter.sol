@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Uniswap Hooks (last updated v1.1.0) (test/utils/interfaces/IV4Quoter.sol)
 pragma solidity ^0.8.0;
 
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";

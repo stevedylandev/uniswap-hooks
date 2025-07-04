@@ -160,13 +160,12 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         );
 
         // Get the unspecified amount from the swap delta
-        int128 unspecifiedAmount =
-            (params.amountSpecified < 0 == params.zeroForOne) ? swapDelta.amount1() : swapDelta.amount0();
+        int128 target = (params.amountSpecified < 0 == params.zeroForOne) ? swapDelta.amount1() : swapDelta.amount0();
 
         // Get the absolute unspecified amount
-        if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
+        if (target < 0) target = -target;
 
-        targetUnspecifiedAmount = unspecifiedAmount.toUint256();
+        targetUnspecifiedAmount = target.toUint256();
         applyTarget = true;
     }
 
