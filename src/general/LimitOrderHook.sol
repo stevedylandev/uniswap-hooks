@@ -39,8 +39,6 @@ library OrderIdLibrary {
             return OrderId.wrap(OrderId.unwrap(a) + 1);
         }
     }
-
-
 }
 
 /**
