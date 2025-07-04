@@ -8,13 +8,13 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
     using CurrencySettler for Currency;
 
     uint256 public targetUnspecifiedAmount;
-    bool public applyTargetUnspecifiedAmount;
+    bool public applyTarget;
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     function setMockTargetUnspecifiedAmount(uint256 amount, bool active) public {
         targetUnspecifiedAmount = amount;
-        applyTargetUnspecifiedAmount = active;
+        applyTarget = active;
     }
 
     function _afterSwapHandler(
@@ -37,7 +37,7 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         override
         returns (uint256, bool)
     {
-        return (targetUnspecifiedAmount, applyTargetUnspecifiedAmount);
+        return (targetUnspecifiedAmount, applyTarget);
     }
 
     receive() external payable {}
