@@ -12,11 +12,7 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
-    function getTargetUnspecifiedAmount() public view returns (uint256) {
-        return _targetUnspecifiedAmount;
-    }
-
-    function setTargetUnspecifiedAmount(uint256 amount, bool active) public {
+    function setMockTargetUnspecifiedAmount(uint256 amount, bool active) public {
         targetUnspecifiedAmount = amount;
         applyTargetUnspecifiedAmount = active;
     }
@@ -35,7 +31,7 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         unspecified.take(poolManager, address(this), feeAmount, false);
     }
 
-    function _getTargetUnspecifiedAmount(address, PoolKey calldata, SwapParams calldata, bytes calldata)
+    function _swapTarget(address, PoolKey calldata, SwapParams calldata, bytes calldata)
         internal
         view
         override

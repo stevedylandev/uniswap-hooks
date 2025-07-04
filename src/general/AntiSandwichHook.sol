@@ -132,7 +132,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
      * - For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
      *   price, which prevents attackers from manipulating the price within a block.
      */
-    function _getTargetUnspecifiedAmount(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
+    function _swapTarget(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
         virtual
         override

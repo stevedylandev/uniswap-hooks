@@ -14,10 +14,11 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
-import {IPoolManagerEvents} from "./IPoolManagerEvents.sol";
+import {IPoolManagerEvents} from "src/interfaces/IPoolManagerEvents.sol";
+import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 
 // @dev Set of utilities to test Hooks.
-contract HookTest is Test, Deployers, IPoolManagerEvents {
+contract HookTest is Test, Deployers, IPoolManagerEvents, IHookEvents {
     // @dev Calculate the current `feesAccrued` for a given position.
     function calculateFees(
         IPoolManager manager,

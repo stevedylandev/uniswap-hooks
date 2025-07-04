@@ -14,15 +14,17 @@ import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {TransientSlot} from "openzeppelin/utils/TransientSlot.sol";
+import {SlotDerivation} from "openzeppelin/utils/SlotDerivation.sol";
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
+
 /**
  * @dev Base implementation for dynamic fees applied after swaps.
  *
- * Enables to enforce a dynamic target determined by {_getTargetUnspecifiedAmount} for the unspecified currency
- * of the swap, taking any positive difference as fee, handling or distributing the fees via {_afterSwapHandler}.
+ * Enables to enforce a dynamic swap target determined by {_swapTarget} for the unspecified currency of the swap,
+ * taking any positive difference as fee, and handling or distributing the fees via {_afterSwapHandler}.
  *
- * NOTE: In order to use this hook, the inheriting contract must implement {_getTargetUnspecifiedAmount} and
- * {_afterSwapHandler}.
+ * NOTE: In order to use this hook, the inheriting contract must implement {_swapTarget} and {_afterSwapHandler}.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -30,20 +32,46 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v0.1.0_
  */
-
 abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
+    using TransientSlot for *;
+    using SlotDerivation for *;
     using SafeCast for *;
     using CurrencySettler for Currency;
 
-    /**
-     * @dev Target unspecified amount to be enforced by the `afterSwap`, taking any surplus as fees.
-     */
-    uint256 internal _targetUnspecifiedAmount;
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicAfterFee")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant BASE_DYNAMIC_AFTER_FEE_SLOT =
+        0x573e65eb8119149aa4b92cb540f79645b8190fcaf67b1af773f62674fbe27900;
+
+    uint256 private constant TARGET_UNSPECIFIED_AMOUNT_OFFSET = 0;
+    uint256 private constant APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET = 1;
 
     /**
-     * @dev Determines if the target unspecified amount should be applied to the swap.
+     * @dev The target unspecified amount to be enforced by the `afterSwap` hook.
      */
-    bool internal _applyTargetUnspecifiedAmount;
+    function _transientTargetUnspecifiedAmount() private view returns (uint256) {
+        return BASE_DYNAMIC_AFTER_FEE_SLOT.offset(TARGET_UNSPECIFIED_AMOUNT_OFFSET).asUint256().tload();
+    }
+
+    /**
+     * @dev Whether the target unspecified amount should be enforced by the `afterSwap` hook.
+     */
+    function _transientApplyTargetUnspecifiedAmount() private view returns (bool) {
+        return BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET).asBoolean().tload();
+    }
+
+    /**
+     * @dev Set the target unspecified amount to be enforced by the `afterSwap` hook.
+     */
+    function _setTransientTargetUnspecifiedAmount(uint256 value) private {
+        BASE_DYNAMIC_AFTER_FEE_SLOT.offset(TARGET_UNSPECIFIED_AMOUNT_OFFSET).asUint256().tstore(value);
+    }
+
+    /**
+     * @dev Set the apply flag to be used in the `afterSwap` hook.
+     */
+    function _setTransientApplyTargetUnspecifiedAmount(bool value) private {
+        BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET).asBoolean().tstore(value);
+    }
 
     /**
      * @dev Set the `PoolManager` address.
@@ -53,7 +81,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     /**
      * @dev Sets the target unspecified amount and apply flag to be used in the `afterSwap` hook.
      *
-     * NOTE: The target unspecified amount and the apply flag are reset in the `afterSwap`.
+     * NOTE: The target unspecified amount and the apply flag are reset in the `afterSwap` hook.
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         internal
@@ -61,9 +89,13 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // Get and store the target unspecified amount and the apply flag, overriding any previous values.
-        (_targetUnspecifiedAmount, _applyTargetUnspecifiedAmount) =
-            _getTargetUnspecifiedAmount(sender, key, params, hookData);
+        // Get and transiently store the target unspecified amount and the apply flag, overriding any previous values.
+        (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount) =
+            _swapTarget(sender, key, params, hookData);
+
+        _setTransientTargetUnspecifiedAmount(targetUnspecifiedAmount);
+        _setTransientApplyTargetUnspecifiedAmount(applyTargetUnspecifiedAmount);
+
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
@@ -87,18 +119,18 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         bytes calldata
     ) internal virtual override returns (bytes4, int128) {
         // Cache the target unspecified amount in memory
-        uint256 targetUnspecifiedAmount = _targetUnspecifiedAmount;
+        uint256 targetUnspecifiedAmount = _transientTargetUnspecifiedAmount();
 
-        // Reset stored target unspecified amount to 0, use the cached value in memory.
-        _targetUnspecifiedAmount = 0;
+        // Reset the transiently stored target unspecified amount to 0, use the cached value in memory.
+        _setTransientTargetUnspecifiedAmount(0);
 
         // Skip if the target unspecified amount should not be applied
-        if (!_applyTargetUnspecifiedAmount) {
+        if (!_transientApplyTargetUnspecifiedAmount()) {
             return (this.afterSwap.selector, 0);
         }
 
         // Reset the stored apply flag
-        _applyTargetUnspecifiedAmount = false;
+        _setTransientApplyTargetUnspecifiedAmount(false);
 
         // Fee defined in the unspecified currency of the swap
         (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
@@ -108,28 +140,28 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         // Get the absolute unspecified amount
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
+        // Get the exact input flag
         bool exactInput = params.amountSpecified < 0;
 
         uint256 feeAmount;
 
-        // If the swap is exact input => any fee should be decreased from the output
+        // If the swap is exactInput, any fee should be decreased from the swap output
         if (exactInput) {
-            // If the user is getting more than the target
+            // If the swap output exceeds the target, decrease it by the difference
             if (unspecifiedAmount.toUint256() > targetUnspecifiedAmount) {
-                // decrease what he will receive (outputAmount)
                 feeAmount = unspecifiedAmount.toUint256() - targetUnspecifiedAmount;
+                console.log("unspecified surpasses target, feeAmount", feeAmount);
             }
-            // If the user is getting less or equal than the target.. do nothing @tbd 
+            // If the swap output is less or equal than the target.. no-op @tbd
         }
 
-        // If the swap is exact output => any fee should be increased to the input
+        // If the swap is exactOutput, any fee should be increased to the swap input
         if (!exactInput) {
-            // If the user is paying less than the target
+            // If the swap input is less than the target, increase it by the difference
             if (unspecifiedAmount.toUint256() < targetUnspecifiedAmount) {
-                // Increase what he will pay (inputAmount)
                 feeAmount = targetUnspecifiedAmount - unspecifiedAmount.toUint256();
-            }
-            // If the user is paying more or equal than the target.. do nothing @tbd
+            } 
+            // If the swap input is greater or equal than the target.. no-op @tbd
         }
 
         // Mint ERC-6909 tokens for unspecified currency fee and call handler
@@ -157,12 +189,10 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
      * @return targetUnspecifiedAmount The target unspecified amount, defined in the unspecified currency of the swap.
      * @return applyTargetUnspecifiedAmount The apply flag, which can be set to `false` to skip applying the target output.
      */
-    function _getTargetUnspecifiedAmount(
-        address sender,
-        PoolKey calldata key,
-        SwapParams calldata params,
-        bytes calldata hookData
-    ) internal virtual returns (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount);
+    function _swapTarget(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
+        internal
+        virtual
+        returns (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount);
 
     /**
      * @dev Customizable handler called after `_afterSwap` to handle or distribuite the fees.
