@@ -71,7 +71,6 @@ abstract contract BaseDynamicTargetHookFee is BaseHook, IHookEvents {
     /**
      * @dev Set the apply flag to be used in the `afterSwap` hook.
      */
-    // @TBD decide if to keep this ones internal or private
     function _setTransientApplyTarget(bool value) internal {
         BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_OFFSET).asBoolean().tstore(value);
     }

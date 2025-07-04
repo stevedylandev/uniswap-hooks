@@ -11,12 +11,16 @@ contract AntiSandwichMock is AntiSandwichHook {
 
     constructor(IPoolManager _poolManager) AntiSandwichHook(_poolManager) {}
 
-    // @TBD add JIT warning
     /**
      * @dev Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
      * When a swap executes at a worse price than what's currently available in the pool (due to
      * enforcing the beginning-of-block price), the excess tokens are donated back to the pool
      * to benefit all liquidity providers.
+     *
+     * WARNING: This example handles the accumulated anti-sandwich fees by donating the excess tokens to in-range
+     * liquidity providers. Be aware that this type of donations may be vulnerable to JIT attacks. If this particular
+     * type of handling is desired, consider combining with a JIT protection mechanism such as
+     * https://github.com/OpenZeppelin/uniswap-hooks/blob/master/src/general/LiquidityPenaltyHook.sol[LiquidityPenaltyHook].
      */
     function _afterSwapHandler(
         PoolKey calldata key,
