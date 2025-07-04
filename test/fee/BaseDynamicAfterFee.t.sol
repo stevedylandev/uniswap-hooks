@@ -22,7 +22,7 @@ import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
 import {HookTest} from "test/utils/HookTest.sol";
-import {IV4Quoter} from "src/interfaces/IV4Quoter.sol";
+import {IV4Quoter} from "test/utils/interfaces/IV4Quoter.sol";
 
 contract BaseDynamicAfterFeeTest is HookTest {
     using SafeCast for *;
