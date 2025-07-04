@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicTargetHookFee.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicAfterFee.sol)
 
 pragma solidity ^0.8.24;
 
@@ -34,13 +34,13 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseDynamicTargetHookFee is BaseHook, IHookEvents {
+abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     using TransientSlot for *;
     using SlotDerivation for *;
     using SafeCast for *;
     using CurrencySettler for Currency;
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicTargetHookFee")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicAfterFee")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant BASE_DYNAMIC_AFTER_FEE_SLOT =
         0x573e65eb8119149aa4b92cb540f79645b8190fcaf67b1af773f62674fbe27900;
 

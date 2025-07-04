@@ -4,7 +4,7 @@
 pragma solidity ^0.8.24;
 
 // Internal imports
-import {BaseDynamicTargetHookFee} from "../fee/BaseDynamicTargetHookFee.sol";
+import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 // External imports
@@ -48,7 +48,7 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v1.1.0_
  */
-abstract contract AntiSandwichHook is BaseDynamicTargetHookFee {
+abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -63,7 +63,7 @@ abstract contract AntiSandwichHook is BaseDynamicTargetHookFee {
     /// @dev Maps each pool to its last checkpoint.
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
 
-    constructor(IPoolManager _poolManager) BaseDynamicTargetHookFee(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
     /**
      * @dev Handles the before swap hook.

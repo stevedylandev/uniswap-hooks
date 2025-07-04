@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseDynamicTargetHookFee} from "src/fee/BaseDynamicTargetHookFee.sol";
-import {BaseDynamicTargetHookFeeMock} from "test/mocks/BaseDynamicTargetHookFeeMock.sol";
+import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
+import {BaseDynamicAfterFeeMock} from "test/mocks/BaseDynamicAfterFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -24,10 +24,10 @@ import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {IV4Quoter} from "src/interfaces/IV4Quoter.sol";
 
-contract BaseDynamicTargetHookFeeTest is HookTest {
+contract BaseDynamicAfterFeeTest is HookTest {
     using SafeCast for *;
 
-    BaseDynamicTargetHookFeeMock dynamicFeesHook;
+    BaseDynamicAfterFeeMock dynamicFeesHook;
     IV4Quoter quoter;
 
     PoolKey unhookedKey;
@@ -36,13 +36,13 @@ contract BaseDynamicTargetHookFeeTest is HookTest {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        dynamicFeesHook = BaseDynamicTargetHookFeeMock(
+        dynamicFeesHook = BaseDynamicAfterFeeMock(
             payable(
                 address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
             )
         );
         deployCodeTo(
-            "test/mocks/BaseDynamicTargetHookFeeMock.sol:BaseDynamicTargetHookFeeMock",
+            "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
             abi.encode(manager),
             address(dynamicFeesHook)
         );
@@ -272,7 +272,7 @@ contract BaseDynamicTargetHookFeeTest is HookTest {
     //     //             CustomRevert.WrappedError.selector,
     //     //             address(dynamicFeesHook),
     //     //             IHooks.afterSwap.selector,
-    //     //             abi.encodeWithSelector(BaseDynamicTargetHookFee.TargetOutputExceeds.selector),
+    //     //             abi.encodeWithSelector(BaseDynamicAfterFee.TargetOutputExceeds.selector),
     //     //             abi.encodeWithSelector(Hooks.HookCallFailed.selector)
     //     //         )
     //     //     );
