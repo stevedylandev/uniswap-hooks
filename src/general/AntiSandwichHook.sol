@@ -93,7 +93,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
             // iterate over ticks
             (, int24 currentTick,,) = poolManager.getSlot0(poolId);
             if (currentTick < lastTick) {
-                for (int24 tick = currentTick; tick < lastTick; tick += key.tickSpacing) {
+                for (int24 tick = currentTick; tick <= lastTick; tick += key.tickSpacing) {
                     (
                         _lastCheckpoint.state.ticks[tick].liquidityGross,
                         _lastCheckpoint.state.ticks[tick].liquidityNet,
@@ -102,7 +102,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
                     ) = poolManager.getTickInfo(poolId, tick);
                 }
             } else {
-                for (int24 tick = lastTick; tick < currentTick; tick += key.tickSpacing) {
+                for (int24 tick = currentTick; tick >= lastTick; tick -= key.tickSpacing) {
                     (
                         _lastCheckpoint.state.ticks[tick].liquidityGross,
                         _lastCheckpoint.state.ticks[tick].liquidityNet,
