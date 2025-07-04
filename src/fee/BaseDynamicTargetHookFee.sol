@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicAfterFee.sol)
+// OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicTargetHookFee.sol)
 
 pragma solidity ^0.8.24;
 
@@ -19,12 +19,14 @@ import {SlotDerivation} from "openzeppelin/utils/SlotDerivation.sol";
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 
 /**
- * @dev Base implementation for dynamic fees applied after swaps.
+ * @dev Base implementation for dynamic target hook fees applied after swaps.
  *
- * Enables to enforce a dynamic swap target determined by {_swapTarget} for the unspecified currency of the swap,
- * taking any positive difference as fee, and handling or distributing the fees via {_afterSwapHandler}.
+ * Enables to enforce a dynamic target determined by {_getTargetUnspecified} for the unspecified currency of the swap
+ * during {_beforeSwap}, where if the swap outcome results better than the target, any positive difference is taken
+ * as a hook fee, being posteriorily handled or distributed by the hook via {_afterSwapHandler}.
  *
- * NOTE: In order to use this hook, the inheriting contract must implement {_swapTarget} and {_afterSwapHandler}.
+ * NOTE: In order to use this hook, the inheriting contract must implement {_getTargetUnspecified} to determine the target,
+ * and {_afterSwapHandler} to handle accumulated fees.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -32,45 +34,46 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v0.1.0_
  */
-abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
+abstract contract BaseDynamicTargetHookFee is BaseHook, IHookEvents {
     using TransientSlot for *;
     using SlotDerivation for *;
     using SafeCast for *;
     using CurrencySettler for Currency;
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicAfterFee")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicTargetHookFee")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant BASE_DYNAMIC_AFTER_FEE_SLOT =
         0x573e65eb8119149aa4b92cb540f79645b8190fcaf67b1af773f62674fbe27900;
 
     uint256 private constant TARGET_UNSPECIFIED_AMOUNT_OFFSET = 0;
-    uint256 private constant APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET = 1;
+    uint256 private constant APPLY_TARGET_OFFSET = 1;
 
     /**
      * @dev The target unspecified amount to be enforced by the `afterSwap` hook.
      */
-    function _transientTargetUnspecifiedAmount() private view returns (uint256) {
+    function _transientTargetUnspecifiedAmount() internal view returns (uint256) {
         return BASE_DYNAMIC_AFTER_FEE_SLOT.offset(TARGET_UNSPECIFIED_AMOUNT_OFFSET).asUint256().tload();
     }
 
     /**
      * @dev Whether the target unspecified amount should be enforced by the `afterSwap` hook.
      */
-    function _transientApplyTargetUnspecifiedAmount() private view returns (bool) {
-        return BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET).asBoolean().tload();
+    function _transientApplyTarget() internal view returns (bool) {
+        return BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_OFFSET).asBoolean().tload();
     }
 
     /**
      * @dev Set the target unspecified amount to be enforced by the `afterSwap` hook.
      */
-    function _setTransientTargetUnspecifiedAmount(uint256 value) private {
+    function _setTransientTargetUnspecifiedAmount(uint256 value) internal {
         BASE_DYNAMIC_AFTER_FEE_SLOT.offset(TARGET_UNSPECIFIED_AMOUNT_OFFSET).asUint256().tstore(value);
     }
 
     /**
      * @dev Set the apply flag to be used in the `afterSwap` hook.
      */
-    function _setTransientApplyTargetUnspecifiedAmount(bool value) private {
-        BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_UNSPECIFIED_AMOUNT_OFFSET).asBoolean().tstore(value);
+    // @TBD decide if to keep this ones internal or private
+    function _setTransientApplyTarget(bool value) internal {
+        BASE_DYNAMIC_AFTER_FEE_SLOT.offset(APPLY_TARGET_OFFSET).asBoolean().tstore(value);
     }
 
     /**
@@ -90,11 +93,10 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         // Get and transiently store the target unspecified amount and the apply flag, overriding any previous values.
-        (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount) =
-            _swapTarget(sender, key, params, hookData);
+        (uint256 targetUnspecifiedAmount, bool applyTarget) = _getTargetUnspecified(sender, key, params, hookData);
 
         _setTransientTargetUnspecifiedAmount(targetUnspecifiedAmount);
-        _setTransientApplyTargetUnspecifiedAmount(applyTargetUnspecifiedAmount);
+        _setTransientApplyTarget(applyTarget);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -102,10 +104,10 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     /**
      * @dev Enforce the target unspecified amount to the unspecified currency of the swap.
      *
-     * When the swap is exactInput and the output target is surpassed, the difference is decreased from the output as a fee.
-     * Accordingly, when the swap is exactOutput and the input target is not reached, the difference is increased to the
-     * input as a fee. Note that the fee is always applied to the unspecified currency of the swap, regardless of the swap
-     * direction.
+     * When the swap is `exactInput` and the unspecified target is surpassed, the difference is decreased from the
+     * output as a hook fee. Accordingly, when the swap is `exactOutput` and the unspecified target is not reached, the
+     * difference is increased to the input as a hook fee. Note that the fee is always applied to the unspecified
+     * currency of the swap, regardless of the swap direction.
      *
      * The fees are minted to this hook as ERC-6909 tokens, which can then be distribuited in {_afterSwapHandler}
      *
@@ -125,12 +127,12 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         _setTransientTargetUnspecifiedAmount(0);
 
         // Skip if the target unspecified amount should not be applied
-        if (!_transientApplyTargetUnspecifiedAmount()) {
+        if (!_transientApplyTarget()) {
             return (this.afterSwap.selector, 0);
         }
 
         // Reset the stored apply flag
-        _setTransientApplyTargetUnspecifiedAmount(false);
+        _setTransientApplyTarget(false);
 
         // Fee defined in the unspecified currency of the swap
         (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
@@ -147,26 +149,24 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
 
         // If the swap is exactInput, any fee should be decreased from the swap output
         if (exactInput) {
-            // If the swap output exceeds the target, decrease it by the difference
+            // If the swap output exceeds the target, decrease it by the difference as a hook fee
             if (unspecifiedAmount.toUint256() > targetUnspecifiedAmount) {
                 feeAmount = unspecifiedAmount.toUint256() - targetUnspecifiedAmount;
-                console.log("unspecified surpasses target, feeAmount", feeAmount);
             }
-            // If the swap output is less or equal than the target.. no-op @tbd
+            // If the swap output is less or equal than the target, behave as a no-op
         }
-
         // If the swap is exactOutput, any fee should be increased to the swap input
-        if (!exactInput) {
-            // If the swap input is less than the target, increase it by the difference
+        else {
+            // If the swap input is less than the target, increase it by the difference as a hook fee
             if (unspecifiedAmount.toUint256() < targetUnspecifiedAmount) {
                 feeAmount = targetUnspecifiedAmount - unspecifiedAmount.toUint256();
-            } 
-            // If the swap input is greater or equal than the target.. no-op @tbd
+            }
+            // If the swap input is greater or equal than the target, behave as a no-op
         }
 
         // Mint ERC-6909 tokens for unspecified currency fee and call handler
         if (feeAmount > 0) {
-            unspecified.take(poolManager, address(this), feeAmount, true);
+            unspecified.take(poolManager, address(this), feeAmount.toUint128(), true);
             _afterSwapHandler(key, params, delta, targetUnspecifiedAmount, feeAmount);
         }
 
@@ -181,18 +181,20 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     }
 
     /**
-     * @dev Return the target unspecified amount to be enforced by the `afterSwap` hook using fees.
+     * @dev Return the target unspecified amount to be enforced by the `afterSwap` hook.
      *
      * TIP: In order to consume all of the swap unspecified amount, set the target equal to zero and set the apply
      * flag to `true`.
      *
      * @return targetUnspecifiedAmount The target unspecified amount, defined in the unspecified currency of the swap.
-     * @return applyTargetUnspecifiedAmount The apply flag, which can be set to `false` to skip applying the target output.
+     * @return applyTarget The apply flag, which can be set to `false` to skip applying the target output.
      */
-    function _swapTarget(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
-        internal
-        virtual
-        returns (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount);
+    function _getTargetUnspecified(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata params,
+        bytes calldata hookData
+    ) internal virtual returns (uint256 targetUnspecifiedAmount, bool applyTarget);
 
     /**
      * @dev Customizable handler called after `_afterSwap` to handle or distribuite the fees.

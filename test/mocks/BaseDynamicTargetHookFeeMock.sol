@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "src/fee/BaseDynamicAfterFee.sol";
+import "src/fee/BaseDynamicTargetHookFee.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 
-contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
+contract BaseDynamicTargetHookFeeMock is BaseDynamicTargetHookFee {
     using CurrencySettler for Currency;
 
     uint256 public targetUnspecifiedAmount;
     bool public applyTargetUnspecifiedAmount;
 
-    constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseDynamicTargetHookFee(_poolManager) {}
 
     function setMockTargetUnspecifiedAmount(uint256 amount, bool active) public {
         targetUnspecifiedAmount = amount;
@@ -31,7 +31,7 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         unspecified.take(poolManager, address(this), feeAmount, false);
     }
 
-    function _swapTarget(address, PoolKey calldata, SwapParams calldata, bytes calldata)
+    function _getTargetUnspecified(address, PoolKey calldata, SwapParams calldata, bytes calldata)
         internal
         view
         override

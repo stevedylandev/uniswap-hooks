@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
-import {BaseDynamicAfterFeeMock} from "test/mocks/BaseDynamicAfterFeeMock.sol";
+import {BaseDynamicTargetHookFee} from "src/fee/BaseDynamicTargetHookFee.sol";
+import {BaseDynamicTargetHookFeeMock} from "test/mocks/BaseDynamicTargetHookFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -22,13 +22,12 @@ import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {CustomRevert} from "v4-core/src/libraries/CustomRevert.sol";
 import {HookTest} from "test/utils/HookTest.sol";
-import {console} from "forge-std/console.sol";
 import {IV4Quoter} from "src/interfaces/IV4Quoter.sol";
 
-contract BaseDynamicAfterFeeTest is HookTest {
+contract BaseDynamicTargetHookFeeTest is HookTest {
     using SafeCast for *;
 
-    BaseDynamicAfterFeeMock dynamicFeesHook;
+    BaseDynamicTargetHookFeeMock dynamicFeesHook;
     IV4Quoter quoter;
 
     PoolKey unhookedKey;
@@ -37,13 +36,13 @@ contract BaseDynamicAfterFeeTest is HookTest {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        dynamicFeesHook = BaseDynamicAfterFeeMock(
+        dynamicFeesHook = BaseDynamicTargetHookFeeMock(
             payable(
                 address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
             )
         );
         deployCodeTo(
-            "test/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
+            "test/mocks/BaseDynamicTargetHookFeeMock.sol:BaseDynamicTargetHookFeeMock",
             abi.encode(manager),
             address(dynamicFeesHook)
         );
@@ -273,7 +272,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
     //     //             CustomRevert.WrappedError.selector,
     //     //             address(dynamicFeesHook),
     //     //             IHooks.afterSwap.selector,
-    //     //             abi.encodeWithSelector(BaseDynamicAfterFee.TargetOutputExceeds.selector),
+    //     //             abi.encodeWithSelector(BaseDynamicTargetHookFee.TargetOutputExceeds.selector),
     //     //             abi.encodeWithSelector(Hooks.HookCallFailed.selector)
     //     //         )
     //     //     );

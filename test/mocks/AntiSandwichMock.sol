@@ -11,6 +11,7 @@ contract AntiSandwichMock is AntiSandwichHook {
 
     constructor(IPoolManager _poolManager) AntiSandwichHook(_poolManager) {}
 
+    // @TBD add JIT warning
     /**
      * @dev Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
      * When a swap executes at a worse price than what's currently available in the pool (due to

@@ -4,7 +4,7 @@
 pragma solidity ^0.8.24;
 
 // Internal imports
-import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
+import {BaseDynamicTargetHookFee} from "../fee/BaseDynamicTargetHookFee.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 // External imports
@@ -48,7 +48,7 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  *
  * _Available since v1.1.0_
  */
-abstract contract AntiSandwichHook is BaseDynamicAfterFee {
+abstract contract AntiSandwichHook is BaseDynamicTargetHookFee {
     using Pool for *;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -63,7 +63,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
     /// @dev Maps each pool to its last checkpoint.
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
 
-    constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseDynamicTargetHookFee(_poolManager) {}
 
     /**
      * @dev Handles the before swap hook.
@@ -132,11 +132,11 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
      * - For currency1 to currency0 swaps (zeroForOne = false): The price is fixed at the beginning-of-block
      *   price, which prevents attackers from manipulating the price within a block.
      */
-    function _swapTarget(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
+    function _getTargetUnspecified(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
-        returns (uint256 targetUnspecifiedAmount, bool applyTargetUnspecifiedAmount)
+        returns (uint256 targetUnspecifiedAmount, bool applyTarget)
     {
         if (params.zeroForOne) {
             // when zeroForOne == true, the xy=k curve is used, so the target output doesn't matter, since it's not going to be used
@@ -167,7 +167,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
         targetUnspecifiedAmount = unspecifiedAmount.toUint256();
-        applyTargetUnspecifiedAmount = true;
+        applyTarget = true;
     }
 
     /**
