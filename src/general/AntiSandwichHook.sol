@@ -42,6 +42,10 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
  * WARNING: Since this hook makes MEV not profitable, there's not as much arbitrage in
  * the pool, making prices at beginning of the block not necessarily close to market price.
  *
+ * WARNING: In `_beforeSwap`, the hook iterates over all ticks between last tick and current tick.
+ * Developers must be aware that for large price changes in pools with small tick spacing, the `for`
+ * loop will iterate over a large number of ticks, which could lead to `MemoryOOG` error.
+ *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
  * base.
@@ -86,22 +90,30 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
 
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != currentBlock) {
+            int24 lastTick = _lastCheckpoint.state.slot0.tick();
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
             _lastCheckpoint.blockNumber = currentBlock;
 
             // iterate over ticks
             (, int24 currentTick,,) = poolManager.getSlot0(poolId);
-
-            int24 lastTick = _lastCheckpoint.state.slot0.tick();
-            int24 step = currentTick > lastTick ? key.tickSpacing : -key.tickSpacing;
-
-            for (int24 tick = lastTick; tick != currentTick; tick += step) {
-                (
-                    _lastCheckpoint.state.ticks[tick].liquidityGross,
-                    _lastCheckpoint.state.ticks[tick].liquidityNet,
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
-                    _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
-                ) = poolManager.getTickInfo(poolId, tick);
+            if (currentTick < lastTick) {
+                for (int24 tick = currentTick; tick <= lastTick; tick += key.tickSpacing) {
+                    (
+                        _lastCheckpoint.state.ticks[tick].liquidityGross,
+                        _lastCheckpoint.state.ticks[tick].liquidityNet,
+                        _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
+                        _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
+                    ) = poolManager.getTickInfo(poolId, tick);
+                }
+            } else {
+                for (int24 tick = currentTick; tick >= lastTick; tick -= key.tickSpacing) {
+                    (
+                        _lastCheckpoint.state.ticks[tick].liquidityGross,
+                        _lastCheckpoint.state.ticks[tick].liquidityNet,
+                        _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
+                        _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
+                    ) = poolManager.getTickInfo(poolId, tick);
+                }
             }
 
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
