@@ -24,13 +24,15 @@
   "author": "OpenZeppelin",
   "license": "MIT",
   "devDependencies": {
-    "@nomicfoundation/hardhat-foundry": "^1.1.2",
+    "@nomicfoundation/hardhat-foundry": "^1.1.4",
     "@openzeppelin/docs-utils": "^0.1.6",
-    "hardhat": "^2.22.15",
+    "hardhat": "^2.25.0",
+    "husky": "^9.1.7",
+    "install": "^0.13.0",
+    "lint-staged": "^16.1.2",
+    "npm": "^11.4.2",
     "solhint": "^6.0.0",
     "solhint-plugin-openzeppelin": "file:scripts/solhint-custom",
-    "lint-staged": "^16.1.2",
-    "husky": "^9.1.7",
     "solidity-docgen": "^0.6.0-beta.36"
   },
   "lint-staged": {
