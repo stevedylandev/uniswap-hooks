@@ -205,6 +205,12 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     /**
      * @dev Customizable handler called after `_afterSwap` to handle or distribuite the fees.
      *
+     * @param key The pool key.
+     * @param params The swap parameters.
+     * @param delta The balance delta.
+     * @param targetOutput The target output.
+     * @param feeAmount The fee amount.
+     *
      * WARNING: If the underlying unspecified currency is native, the implementing contract must ensure that it can
      * receive and handle it when redeeming.
      */
