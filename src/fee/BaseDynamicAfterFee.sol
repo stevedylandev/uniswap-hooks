@@ -40,11 +40,21 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     using SafeCast for *;
     using CurrencySettler for Currency;
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicAfterFee")) - 1)) & ~bytes32(uint256(0xff))
+    /*
+     * @dev The slot for the BaseDynamicAfterFee contract.
+     * keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.BaseDynamicAfterFee")) - 1)) & ~bytes32(uint256(0xff))
+    */
     bytes32 private constant BASE_DYNAMIC_AFTER_FEE_SLOT =
         0x573e65eb8119149aa4b92cb540f79645b8190fcaf67b1af773f62674fbe27900;
 
+    /*
+     * @dev The offset for the slot of the target unspecified amount.
+    */
     uint256 private constant TARGET_UNSPECIFIED_AMOUNT_OFFSET = 0;
+
+    /*
+     * @dev The offset for the slot of the apply target boolean.
+    */
     uint256 private constant APPLY_TARGET_OFFSET = 1;
 
     /**
