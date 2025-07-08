@@ -192,9 +192,6 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     /**
      * @dev Return the target unspecified amount to be enforced by the `afterSwap` hook.
      *
-     * TIP: In order to consume all of the swap unspecified amount, set the target equal to zero and set the apply
-     * flag to `true`.
-     *
      * @return targetUnspecifiedAmount The target unspecified amount, defined in the unspecified currency of the swap.
      * @return applyTarget The apply flag, which can be set to `false` to skip applying the target output.
      */
