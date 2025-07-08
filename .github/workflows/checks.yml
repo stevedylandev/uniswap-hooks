@@ -37,7 +37,10 @@ jobs:
         run: forge build --sizes --skip test
 
       - name: Run tests
-        run: FOUNDRY_PROFILE="deep" forge test -v
+        run: forge test -v
+        env:
+          FOUNDRY_PROFILE: deep
+          FORGE_SNAPSHOT_CHECK: true
 
   coverage:
     name: Coverage
