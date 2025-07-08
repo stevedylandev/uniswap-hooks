@@ -208,7 +208,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
      * @param key The pool key.
      * @param params The swap parameters.
      * @param delta The balance delta.
-     * @param targetOutput The target output.
+     * @param targetUnspecifiedAmount The target unspecified amount.
      * @param feeAmount The fee amount.
      *
      * WARNING: If the underlying unspecified currency is native, the implementing contract must ensure that it can
@@ -218,7 +218,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         PoolKey calldata key,
         SwapParams calldata params,
         BalanceDelta delta,
-        uint256 targetOutput,
+        uint256 targetUnspecifiedAmount,
         uint256 feeAmount
     ) internal virtual;
 
