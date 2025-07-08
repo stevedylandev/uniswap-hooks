@@ -27,9 +27,10 @@
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@openzeppelin/docs-utils": "^0.1.6",
     "hardhat": "^2.22.15",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.2",
+    "solhint": "^6.0.0",
     "solhint-plugin-openzeppelin": "file:scripts/solhint-custom",
+    "lint-staged": "^16.1.2",
+    "husky": "^9.1.7",
     "solidity-docgen": "^0.6.0-beta.36"
   },
   "lint-staged": {
@@ -42,8 +43,5 @@
     "test/**/*.sol": [
       "solhint --noPoster --config solhint/solhint.test.config.js"
     ]
-  },
-  "dependencies": {
-    "solhint": "^6.0.0"
   }
 }
