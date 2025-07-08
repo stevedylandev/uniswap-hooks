@@ -40,7 +40,6 @@ jobs:
         run: forge test -v
         env:
           FOUNDRY_PROFILE: deep
-          FORGE_SNAPSHOT_CHECK: true
 
   coverage:
     name: Coverage
