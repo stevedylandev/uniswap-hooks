@@ -64,9 +64,6 @@ jobs:
         uses: ./.github/actions/setup
 
       - uses: crytic/slither-action@v0.4.1
-        with:
-          node-version: 20.x
-          slither-version: 0.11.3
 
   codespell:
     runs-on: ubuntu-latest
