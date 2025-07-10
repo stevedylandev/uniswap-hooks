@@ -1,6 +1,6 @@
-/// @dev These are the base rules that are applied to all files.
+/// @dev Base solhint rules applied to all files.
 const baseRules = {
-    // Taken from OpenZeppelin/Conracts
+    // Taken from OpenZeppelin/Contracts.
     'avoid-tx-origin': 'error',
     'const-name-snakecase': 'error',
     'contract-name-capwords': 'error',
@@ -12,7 +12,7 @@ const baseRules = {
     'modifier-name-mixedcase': 'error',
     'no-console': 'error', 
     'no-global-import': 'error',
-    'no-unused-vars': 'warn',
+    'no-unused-vars': 'error',
     'quotes': 'error',
     'use-forbidden-name': 'error',
     'var-name-mixedcase': 'error',
@@ -23,7 +23,6 @@ const baseRules = {
     'no-unused-import': 'error',
     'func-visibility': ['error', { "ignoreConstructors": true }],
     'named-parameters-mapping': 'error',
-    'gas-custom-errors': 'error',
 }
 
 module.exports = {

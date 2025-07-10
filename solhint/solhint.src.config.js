@@ -1,12 +1,15 @@
 const customRules = require('solhint-plugin-openzeppelin');
 const { baseRules } = require('./solhint.base.config');
 
-/// @dev Rules that are only relevant for src files.
+/// @dev Rules applied to `src/` files only.
 const srcOnlyRules = {
-  'private-vars-leading-underscore': 'error',
-  'func-name-mixedcase': 'error', 
-  'state-visibility': 'error',
-  // 'ordering', convolutes the pr.
+  // 'ordering', large changes to be condensed in a single PR.
+  'func-name-mixedcase': 'error', // breaks foundry testing patterns
+  // rules innecesary in tests:
+  'state-visibility': 'error', 
+  'gas-custom-errors': 'error', 
+  'gas-calldata-parameters': 'error', 
+  'gas-struct-packing': 'error',
 }
 
 module.exports = {

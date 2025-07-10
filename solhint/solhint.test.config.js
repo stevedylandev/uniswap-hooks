@@ -1,9 +1,9 @@
 const customRules = require('solhint-plugin-openzeppelin');
 const { baseRules } = require('./solhint.base.config');
 
-/// @dev Rules that are only relevant for test files.
+/// @dev Rules applied to `test/` files only.
 const testOnlyRules = {
-  // 'foundry-test-functions': 'error',
+ // 'foundry-test-functions': 'error',
 }
 
 module.exports = {
