@@ -19,7 +19,7 @@ jobs:
         uses: ./.github/actions/setup
       - run: npm run lint
 
-  tests:
+  tests-foundry:
     name: Foundry tests
     runs-on: ubuntu-latest
     steps:
@@ -57,6 +57,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   slither:
+    name: Slither
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +67,7 @@ jobs:
       - uses: crytic/slither-action@v0.4.1
 
   codespell:
+    name: CodeSpell
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
