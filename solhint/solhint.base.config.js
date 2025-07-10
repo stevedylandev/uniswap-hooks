@@ -1,6 +1,5 @@
 /// @dev Base solhint rules applied to all files.
 const baseRules = {
-    // Taken from OpenZeppelin/Contracts.
     'avoid-tx-origin': 'error',
     'const-name-snakecase': 'error',
     'contract-name-capwords': 'error',
@@ -19,7 +18,6 @@ const baseRules = {
     'visibility-modifier-order': 'error',
     'interface-starts-with-i': 'error',
     'duplicated-imports': 'error',
-    // Added for this project.
     'no-unused-import': 'error',
     'func-visibility': ['error', { "ignoreConstructors": true }],
     'named-parameters-mapping': 'error',

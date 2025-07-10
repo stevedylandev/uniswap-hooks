@@ -3,9 +3,9 @@ const { baseRules } = require('./solhint.base.config');
 
 /// @dev Rules applied to `src/` files only.
 const srcOnlyRules = {
-  // 'ordering', large changes to be condensed in a single PR.
-  'func-name-mixedcase': 'error', // breaks foundry testing patterns
+  // 'ordering', @tbd to be condensed in a single PR.
   // rules innecesary in tests:
+  'func-name-mixedcase': 'error',
   'state-visibility': 'error', 
   'gas-custom-errors': 'error', 
   'gas-calldata-parameters': 'error', 
