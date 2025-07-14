@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "src/fee/BaseOverrideFee.sol";
+import {BaseOverrideFee} from "src/fee/BaseOverrideFee.sol";
 import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 
 contract BaseOverrideFeeMock is BaseOverrideFee {
-    uint24 public fee;
+    uint24 private _fee;
 
     constructor(IPoolManager _poolManager) BaseOverrideFee(_poolManager) {}
 
@@ -15,11 +17,11 @@ contract BaseOverrideFeeMock is BaseOverrideFee {
         override
         returns (uint24)
     {
-        return fee;
+        return _fee;
     }
 
-    function setFee(uint24 _fee) public {
-        fee = _fee;
+    function setFee(uint24 fee_) public {
+        _fee = fee_;
     }
 
     // Exclude from coverage report

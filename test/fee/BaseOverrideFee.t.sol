@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseOverrideFeeMock} from "test/mocks/BaseOverrideFeeMock.sol";
+import {BaseOverrideFeeMock} from "src/mocks/BaseOverrideFeeMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
@@ -42,7 +42,7 @@ contract BaseOverrideFeeTest is Test, Deployers {
 
         dynamicFeesHooks = BaseOverrideFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
-            "test/mocks/BaseOverrideFeeMock.sol:BaseOverrideFeeMock", abi.encode(manager), address(dynamicFeesHooks)
+            "src/mocks/BaseOverrideFeeMock.sol:BaseOverrideFeeMock", abi.encode(manager), address(dynamicFeesHooks)
         );
 
         deployMintAndApprove2Currencies();

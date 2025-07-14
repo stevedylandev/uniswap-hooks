@@ -180,7 +180,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
-        external
+        public
         virtual
         override
         onlyPoolManager
@@ -194,7 +194,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // This section handles liquidity modifications (adding/removing) for both tokens in the pool
         // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
-        PoolKey memory _poolKey = poolKey;
+        PoolKey memory _poolKey = poolKey();
 
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
@@ -236,7 +236,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             amount1 = -data.amount1;
         }
 
-        emit HookModifyLiquidity(PoolId.unwrap(poolKey.toId()), data.sender, amount0, amount1);
+        emit HookModifyLiquidity(PoolId.unwrap(_poolKey.toId()), data.sender, amount0, amount1);
 
         // Return the encoded caller and fees accrued (zero by default) deltas
         return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
