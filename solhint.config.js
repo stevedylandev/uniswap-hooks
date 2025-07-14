@@ -21,7 +21,6 @@ const rules = {
     'visibility-modifier-order': 'error',
     'interface-starts-with-i': 'error',
     'duplicated-imports': 'error',
-    // new
     'no-unused-import': 'error',
     'state-visibility': 'error', 
     'func-visibility': ['error', { "ignoreConstructors": true }],

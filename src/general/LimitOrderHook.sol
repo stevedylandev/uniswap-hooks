@@ -141,7 +141,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     /// @dev The last tick lower for each pool.
     mapping(PoolId poolId => int24 tickLowerLast) private _tickLowerLasts;
 
-    /// @dev Tracks each order id for a given order key, defined by keccak256 of the poolKey, tickLower, and zeroForOne.
+    /// @dev Tracks each order id for a given `orderKey`, defined by `keccak256` of the `poolKey`, `tickLower`, and `zeroForOne`.
     mapping(bytes32 orderKey => OrderIdLibrary.OrderId orderId) private _orderIds;
 
     /// @dev Tracks the order info for each order id.
@@ -206,7 +206,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /// @dev Hooks into the `afterInitialize` hook to set the last tick lower for the pool.
-    function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
+    function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
         _tickLowerLasts[key.toId()] = _getTickLower(tick, key.tickSpacing);
 
         return this.afterInitialize.selector;
@@ -444,13 +449,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * and operation-specific data. Returns encoded data containing fees accrued for cancel operations, or empty bytes
      * otherwise. Only callable by the PoolManager.
      */
-    function unlockCallback(bytes calldata rawData)
-        public
-        virtual
-        override
-        onlyPoolManager
-        returns (bytes memory returnData)
-    {
+    function unlockCallback(bytes calldata rawData) public virtual onlyPoolManager returns (bytes memory returnData) {
         CallbackData memory callbackData = abi.decode(rawData, (CallbackData));
 
         if (callbackData.callbackType == CallbackType.Place) {
@@ -596,7 +595,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Internal handler for withdraw callbacks. Takes `withdrawData` containing withdrawal amounts and recipient,
      * burns the specified currency amounts from the hook, and transfers them to the recipient address.
      */
-    function _handleWithdrawCallback(WithdrawCallbackData memory withdrawData) internal {
+    function _handleWithdrawCallback(WithdrawCallbackData memory withdrawData) internal virtual {
         // if the amount of currency0 is positive, burn the currency0 from the hook
         if (withdrawData.currency0Amount > 0) {
             // burn the currency0 from the hook
@@ -751,7 +750,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Get the order info for a given order id. Takes an {OrderId} `orderId` and returns the order info.
      */
     function getOrderInfo(OrderIdLibrary.OrderId orderId)
-        public
+        external
         view
         returns (
             bool filled,
