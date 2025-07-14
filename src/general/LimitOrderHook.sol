@@ -704,26 +704,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
     }
 
     /**
-     * @dev Get the tick lower. Takes a `tick` and `tickSpacing` and returns the nearest valid tick boundary
-     * at or below the input tick, accounting for negative tick handling.
-     */
-    function _getTickLower(int24 tick, int24 tickSpacing) internal pure returns (int24) {
-        // slither-disable-next-line divide-before-multiply
-        int24 compressed = tick / tickSpacing;
-        if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
-        return compressed * tickSpacing;
-    }
-
-    /**
-     * @dev Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
-     * from the pool's current sqrt price.
-     */
-    function _getTick(PoolId poolId) internal view returns (int24 tick) {
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
-        tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
-    }
-
-    /**
      * @dev Retrieves the order id for a given pool position. Takes a `PoolKey` `key`, target `tickLower`, and direction
      * `zeroForOne` indicating whether it's buying currency0 or currency1. Returns the {OrderId} associated with this
      * position, or the default order id if no order exists.
@@ -744,6 +724,34 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         private
     {
         _orderIds[keccak256(abi.encode(key, tickLower, zeroForOne))] = orderId;
+    }
+
+    /**
+     * @dev Get the tick lower. Takes a `tick` and `tickSpacing` and returns the nearest valid tick boundary
+     * at or below the input tick, accounting for negative tick handling.
+     */
+    function _getTickLower(int24 tick, int24 tickSpacing) internal pure returns (int24) {
+        // slither-disable-next-line divide-before-multiply
+        int24 compressed = tick / tickSpacing;
+        if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
+        return compressed * tickSpacing;
+    }
+
+    /**
+     * @dev Get the liquidity of an order for a given order id and owner. Takes an {OrderId} `orderId` and `owner` address
+     * and returns the amount of liquidity the owner has contributed to the order.
+     */
+    function getOrderLiquidity(OrderIdLibrary.OrderId orderId, address owner) external view returns (uint256) {
+        return _orderInfos[orderId].liquidity[owner];
+    }
+
+    /**
+     * @dev Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
+     * from the pool's current sqrt price.
+     */
+    function _getTick(PoolId poolId) internal view returns (int24 tick) {
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
     }
 
     /**
@@ -769,14 +777,6 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             _orderInfos[orderId].currency1Total,
             _orderInfos[orderId].liquidityTotal
         );
-    }
-
-    /**
-     * @dev Get the liquidity of an order for a given order id and owner. Takes an {OrderId} `orderId` and `owner` address
-     * and returns the amount of liquidity the owner has contributed to the order.
-     */
-    function getOrderLiquidity(OrderIdLibrary.OrderId orderId, address owner) external view returns (uint256) {
-        return _orderInfos[orderId].liquidity[owner];
     }
 
     /**

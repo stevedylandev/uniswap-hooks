@@ -25,7 +25,6 @@ contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
         override
     {
         PoolKey memory key = poolKey();
-        uint256 feesAccruedFeeBps = _feesAccruedFeeBps;
 
         // Fetch fees from the pool
         key.currency0.take(poolManager, address(this), uint256(int256(feesAccrued.amount0())), false);
