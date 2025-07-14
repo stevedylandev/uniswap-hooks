@@ -6,7 +6,6 @@ const testOnlyRules = {
 }
 
 module.exports = {
-  plugins: ['openzeppelin'],
   rules: { 
     ...baseRules,
     ...testOnlyRules,
