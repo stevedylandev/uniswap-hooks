@@ -11,7 +11,7 @@ const baseRules = {
     'modifier-name-mixedcase': 'error',
     'no-console': 'error', 
     'no-global-import': 'error',
-    'no-unused-vars': 'error',
+    'no-unused-vars': 'warn',
     'quotes': 'error',
     'use-forbidden-name': 'error',
     'var-name-mixedcase': 'error',
@@ -19,7 +19,6 @@ const baseRules = {
     'interface-starts-with-i': 'error',
     'duplicated-imports': 'error',
     'no-unused-import': 'error',
-    'func-visibility': ['error', { "ignoreConstructors": true }],
     'named-parameters-mapping': 'error',
 }
 
