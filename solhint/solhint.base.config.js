@@ -19,7 +19,6 @@ const baseRules = {
     'interface-starts-with-i': 'error',
     'duplicated-imports': 'error',
     'no-unused-import': 'error',
-    'func-visibility': ['error', { "ignoreConstructors": true }],
     'named-parameters-mapping': 'error',
 }
 
