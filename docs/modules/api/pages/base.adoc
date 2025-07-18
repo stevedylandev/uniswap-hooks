@@ -389,7 +389,7 @@ Callback from the `PoolManager` when liquidity is modified, either adding or rem
 ==== `[.contract-item-name]#++_handleAccruedFees++#++(struct BaseCustomAccounting.CallbackData data, BalanceDelta callerDelta, BalanceDelta feesAccrued)++` [.item-kind]#internal#
 
 Handle any fees accrued in a liquidity position. By default, this function transfers the tokens to the
-owner of the liquidity position. However, this function can be overriden to take fees accrued in the position,
+owner of the liquidity position. However, this function can be overridden to take fees accrued in the position,
 or any other desired logic.
 
 [.contract-item]
@@ -660,7 +660,7 @@ for a remove liquidity request.
 [[BaseCustomCurve-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct SwapParams params, bytes) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
 
-Overides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
+Overrides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
 to get the amount of tokens to be sent to the receiver.
 
 NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
@@ -670,7 +670,7 @@ via the {addLiquidity} function.
 [[BaseCustomCurve-_modifyLiquidity-bytes-]]
 ==== `[.contract-item-name]#++_modifyLiquidity++#++(bytes params) → BalanceDelta callerDelta, BalanceDelta feesAccrued++` [.item-kind]#internal#
 
-Overides the custom accounting logic to support the custom curve integer amounts.
+Overrides the custom accounting logic to support the custom curve integer amounts.
 
 [.contract-item]
 [[BaseCustomCurve-unlockCallback-bytes-]]
@@ -864,7 +864,7 @@ Validate the hook address against the expected permissions.
 [[BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-]]
 ==== `[.contract-item-name]#++_beforeInitialize++#++(address, struct PoolKey, uint160) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `beforeInitialize`, to be overriden by the inheriting hook. The
+Hook implementation for `beforeInitialize`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -875,7 +875,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-]]
 ==== `[.contract-item-name]#++_afterInitialize++#++(address, struct PoolKey, uint160, int24) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `afterInitialize`, to be overriden by the inheriting hook. The
+Hook implementation for `afterInitialize`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -886,7 +886,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_beforeAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeAddLiquidity++#++(address, struct PoolKey, struct ModifyLiquidityParams, bytes) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `beforeAddLiquidity`, to be overriden by the inheriting hook. The
+Hook implementation for `beforeAddLiquidity`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -897,7 +897,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeRemoveLiquidity++#++(address, struct PoolKey, struct ModifyLiquidityParams, bytes) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `beforeRemoveLiquidity`, to be overriden by the inheriting hook. The
+Hook implementation for `beforeRemoveLiquidity`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -908,7 +908,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterAddLiquidity++#++(address, struct PoolKey, struct ModifyLiquidityParams, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
-Hook implementation for `afterAddLiquidity`, to be overriden by the inheriting hook. The
+Hook implementation for `afterAddLiquidity`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -919,7 +919,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterRemoveLiquidity++#++(address, struct PoolKey, struct ModifyLiquidityParams, BalanceDelta, BalanceDelta, bytes) → bytes4, BalanceDelta++` [.item-kind]#internal#
 
-Hook implementation for `afterRemoveLiquidity`, to be overriden by the inheriting hook. The
+Hook implementation for `afterRemoveLiquidity`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -930,7 +930,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeSwap++#++(address, struct PoolKey, struct SwapParams, bytes) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
 
-Hook implementation for `beforeSwap`, to be overriden by the inheriting hook. The
+Hook implementation for `beforeSwap`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -941,7 +941,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterSwap++#++(address, struct PoolKey, struct SwapParams, BalanceDelta, bytes) → bytes4, int128++` [.item-kind]#internal#
 
-Hook implementation for `afterSwap`, to be overriden by the inheriting hook. The
+Hook implementation for `afterSwap`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -952,7 +952,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-]]
 ==== `[.contract-item-name]#++_beforeDonate++#++(address, struct PoolKey, uint256, uint256, bytes) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `beforeDonate`, to be overriden by the inheriting hook. The
+Hook implementation for `beforeDonate`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
@@ -963,7 +963,7 @@ flag must be set to true in the `getHookPermissions` function.
 [[BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-]]
 ==== `[.contract-item-name]#++_afterDonate++#++(address, struct PoolKey, uint256, uint256, bytes) → bytes4++` [.item-kind]#internal#
 
-Hook implementation for `afterDonate`, to be overriden by the inheriting hook. The
+Hook implementation for `afterDonate`, to be overridden by the inheriting hook. The
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
