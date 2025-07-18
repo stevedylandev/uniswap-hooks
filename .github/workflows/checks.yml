@@ -77,3 +77,4 @@ jobs:
           check_hidden: true
           check_filenames: true
           skip: package-lock.json,*.pdf,vendor
+          ignore_words_file: .codespell.ignorewords
