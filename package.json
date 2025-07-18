@@ -24,9 +24,9 @@
   "author": "OpenZeppelin",
   "license": "MIT",
   "devDependencies": {
-    "@nomicfoundation/hardhat-foundry": "^1.1.4",
+    "@nomicfoundation/hardhat-foundry": "^1.2.0",
     "@openzeppelin/docs-utils": "^0.1.6",
-    "hardhat": "^2.25.0",
+    "hardhat": "^2.26.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "solhint": "^6.0.0",
