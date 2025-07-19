@@ -118,7 +118,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
      * difference is increased to the input as a hook fee. Note that the fee is always applied to the unspecified
      * currency of the swap, regardless of the swap direction.
      *
-     * The fees are minted to this hook as ERC-6909 tokens, which can then be distribuited in {_afterSwapHandler}
+     * The fees are minted to this hook as ERC-6909 tokens, which can then be distributed in {_afterSwapHandler}
      *
      * NOTE: The target unspecified amount and the apply flag are reset on purpose to avoid state overlapping across swaps.
      */
@@ -203,7 +203,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
     ) internal virtual returns (uint256 targetUnspecifiedAmount, bool applyTarget);
 
     /**
-     * @dev Customizable handler called after `_afterSwap` to handle or distribuite the fees.
+     * @dev Customizable handler called after `_afterSwap` to handle or distribute the fees.
      *
      * @param key The pool key.
      * @param params The swap parameters.

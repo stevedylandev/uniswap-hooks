@@ -77,7 +77,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
+     * @dev Overrides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
      * to get the amount of tokens to be sent to the receiver.
      *
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
@@ -152,7 +152,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the custom accounting logic to support the custom curve integer amounts.
+     * @dev Overrides the custom accounting logic to support the custom curve integer amounts.
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.

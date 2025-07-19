@@ -294,7 +294,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         // deltaFee is (0-100%) of the unhookedQuote
         uint256 deltaFee = (unhookedQuote * hookFee) / 1e6;
-        // Since this is exactInput, the target is maximun amount the user must receive.
+        // Since this is exactInput, the target is maximum amount the user must receive.
         uint256 targetAmount = unhookedQuote - deltaFee;
 
         dynamicFeesHook.setMockTargetUnspecifiedAmount(targetAmount, true);
