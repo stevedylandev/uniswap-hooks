@@ -236,10 +236,10 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         BalanceDelta noHookDeltaBobAddition = modifyPoolLiquidity(noHookKey, -600, 600, 1e14, bobSalt);
         BalanceDelta noHookDeltaAttackerAddition = modifyPoolLiquidity(noHookKey, -600, 600, 1e14, attackerSalt);
 
-        // user and attacker collected fees on unhooked, but witheld in hook
-        assertEq(hookDeltaBobAddition, noHookDeltaBobAddition - feeDelta, "unhooked collected, hooked witheld");
+        // user and attacker collected fees on unhooked, but withheld in hook
+        assertEq(hookDeltaBobAddition, noHookDeltaBobAddition - feeDelta, "unhooked collected, hooked withheld");
         assertEq(
-            hookDeltaAttackerAddition, noHookDeltaAttackerAddition - feeDelta, "unhooked collected, hooked witheld"
+            hookDeltaAttackerAddition, noHookDeltaAttackerAddition - feeDelta, "unhooked collected, hooked withheld"
         );
 
         // hook should hold ERC-6909 claims for both user and attacker's fees

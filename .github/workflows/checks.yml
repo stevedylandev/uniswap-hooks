@@ -1,43 +1,49 @@
 name: checks
 on:
   push:
-  pull_request:
     branches:
       - master
+      - next-v*
+      - release-v*
+  pull_request: {}
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  tests:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - run: npm run lint
+
+  tests-foundry:
     name: Foundry tests
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
 
-      - name: Install dependencies
+      - name: Install Foundry dependencies
         run: forge install
+        shell: bash
 
-      - name: Check contract sizes
+      - name: Build and check contract sizes
         run: forge build --sizes --skip test
-        id: build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE="deep" forge test -v
-        id: test
-
-      - name: Check format
-        run: forge fmt --check
-        id: format
+        run: forge test -v
+        env:
+          FOUNDRY_PROFILE: deep
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up environment
@@ -46,18 +52,29 @@ jobs:
       - name: Generate coverage
         run: forge coverage --report lcov
       
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   slither:
+    name: Slither
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
 
-      - uses: crytic/slither-action@v0.4.0
+      - uses: crytic/slither-action@v0.4.1
+
+  codespell:
+    name: CodeSpell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run CodeSpell
+        uses: codespell-project/actions-codespell@v2.1
         with:
-          node-version: 18.15
-          slither-version: 0.10.4
+          check_hidden: true
+          check_filenames: true
+          skip: package-lock.json,*.pdf,vendor
+          ignore_words_file: .codespell.ignorewords

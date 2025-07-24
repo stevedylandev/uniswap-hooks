@@ -63,10 +63,14 @@
 :xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
+:xref-BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--: xref:fee.adoc#BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--
+:xref-BaseDynamicAfterFee-_transientApplyTarget--: xref:fee.adoc#BaseDynamicAfterFee-_transientApplyTarget--
+:xref-BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-
+:xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientApplyTarget-bool-
 :xref-BaseDynamicAfterFee-constructor-contract-IPoolManager-: xref:fee.adoc#BaseDynamicAfterFee-constructor-contract-IPoolManager-
 :xref-BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
-:xref-BaseDynamicAfterFee-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-
+:xref-BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
 :xref-BaseDynamicAfterFee-getHookPermissions--: xref:fee.adoc#BaseDynamicAfterFee-getHookPermissions--
 :xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
@@ -93,13 +97,10 @@
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
 :xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
-:xref-BaseDynamicAfterFee-TargetOutputExceeds--: xref:fee.adoc#BaseDynamicAfterFee-TargetOutputExceeds--
 :xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
 :xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
-:xref-BaseDynamicAfterFee-_targetOutput-uint256: xref:fee.adoc#BaseDynamicAfterFee-_targetOutput-uint256
-:xref-BaseDynamicAfterFee-_applyTargetOutput-bool: xref:fee.adoc#BaseDynamicAfterFee-_applyTargetOutput-bool
 = Fee
 
 [.readme-notice]
@@ -354,13 +355,14 @@ Set the hook permissions, specifically `afterInitialize` and `beforeSwap`.
 
 The hook was attempted to be initialized with a non-dynamic fee.
 
-:_targetOutput: pass:normal[xref:#BaseDynamicAfterFee-_targetOutput-uint256[`++_targetOutput++`]]
-:_applyTargetOutput: pass:normal[xref:#BaseDynamicAfterFee-_applyTargetOutput-bool[`++_applyTargetOutput++`]]
-:TargetOutputExceeds: pass:normal[xref:#BaseDynamicAfterFee-TargetOutputExceeds--[`++TargetOutputExceeds++`]]
+:_transientTargetUnspecifiedAmount: pass:normal[xref:#BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--[`++_transientTargetUnspecifiedAmount++`]]
+:_transientApplyTarget: pass:normal[xref:#BaseDynamicAfterFee-_transientApplyTarget--[`++_transientApplyTarget++`]]
+:_setTransientTargetUnspecifiedAmount: pass:normal[xref:#BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-[`++_setTransientTargetUnspecifiedAmount++`]]
+:_setTransientApplyTarget: pass:normal[xref:#BaseDynamicAfterFee-_setTransientApplyTarget-bool-[`++_setTransientApplyTarget++`]]
 :constructor: pass:normal[xref:#BaseDynamicAfterFee-constructor-contract-IPoolManager-[`++constructor++`]]
 :_beforeSwap: pass:normal[xref:#BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
 :_afterSwap: pass:normal[xref:#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
-:_getTargetOutput: pass:normal[xref:#BaseDynamicAfterFee-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getTargetOutput++`]]
+:_getTargetUnspecified: pass:normal[xref:#BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getTargetUnspecified++`]]
 :_afterSwapHandler: pass:normal[xref:#BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-[`++_afterSwapHandler++`]]
 :getHookPermissions: pass:normal[xref:#BaseDynamicAfterFee-getHookPermissions--[`++getHookPermissions++`]]
 
@@ -373,12 +375,14 @@ The hook was attempted to be initialized with a non-dynamic fee.
 import "uniswap-hooks/src/fee/BaseDynamicAfterFee.sol";
 ```
 
-Base implementation for dynamic fees applied after swaps.
+Base implementation for dynamic target hook fees applied after swaps.
 
-In order to use this hook, the inheriting contract must define the {_getTargetOutput} and
-{_afterSwapHandler} functions. The {_getTargetOutput} function returns the target output to
-apply to the swap depending on the given apply flag. The {_afterSwapHandler} function is called
-after the target output is applied to the swap and currency amount is received.
+Enables to enforce a dynamic target determined by {_getTargetUnspecified} for the unspecified currency of the swap
+during {_beforeSwap}, where if the swap outcome results better than the target, any positive difference is taken
+as a hook fee, being posteriorily handled or distributed by the hook via {_afterSwapHandler}.
+
+NOTE: In order to use this hook, the inheriting contract must implement {_getTargetUnspecified} to determine the target,
+and {_afterSwapHandler} to handle accumulated fees.
 
 WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
 not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -389,11 +393,15 @@ _Available since v0.1.0_
 [.contract-index]
 .Functions
 --
+* {xref-BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--}[`++_transientTargetUnspecifiedAmount()++`]
+* {xref-BaseDynamicAfterFee-_transientApplyTarget--}[`++_transientApplyTarget()++`]
+* {xref-BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-}[`++_setTransientTargetUnspecifiedAmount(value)++`]
+* {xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-}[`++_setTransientApplyTarget(value)++`]
 * {xref-BaseDynamicAfterFee-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
 * {xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, )++`]
-* {xref-BaseDynamicAfterFee-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getTargetOutput(sender, key, params, hookData)++`]
-* {xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, delta, targetOutput, feeAmount)++`]
+* {xref-BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getTargetUnspecified(sender, key, params, hookData)++`]
+* {xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-}[`++_afterSwapHandler(key, params, delta, targetUnspecifiedAmount, feeAmount)++`]
 * {xref-BaseDynamicAfterFee-getHookPermissions--}[`++getHookPermissions()++`]
 
 [.contract-subindex-inherited]
@@ -449,7 +457,6 @@ _Available since v0.1.0_
 [.contract-index]
 .Errors
 --
-* {xref-BaseDynamicAfterFee-TargetOutputExceeds--}[`++TargetOutputExceeds()++`]
 
 [.contract-subindex-inherited]
 .IHookEvents
@@ -466,22 +473,29 @@ _Available since v0.1.0_
 
 --
 
-[.contract-index]
-.Internal Variables
---
-* {xref-BaseDynamicAfterFee-_targetOutput-uint256}[`++uint256  _targetOutput++`]
-* {xref-BaseDynamicAfterFee-_applyTargetOutput-bool}[`++bool  _applyTargetOutput++`]
+[.contract-item]
+[[BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--]]
+==== `[.contract-item-name]#++_transientTargetUnspecifiedAmount++#++() → uint256++` [.item-kind]#internal#
 
-[.contract-subindex-inherited]
-.IHookEvents
+The target unspecified amount to be enforced by the `afterSwap` hook.
 
-[.contract-subindex-inherited]
-.BaseHook
+[.contract-item]
+[[BaseDynamicAfterFee-_transientApplyTarget--]]
+==== `[.contract-item-name]#++_transientApplyTarget++#++() → bool++` [.item-kind]#internal#
 
-[.contract-subindex-inherited]
-.IHooks
+Whether the target unspecified amount should be enforced by the `afterSwap` hook.
 
---
+[.contract-item]
+[[BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-]]
+==== `[.contract-item-name]#++_setTransientTargetUnspecifiedAmount++#++(uint256 value)++` [.item-kind]#internal#
+
+Set the target unspecified amount to be enforced by the `afterSwap` hook.
+
+[.contract-item]
+[[BaseDynamicAfterFee-_setTransientApplyTarget-bool-]]
+==== `[.contract-item-name]#++_setTransientApplyTarget++#++(bool value)++` [.item-kind]#internal#
+
+Set the apply flag to be used in the `afterSwap` hook.
 
 [.contract-item]
 [[BaseDynamicAfterFee-constructor-contract-IPoolManager-]]
@@ -493,56 +507,40 @@ Set the `PoolManager` address.
 [[BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]
 ==== `[.contract-item-name]#++_beforeSwap++#++(address sender, struct PoolKey key, struct SwapParams params, bytes hookData) → bytes4, BeforeSwapDelta, uint24++` [.item-kind]#internal#
 
-Sets the target output and apply flag to be used in the `afterSwap` hook.
+Sets the target unspecified amount and apply flag to be used in the `afterSwap` hook.
 
-NOTE: The target output is reset to 0 in the `afterSwap` hook regardless of the apply flag.
+NOTE: The target unspecified amount and the apply flag are reset in the `afterSwap` hook.
 
 [.contract-item]
 [[BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-]]
 ==== `[.contract-item-name]#++_afterSwap++#++(address sender, struct PoolKey key, struct SwapParams params, BalanceDelta delta, bytes) → bytes4, int128++` [.item-kind]#internal#
 
-Apply the target output to the unspecified currency of the swap using fees.
-The fees are minted as ERC-6909 tokens, which can then be redeemed in the
-{_afterSwapHandler} function. Note that if the underlying unspecified currency
-is native, the implementing contract must ensure that it can receive native tokens
-when redeeming.
+Enforce the target unspecified amount to the unspecified currency of the swap.
 
-NOTE: The target output is reset to 0, both when the apply flag is set to `false`
-and when set to `true`.
+When the swap is `exactInput` and the unspecified target is surpassed, the difference is decreased from the
+output as a hook fee. Accordingly, when the swap is `exactOutput` and the unspecified target is not reached, the
+difference is increased to the input as a hook fee. Note that the fee is always applied to the unspecified
+currency of the swap, regardless of the swap direction.
+
+The fees are minted to this hook as ERC-6909 tokens, which can then be distributed in {_afterSwapHandler}
+
+NOTE: The target unspecified amount and the apply flag are reset on purpose to avoid state overlapping across swaps.
 
 [.contract-item]
-[[BaseDynamicAfterFee-_getTargetOutput-address-struct-PoolKey-struct-SwapParams-bytes-]]
-==== `[.contract-item-name]#++_getTargetOutput++#++(address sender, struct PoolKey key, struct SwapParams params, bytes hookData) → uint256 targetOutput, bool applyTargetOutput++` [.item-kind]#internal#
+[[BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-]]
+==== `[.contract-item-name]#++_getTargetUnspecified++#++(address sender, struct PoolKey key, struct SwapParams params, bytes hookData) → uint256 targetUnspecifiedAmount, bool applyTarget++` [.item-kind]#internal#
 
-Return the target output to be enforced by the `afterSwap` hook using fees.
-
-IMPORTANT: The swap will revert if the target output exceeds the output unspecified amount from the swap.
-In order to consume all of the output from the swap, set the target output to equal the output unspecified
-amount and set the apply flag to `true`.
+Return the target unspecified amount to be enforced by the `afterSwap` hook.
 
 [.contract-item]
 [[BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-]]
-==== `[.contract-item-name]#++_afterSwapHandler++#++(struct PoolKey key, struct SwapParams params, BalanceDelta delta, uint256 targetOutput, uint256 feeAmount)++` [.item-kind]#internal#
+==== `[.contract-item-name]#++_afterSwapHandler++#++(struct PoolKey key, struct SwapParams params, BalanceDelta delta, uint256 targetUnspecifiedAmount, uint256 feeAmount)++` [.item-kind]#internal#
 
-Handler called after applying the target output to a swap and receiving the currency amount.
+Customizable handler called after `_afterSwap` to handle or distribute the fees.
 
 [.contract-item]
 [[BaseDynamicAfterFee-getHookPermissions--]]
 ==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
 
 Set the hook permissions, specifically {beforeSwap}, {afterSwap} and {afterSwapReturnDelta}.
-
-[.contract-item]
-[[BaseDynamicAfterFee-TargetOutputExceeds--]]
-==== `[.contract-item-name]#++TargetOutputExceeds++#++()++` [.item-kind]#error#
-
-Target output exceeds swap amount.
-
-[.contract-item]
-[[BaseDynamicAfterFee-_targetOutput-uint256]]
-==== `uint256 [.contract-item-name]#++_targetOutput++#` [.item-kind]#internal#
-
-[.contract-item]
-[[BaseDynamicAfterFee-_applyTargetOutput-bool]]
-==== `bool [.contract-item-name]#++_applyTargetOutput++#` [.item-kind]#internal#
 

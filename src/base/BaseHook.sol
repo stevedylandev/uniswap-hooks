@@ -17,7 +17,7 @@ import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation
  * This contract defines all hook entry points, as well as security and permission helpers.
  * Based on the https://github.com/Uniswap/v4-periphery/blob/main/src/base/hooks/BaseHook.sol[Uniswap v4 periphery implementation].
  *
- * NOTE: Hook entry points must be overiden and implemented by the inheriting hook to be used. Their respective
+ * NOTE: Hook entry points must be overridden and implemented by the inheriting hook to be used. Their respective
  * flags must be set to true in the `getHookPermissions` function as well.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
@@ -104,7 +104,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `beforeInitialize`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `beforeInitialize`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _beforeInitialize(address, PoolKey calldata, uint160) internal virtual returns (bytes4) {
@@ -123,7 +123,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `afterInitialize`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `afterInitialize`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _afterInitialize(address, PoolKey calldata, uint160, int24) internal virtual returns (bytes4) {
@@ -143,7 +143,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `beforeAddLiquidity`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `beforeAddLiquidity`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _beforeAddLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
@@ -167,7 +167,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `beforeRemoveLiquidity`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `beforeRemoveLiquidity`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _beforeRemoveLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
@@ -193,7 +193,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `afterAddLiquidity`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `afterAddLiquidity`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _afterAddLiquidity(
@@ -222,7 +222,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `afterRemoveLiquidity`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `afterRemoveLiquidity`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _afterRemoveLiquidity(
@@ -248,7 +248,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `beforeSwap`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `beforeSwap`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _beforeSwap(address, PoolKey calldata, SwapParams calldata, bytes calldata)
@@ -273,7 +273,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `afterSwap`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `afterSwap`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _afterSwap(address, PoolKey calldata, SwapParams calldata, BalanceDelta, bytes calldata)
@@ -298,7 +298,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `beforeDonate`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `beforeDonate`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
@@ -323,7 +323,7 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
-     * @dev Hook implementation for `afterDonate`, to be overriden by the inheriting hook. The
+     * @dev Hook implementation for `afterDonate`, to be overridden by the inheriting hook. The
      * flag must be set to true in the `getHookPermissions` function.
      */
     function _afterDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)

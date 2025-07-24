@@ -296,7 +296,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
 
     /**
      * @dev Handle any fees accrued in a liquidity position. By default, this function transfers the tokens to the
-     * owner of the liquidity position. However, this function can be overriden to take fees accrued in the position,
+     * owner of the liquidity position. However, this function can be overridden to take fees accrued in the position,
      * or any other desired logic.
      *
      * @param data The encoded `CallbackData` struct, including the sender and the parameters for the liquidity modification.

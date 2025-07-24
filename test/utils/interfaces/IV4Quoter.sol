@@ -30,7 +30,7 @@ interface IV4Quoter is IImmutableState, IMsgSender {
     /// zeroForOne If the swap is from currency0 to currency1
     /// exactAmount The desired input amount
     /// hookData arbitrary hookData to pass into the associated hooks
-    /// @return amountOut The output quote for the exactIn swap
+    /// @return amountOut The output quote for the exactInput swap
     /// @return gasEstimate Estimated gas units used for the swap
     function quoteExactInputSingle(QuoteExactSingleParams memory params)
         external
@@ -41,7 +41,7 @@ interface IV4Quoter is IImmutableState, IMsgSender {
     /// currencyIn The input currency of the swap
     /// path The path of the swap encoded as PathKeys that contains currency, fee, tickSpacing, and hook info
     /// exactAmount The desired input amount
-    /// @return amountOut The output quote for the exactIn swap
+    /// @return amountOut The output quote for the exactInput swap
     /// @return gasEstimate Estimated gas units used for the swap
     function quoteExactInput(QuoteExactParams memory params)
         external
