@@ -118,7 +118,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @notice Returns the hook's pool key.
+     * @notice Returns the hook's pool key. Note that this hook works with a single pool key.
      */
     function poolKey() public view returns (PoolKey memory) {
         return _poolKey;

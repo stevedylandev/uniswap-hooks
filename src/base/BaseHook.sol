@@ -69,6 +69,14 @@ abstract contract BaseHook is IHooks {
     }
 
     /**
+     * @dev Restrict the function to only be callable by the hook itself.
+     */
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert NotSelf();
+        _;
+    }
+
+    /**
      * @dev Restrict the function to only be called for a valid pool.
      */
     modifier onlyValidPools(IHooks hooks) {
