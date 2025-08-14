@@ -1,7 +1,7 @@
 // This Hardhat config is used for generating documentation only.
 
-require('@nomicfoundation/hardhat-foundry');
-require('solidity-docgen');
+require("@nomicfoundation/hardhat-foundry");
+require("solidity-docgen");
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -13,5 +13,5 @@ module.exports = {
       evmVersion: "cancun",
     },
   },
-  docgen: require('./docs/config'),
+  docgen: require("./docs/config-md"),
 };
