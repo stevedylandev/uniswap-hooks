@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
+import {LiquidityPenaltyHook} from "@openzeppelin/uniswap-hooks/general/LiquidityPenaltyHook.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";

@@ -16,7 +16,7 @@ import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {ProtocolFeeLibrary} from "@uniswap/v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Pool} from "@uniswap/v4-core/src/libraries/Pool.sol";
-import {BaseDynamicFee} from "src/fee/BaseDynamicFee.sol";
+import {BaseDynamicFee} from "@openzeppelin/uniswap-hooks/fee/BaseDynamicFee.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
 

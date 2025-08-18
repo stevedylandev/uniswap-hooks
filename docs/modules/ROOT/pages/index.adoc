@@ -32,7 +32,7 @@ Once installed, you can use the contracts in the library by importing them:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {BaseDynamicFee, IPoolManager, PoolKey} from "src/fee/BaseDynamicFee.sol";
+import {BaseDynamicFee, IPoolManager, PoolKey} from "@openzeppelin/uniswap-hooks/fee/BaseDynamicFee.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**

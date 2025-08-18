@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import "src/general/AntiSandwichHook.sol";
 import {IERC20Minimal} from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
+import {CurrencySettler} from "@openzeppelin/uniswap-hooks/utils/CurrencySettler.sol";
 
 contract AntiSandwichMock is AntiSandwichHook {
     using CurrencySettler for Currency;

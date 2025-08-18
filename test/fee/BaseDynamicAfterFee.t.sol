@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {BaseDynamicAfterFee} from "src/fee/BaseDynamicAfterFee.sol";
+import {BaseDynamicAfterFee} from "@openzeppelin/uniswap-hooks/fee/BaseDynamicAfterFee.sol";
 import {BaseDynamicAfterFeeMock} from "test/mocks/BaseDynamicAfterFeeMock.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
