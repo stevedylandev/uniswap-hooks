@@ -3,9 +3,9 @@ pragma solidity ^0.8.26;
 
 import "src/base/BaseHook.sol";
 
-import {BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+import {BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 contract BaseHookMock is BaseHook {
     event BeforeInitialize();

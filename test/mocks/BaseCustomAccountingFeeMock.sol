@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 
 import {BaseCustomAccountingMock} from "test/mocks/BaseCustomAccountingMock.sol";

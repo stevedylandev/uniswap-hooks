@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "src/fee/BaseOverrideFee.sol";
-import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 contract BaseOverrideFeeMock is BaseOverrideFee {
     uint24 public fee;
