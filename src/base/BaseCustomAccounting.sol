@@ -306,7 +306,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @dev Initialize the hook's pool key. The stored key should act immutably so that
      * it can safely be used across the hook's functions.
      */
-    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         // Check if the pool key is already initialized
         if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
 
