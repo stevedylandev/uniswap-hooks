@@ -243,7 +243,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * whether to buy currency0 or currency1, and amount of `liquidity` to place. The interaction with the `poolManager` is done
      * via the `unlock` function, which will trigger the `{unlockCallback}` function.
      */
-    function placeOrder(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) external virtual {
+    function placeOrder(PoolKey calldata key, int24 tick, bool zeroForOne, uint128 liquidity) public virtual {
         if (liquidity == 0) revert ZeroLiquidity();
 
         OrderInfo storage orderInfo;
@@ -321,7 +321,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * Note also that cancelling an order will cancel the order placed by the msg.sender, not orders placed by other users in the same tick range.
      * The interaction with the `poolManager` is done via the `unlock` function, which will trigger the `{unlockCallback}` function.
      */
-    function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) external virtual {
+    function cancelOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne, address to) public virtual {
         // get the order
         OrderIdLibrary.OrderId orderId = getOrderId(key, tickLower, zeroForOne);
         OrderInfo storage orderInfo = orderInfos[orderId];
@@ -387,7 +387,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * filled - use `cancelOrder` to remove liquidity from unfilled orders. The interaction with the `poolManager` is done via the
      * `unlock` function, which will trigger the `{unlockCallback}` function.
      */
-    function withdraw(OrderIdLibrary.OrderId orderId, address to) external virtual returns (uint256 amount0, uint256 amount1) {
+    function withdraw(OrderIdLibrary.OrderId orderId, address to) public virtual returns (uint256 amount0, uint256 amount1) {
         // get the order info
         OrderInfo storage orderInfo = orderInfos[orderId];
 
