@@ -131,7 +131,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @return delta The principal delta of the liquidity addition.
      */
     function addLiquidity(AddLiquidityParams calldata params)
-        external
+        public
         payable
         virtual
         ensure(params.deadline)
@@ -184,7 +184,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @return delta The principal delta of the liquidity removal.
      */
     function removeLiquidity(RemoveLiquidityParams calldata params)
-        external
+        public
         virtual
         ensure(params.deadline)
         returns (BalanceDelta delta)
