@@ -68,7 +68,7 @@ abstract contract BaseDynamicFee is BaseHook {
      *
      * @param key The pool key to update the dynamic LP fee for.
      */
-    function poke(PoolKey calldata key) publicvirtual onlyValidPools(key.hooks) {
+    function poke(PoolKey calldata key) public virtual onlyValidPools(key.hooks) {
         poolManager.updateDynamicLPFee(key, _getFee(key));
     }
 
