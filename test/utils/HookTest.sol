@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -13,8 +13,6 @@ import {Position} from "v4-core/src/libraries/Position.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "v4-core/src/libraries/FixedPoint128.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {IHookEvents} from "src/interfaces/IHookEvents.sol";
 import {IPoolManagerEvents} from "test/utils/interfaces/IPoolManagerEvents.sol";
 

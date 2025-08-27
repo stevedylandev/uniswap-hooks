@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {BaseHook} from "src/base/BaseHook.sol";
-import {BaseHookMock, BaseHookMockReverts} from "test/mocks/BaseHookMock.sol";
+import {BaseHookMock, BaseHookMockReverts} from "src/mocks/BaseHookMock.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {ProtocolFeeLibrary} from "v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {Pool} from "v4-core/src/libraries/Pool.sol";
 
 contract BaseHookTest is Test, Deployers {
     event Swap(
@@ -46,10 +42,10 @@ contract BaseHookTest is Test, Deployers {
                 )
             )
         );
-        deployCodeTo("test/mocks/BaseHookMock.sol:BaseHookMock", abi.encode(manager), address(hook));
+        deployCodeTo("src/mocks/BaseHookMock.sol:BaseHookMock", abi.encode(manager), address(hook));
 
         hookReverts = BaseHookMockReverts(address(0x1000000000000000000000000000000000003FF0));
-        deployCodeTo("test/mocks/BaseHookMock.sol:BaseHookMockReverts", abi.encode(manager), address(hookReverts));
+        deployCodeTo("src/mocks/BaseHookMock.sol:BaseHookMockReverts", abi.encode(manager), address(hookReverts));
 
         deployMintAndApprove2Currencies();
 
@@ -187,25 +183,16 @@ contract BaseHookTest is Test, Deployers {
 
         vm.expectEmit(address(hook));
         emit BaseHookMock.Callback();
-        hook.callback(abi.encodeWithSelector(BaseHookMock._callback.selector, false));
+        hook.unlockAndCall(false);
     }
 
-    function test_callback_notSelf_reverts() public {
-        (key,) = initPoolAndAddLiquidity(
-            currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
-        );
-
-        vm.expectRevert(BaseHook.NotSelf.selector);
-        hook._callback(false);
-    }
-
-    function test_callback_error_reverts() public {
+    function test_callback_reverts() public {
         (key,) = initPoolAndAddLiquidity(
             currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
         );
 
         vm.expectRevert(BaseHookMock.RevertCallback.selector);
-        hook.callback(abi.encodeWithSelector(BaseHookMock._callback.selector, true));
+        hook.unlockAndCall(true);
     }
 
     function test_all_notPoolManager_reverts() public {

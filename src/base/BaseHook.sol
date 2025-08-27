@@ -57,7 +57,7 @@ abstract contract BaseHook is IHooks {
      */
     constructor(IPoolManager _poolManager) {
         poolManager = _poolManager;
-        validateHookAddress(this);
+        _validateHookAddress(this);
     }
 
     /**
@@ -96,7 +96,7 @@ abstract contract BaseHook is IHooks {
     /**
      * @dev Validate the hook address against the expected permissions.
      */
-    function validateHookAddress(BaseHook hook) internal pure {
+    function _validateHookAddress(BaseHook hook) internal pure {
         Hooks.validateHookPermissions(hook, getHookPermissions());
     }
 
@@ -105,7 +105,6 @@ abstract contract BaseHook is IHooks {
      */
     function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
         external
-        virtual
         onlyPoolManager
         returns (bytes4)
     {
@@ -125,7 +124,6 @@ abstract contract BaseHook is IHooks {
      */
     function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick)
         external
-        virtual
         onlyPoolManager
         returns (bytes4)
     {
@@ -148,7 +146,7 @@ abstract contract BaseHook is IHooks {
         PoolKey calldata key,
         ModifyLiquidityParams calldata params,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4) {
+    ) external onlyPoolManager returns (bytes4) {
         return _beforeAddLiquidity(sender, key, params, hookData);
     }
 
@@ -172,7 +170,7 @@ abstract contract BaseHook is IHooks {
         PoolKey calldata key,
         ModifyLiquidityParams calldata params,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4) {
+    ) external onlyPoolManager returns (bytes4) {
         return _beforeRemoveLiquidity(sender, key, params, hookData);
     }
 
@@ -198,7 +196,7 @@ abstract contract BaseHook is IHooks {
         BalanceDelta delta0,
         BalanceDelta delta1,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4, BalanceDelta) {
+    ) external onlyPoolManager returns (bytes4, BalanceDelta) {
         return _afterAddLiquidity(sender, key, params, delta0, delta1, hookData);
     }
 
@@ -227,7 +225,7 @@ abstract contract BaseHook is IHooks {
         BalanceDelta delta0,
         BalanceDelta delta1,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4, BalanceDelta) {
+    ) external onlyPoolManager returns (bytes4, BalanceDelta) {
         return _afterRemoveLiquidity(sender, key, params, delta0, delta1, hookData);
     }
 
@@ -251,7 +249,6 @@ abstract contract BaseHook is IHooks {
      */
     function beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
         external
-        virtual
         onlyPoolManager
         returns (bytes4, BeforeSwapDelta, uint24)
     {
@@ -279,7 +276,7 @@ abstract contract BaseHook is IHooks {
         SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4, int128) {
+    ) external onlyPoolManager returns (bytes4, int128) {
         return _afterSwap(sender, key, params, delta, hookData);
     }
 
@@ -304,7 +301,7 @@ abstract contract BaseHook is IHooks {
         uint256 amount0,
         uint256 amount1,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4) {
+    ) external onlyPoolManager returns (bytes4) {
         return _beforeDonate(sender, key, amount0, amount1, hookData);
     }
 
@@ -329,7 +326,7 @@ abstract contract BaseHook is IHooks {
         uint256 amount0,
         uint256 amount1,
         bytes calldata hookData
-    ) external virtual onlyPoolManager returns (bytes4) {
+    ) external onlyPoolManager returns (bytes4) {
         return _afterDonate(sender, key, amount0, amount1, hookData);
     }
 

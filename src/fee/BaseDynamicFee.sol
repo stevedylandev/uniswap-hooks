@@ -8,7 +8,6 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
-import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
 
 /**
  * @dev Base implementation to apply a dynamic fee via the `PoolManager`'s `updateDynamicLPFee` function.
@@ -68,7 +67,7 @@ abstract contract BaseDynamicFee is BaseHook {
      *
      * @param key The pool key to update the dynamic LP fee for.
      */
-    function poke(PoolKey calldata key) external virtual onlyValidPools(key.hooks) {
+    function poke(PoolKey calldata key) public virtual onlyValidPools(key.hooks) {
         poolManager.updateDynamicLPFee(key, _getFee(key));
     }
 
