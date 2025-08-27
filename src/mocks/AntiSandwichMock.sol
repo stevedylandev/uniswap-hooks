@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {AntiSandwichHook} from "src/general/AntiSandwichHook.sol";
+import {AntiSandwichHook} from "@openzeppelin/uniswap-hooks/general/AntiSandwichHook.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
+import {CurrencySettler} from "@openzeppelin/uniswap-hooks/utils/CurrencySettler.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";

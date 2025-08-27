@@ -13,7 +13,7 @@ import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "@uniswap/v4-core/src/libraries/FixedPoint128.sol";
-import {IHookEvents} from "src/interfaces/IHookEvents.sol";
+import {IHookEvents} from "@openzeppelin/uniswap-hooks/interfaces/IHookEvents.sol";
 import {IPoolManagerEvents} from "test/utils/interfaces/IPoolManagerEvents.sol";
 
 // @dev Set of utilities to test Hooks.
