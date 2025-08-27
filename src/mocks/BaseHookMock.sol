@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "src/base/BaseHook.sol";
-
+import {BaseHook} from "src/base/BaseHook.sol";
 import {BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 
 contract BaseHookMock is BaseHook {
     event BeforeInitialize();
@@ -141,21 +145,20 @@ contract BaseHookMock is BaseHook {
         });
     }
 
-    function callback(bytes memory call) external {
-        poolManager.unlock(call);
+    /// @dev Unlock the poolManager, which will perform a callback to {unlockCallback} with `bytes calldata call`
+    function unlockAndCall(bool revertCallback) external {
+        poolManager.unlock(abi.encode(revertCallback));
     }
 
+    /// @dev Called by the poolMananger after being unlocked
     function unlockCallback(bytes calldata rawData) external onlyPoolManager returns (bytes memory) {
-        (bool success, bytes memory returnData) = address(this).call(rawData);
-        if (success) return returnData;
-        // if the call failed, bubble up the reason
-        assembly ("memory-safe") {
-            revert(add(returnData, 32), mload(returnData))
-        }
+        (bool revertCallback) = abi.decode(rawData, (bool));
+        bytes memory returnData = _callback(revertCallback);
+        return returnData;
     }
 
-    /// @dev when called in the `callback` function, the poolManager will call the `_unlockCallback` function which calls this contract's `_callback` function itself.
-    function _callback(bool revertCallback) external onlySelf returns (bytes memory) {
+    /// @dev Some functionality that requires the PoolManager to be unlocked
+    function _callback(bool revertCallback) internal returns (bytes memory) {
         emit Callback();
         if (revertCallback) revert RevertCallback();
         return bytes("");

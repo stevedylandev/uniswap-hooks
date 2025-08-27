@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {LiquidityPenaltyHook} from "@openzeppelin/uniswap-hooks/general/LiquidityPenaltyHook.sol";
+import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
-import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
-import {FixedPoint128} from "@uniswap/v4-core/src/libraries/FixedPoint128.sol";
-import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
@@ -144,7 +140,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
                 abi.encodeWithSelector(Hooks.HookCallFailed.selector) // details
             )
         );
-        BalanceDelta hookDelta = modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
+        modifyPoolLiquidity(key, -600, 600, -int128(liquidityHookKey), 0);
 
         // advance block
         vm.roll(block.number + 1);
@@ -261,7 +257,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         // now the attacker removes the entire liquidity position to consolidate JIT attack
         vm.expectEmit(false, false, true, true);
         emit Donate(key.toId(), address(0), uint128(feeDelta.amount0()), uint128(feeDelta.amount1()));
-        BalanceDelta deltaHookAttackerRemoval = modifyPoolLiquidity(key, -600, 600, -(1e18 + 1e14), attackerSalt);
+        modifyPoolLiquidity(key, -600, 600, -(1e18 + 1e14), attackerSalt);
 
         // the hook should have burned the attacker ERC-6909 claims as donation
         assertEq(
@@ -305,8 +301,8 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
             calculateFeeDelta(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bobSalt);
 
         // attacker removes liquidity
-        BalanceDelta deltaHook = modifyPoolLiquidity(key, -600, 600, -1e18, attackerSalt);
-        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, -600, 600, -1e18, attackerSalt);
+        modifyPoolLiquidity(key, -600, 600, -1e18, attackerSalt);
+        modifyPoolLiquidity(noHookKey, -600, 600, -1e18, attackerSalt);
 
         BalanceDelta hookFeesAttackerAfterRemoval =
             calculateFeeDelta(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, attackerSalt);

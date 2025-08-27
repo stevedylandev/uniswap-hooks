@@ -7,8 +7,8 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
-import {BaseDynamicFeeMock} from "../mocks/BaseDynamicFeeMock.sol";
-import {AntiSandwichMock} from "../mocks/AntiSandwichMock.sol";
+import {BaseDynamicFeeMock} from "src/mocks/BaseDynamicFeeMock.sol";
+import {AntiSandwichMock} from "src/mocks/AntiSandwichMock.sol";
 import {HookTest} from "../utils/HookTest.sol";
 import {toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
@@ -20,8 +20,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     BaseDynamicFeeMock dynamicFeesHooks;
 
     // @dev expected values for pools with 1e18 liquidity.
-    int128 constant SWAP_AMOUNT_1e15 = 1e15;
-    int128 constant SWAP_RESULT_1e15 = 999000999000999;
+    int128 constant SWAP_AMOUNT_1E15 = 1e15;
+    int128 constant SWAP_RESULT_1E15 = 999000999000999;
 
     function setUp() public {
         deployFreshManagerAndRouters();
@@ -30,11 +30,11 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         hook = AntiSandwichMock(
             address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
         );
-        deployCodeTo("test/mocks/AntiSandwichMock.sol:AntiSandwichMock", abi.encode(manager), address(hook));
+        deployCodeTo("src/mocks/AntiSandwichMock.sol:AntiSandwichMock", abi.encode(manager), address(hook));
 
         dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
-            "test/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock", abi.encode(manager), address(dynamicFeesHooks)
+            "src/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock", abi.encode(manager), address(dynamicFeesHooks)
         );
 
         (key,) = initPoolAndAddLiquidity(
@@ -50,22 +50,22 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
 
     /// @notice Unit test for a single swap, not zero for one.
     function test_swap_single_notZeroForOne() public {
-        BalanceDelta swapDelta = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        assertEq(swapDelta, toBalanceDelta(SWAP_RESULT_1e15, -SWAP_AMOUNT_1e15));
+        BalanceDelta swapDelta = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        assertEq(swapDelta, toBalanceDelta(SWAP_RESULT_1E15, -SWAP_AMOUNT_1E15));
     }
 
     /// @notice Unit test for a single swap, zero for one.
     function test_swap_single_zeroForOne() public {
-        BalanceDelta swapDelta = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        assertEq(swapDelta, toBalanceDelta(-SWAP_AMOUNT_1e15, SWAP_RESULT_1e15));
+        BalanceDelta swapDelta = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        assertEq(swapDelta, toBalanceDelta(-SWAP_AMOUNT_1E15, SWAP_RESULT_1E15));
     }
 
     function test_swap_zeroForOne_FrontrunExactInput_BackrunExactInput() public {
         // front run, exactInput
         // - sends token0 (SWAP_AMOUNT)
         // - receives token1 (unknown amount)
-        BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(
             deltaAttack1WithKey == deltaAttack1WithoutKey,
@@ -73,8 +73,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         // user swap
-        BalanceDelta deltaUserWithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaUserWithKey = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
@@ -101,8 +101,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
@@ -111,8 +111,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // front run, exactInput
         // - sends token0 (SWAP_AMOUNT)
         // - receives token1 (unknown amount)
-        BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithKey = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(
             deltaAttack1WithKey == deltaAttack1WithoutKey,
@@ -120,8 +120,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         // user swap
-        BalanceDelta deltaUserWithKey = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaUserWithKey = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
@@ -148,8 +148,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
@@ -158,8 +158,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // front run, exactOutput
         // - gives token0 (unknown amount)
         // - receives token1 (SWAP_AMOUNT)
-        BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(
             deltaAttack1WithKey == deltaAttack1WithoutKey,
@@ -167,8 +167,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         // user swap
-        BalanceDelta deltaUserWithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaUserWithKey = swap(key, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
@@ -195,8 +195,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
@@ -205,8 +205,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // front run, exactOutput
         // - sends token0 (unknown amount)
         // - receives token1 (SWAP_AMOUNT)
-        BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithKey = swap(key, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaAttack1WithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(
             deltaAttack1WithKey == deltaAttack1WithoutKey,
@@ -214,8 +214,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         // user swap
-        BalanceDelta deltaUserWithKey = swap(key, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaUserWithKey = swap(key, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaUserWithoutKey = swap(noHookKey, true, SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertTrue(deltaUserWithKey == deltaUserWithoutKey, "both pools should give the same output");
 
@@ -242,8 +242,8 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         // next block
         vm.roll(block.number + 1);
 
-        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaResetWithKey = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaResetWithoutKey = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaResetWithKey.amount0(), deltaResetWithoutKey.amount0(), "hook should reset state");
     }
@@ -251,10 +251,10 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     /// @notice Unit test for a failed sandwich attack using the hook.
     function test_swap_failedSandwich() public {
         // front run, first transaction
-        BalanceDelta delta = swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta delta = swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         // user swap
-        swap(key, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        swap(key, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         // back run, second transaction
         BalanceDelta deltaEnd = swap(key, false, -int256(delta.amount1()), ZERO_BYTES);
@@ -265,10 +265,10 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     /// @notice Unit test for a successful sandwich attack without using the hook.
     function test_swap_successfulSandwich() public {
         // front run, first transaction
-        BalanceDelta delta = swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta delta = swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         // user swap
-        swap(noHookKey, true, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        swap(noHookKey, true, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         // front run, second transaction
         BalanceDelta deltaEnd = swap(noHookKey, false, -int256(delta.amount1()), ZERO_BYTES);
@@ -280,14 +280,14 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     /// note: the hook doesn't provide protection in the oneForZero direction.
     function test_swap_successfulSandwich_oneForZero() public {
         // front run, first transaction
-        BalanceDelta deltaHook = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaNoHook = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaHook = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaNoHook = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaHook, deltaNoHook, "both pools should give the same output");
 
         // user swap
-        BalanceDelta deltaUserHook = swap(key, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
-        BalanceDelta deltaUserNoHook = swap(noHookKey, false, -SWAP_AMOUNT_1e15, ZERO_BYTES);
+        BalanceDelta deltaUserHook = swap(key, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
+        BalanceDelta deltaUserNoHook = swap(noHookKey, false, -SWAP_AMOUNT_1E15, ZERO_BYTES);
 
         assertEq(deltaUserHook, deltaUserNoHook, "both pools should give the same output");
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {BaseCustomCurve} from "@openzeppelin/uniswap-hooks/base/BaseCustomCurve.sol";
+import {BaseCustomCurve} from "src/base/BaseCustomCurve.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
     constructor(IPoolManager _manager) BaseCustomCurve(_manager) ERC20("Mock", "MOCK") {}
@@ -18,6 +18,8 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         override
         returns (uint256 unspecifiedAmount)
     {
+        PoolKey memory poolKey = poolKey();
+
         bool exactInput = params.amountSpecified < 0;
         (Currency specified, Currency unspecified) = (params.zeroForOne == exactInput)
             ? (poolKey.currency0, poolKey.currency1)

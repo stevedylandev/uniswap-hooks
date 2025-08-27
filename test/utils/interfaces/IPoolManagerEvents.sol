@@ -5,7 +5,6 @@ pragma solidity ^0.8.24;
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 /// @notice Interface for the PoolManager
 interface IPoolManagerEvents {
