@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseCustomAccounting.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {BaseHook} from "src/base/BaseHook.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {IHookEvents} from "src/interfaces/IHookEvents.sol";
-import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+// External imports
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {IUnlockCallback} from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
+import {IHookEvents} from "../interfaces/IHookEvents.sol";
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for custom accounting and hook-owned liquidity.
@@ -318,7 +320,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @dev Initialize the hook's pool key. The stored key should act immutably so that
      * it can safely be used across the hook's functions.
      */
-    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         // Check if the pool key is already initialized
         if (address(poolKey().hooks) != address(0)) revert AlreadyInitialized();
 

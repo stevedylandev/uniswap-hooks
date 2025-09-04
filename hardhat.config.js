@@ -8,7 +8,7 @@ require('solidity-docgen');
  */
 module.exports = {
   solidity: {
-    version: "0.8.24",
+    version: "0.8.26",
     settings: {
       evmVersion: "cancun",
     },

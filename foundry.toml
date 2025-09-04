@@ -2,6 +2,7 @@
 src             = 'src'                                 # The source directory
 out             = 'out'                                 # The output directory
 libs            = ['lib']                               # A list of library directories
+solc            = "0.8.26"                              # The Solidity compiler version
 optimizer       = true                                  # Enable or disable the solc optimizer
 optimizer_runs  = 200                                   # The number of optimizer runs
 fs_permissions  = [{ access = "read", path = "./"}]     # Gives permission to read files for deployment keys.

@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseDynamicFee.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {BaseHook} from "src/base/BaseHook.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
+// External imports
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+// Internal imports
+import {BaseHook} from "../base/BaseHook.sol";
 
 /**
  * @dev Base implementation to apply a dynamic fee via the `PoolManager`'s `updateDynamicLPFee` function.

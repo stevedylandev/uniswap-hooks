@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseHook.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
+// External imports
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 /**
  * @dev Base hook implementation.

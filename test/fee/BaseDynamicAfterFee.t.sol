@@ -2,18 +2,18 @@
 pragma solidity ^0.8.26;
 
 import {BaseDynamicAfterFeeMock} from "src/mocks/BaseDynamicAfterFeeMock.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {Deploy} from "v4-periphery/test/shared/Deploy.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
+import {Deploy} from "@uniswap/v4-periphery/test/shared/Deploy.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {IV4Quoter} from "test/utils/interfaces/IV4Quoter.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // solhint-disable-next-line
-import {V4Quoter} from "v4-periphery/src/lens/V4Quoter.sol";
+import {V4Quoter} from "@uniswap/v4-periphery/src/lens/V4Quoter.sol";
 
 contract BaseDynamicAfterFeeTest is HookTest {
     using SafeCast for *;
