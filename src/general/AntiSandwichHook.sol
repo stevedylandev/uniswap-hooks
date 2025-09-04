@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v1.1.0) (src/general/AntiSandwichHook.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 // External imports
 import {Pool} from "@uniswap/v4-core/src/libraries/Pool.sol";

@@ -5,6 +5,7 @@
 :BaseAsyncSwap: pass:normal[xref:base.adoc#BaseAsyncSwap[`BaseAsyncSwap`]]
 :xref-BaseCustomAccounting-ensure-uint256-: xref:base.adoc#BaseCustomAccounting-ensure-uint256-
 :xref-BaseCustomAccounting-constructor-contract-IPoolManager-: xref:base.adoc#BaseCustomAccounting-constructor-contract-IPoolManager-
+:xref-BaseCustomAccounting-poolKey--: xref:base.adoc#BaseCustomAccounting-poolKey--
 :xref-BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-: xref:base.adoc#BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-
 :xref-BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-: xref:base.adoc#BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-
 :xref-BaseCustomAccounting-_modifyLiquidity-bytes-: xref:base.adoc#BaseCustomAccounting-_modifyLiquidity-bytes-
@@ -18,8 +19,7 @@
 :xref-BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-: xref:base.adoc#BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-
 :xref-BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-: xref:base.adoc#BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-
 :xref-BaseCustomAccounting-getHookPermissions--: xref:base.adoc#BaseCustomAccounting-getHookPermissions--
-:xref-BaseCustomAccounting-poolKey-struct-PoolKey: xref:base.adoc#BaseCustomAccounting-poolKey-struct-PoolKey
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -64,6 +64,7 @@
 :xref-BaseCustomCurve-_getAmountOut-struct-BaseCustomAccounting-RemoveLiquidityParams-: xref:base.adoc#BaseCustomCurve-_getAmountOut-struct-BaseCustomAccounting-RemoveLiquidityParams-
 :xref-BaseCustomCurve-_getAmountIn-struct-BaseCustomAccounting-AddLiquidityParams-: xref:base.adoc#BaseCustomCurve-_getAmountIn-struct-BaseCustomAccounting-AddLiquidityParams-
 :xref-BaseCustomCurve-getHookPermissions--: xref:base.adoc#BaseCustomCurve-getHookPermissions--
+:xref-BaseCustomAccounting-poolKey--: xref:base.adoc#BaseCustomAccounting-poolKey--
 :xref-BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-: xref:base.adoc#BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-
 :xref-BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-: xref:base.adoc#BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-
 :xref-BaseCustomAccounting-_handleAccruedFees-struct-BaseCustomAccounting-CallbackData-BalanceDelta-BalanceDelta-: xref:base.adoc#BaseCustomAccounting-_handleAccruedFees-struct-BaseCustomAccounting-CallbackData-BalanceDelta-BalanceDelta-
@@ -72,8 +73,7 @@
 :xref-BaseCustomAccounting-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-: xref:base.adoc#BaseCustomAccounting-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-
 :xref-BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-: xref:base.adoc#BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-
 :xref-BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-: xref:base.adoc#BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-
-:xref-BaseCustomAccounting-poolKey-struct-PoolKey: xref:base.adoc#BaseCustomAccounting-poolKey-struct-PoolKey
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -110,7 +110,7 @@
 :xref-BaseHook-onlyValidPools-contract-IHooks-: xref:base.adoc#BaseHook-onlyValidPools-contract-IHooks-
 :xref-BaseHook-constructor-contract-IPoolManager-: xref:base.adoc#BaseHook-constructor-contract-IPoolManager-
 :xref-BaseHook-getHookPermissions--: xref:base.adoc#BaseHook-getHookPermissions--
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -140,7 +140,7 @@
 :xref-BaseAsyncSwap-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseAsyncSwap-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseAsyncSwap-_calculateSwapFee-struct-PoolKey-uint256-: xref:base.adoc#BaseAsyncSwap-_calculateSwapFee-struct-PoolKey-uint256-
 :xref-BaseAsyncSwap-getHookPermissions--: xref:base.adoc#BaseAsyncSwap-getHookPermissions--
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -192,9 +192,9 @@ Base contracts for building secure and modular Uniswap hooks, providing core fun
 :AddLiquidityParams: pass:normal[xref:#BaseCustomAccounting-AddLiquidityParams[`++AddLiquidityParams++`]]
 :RemoveLiquidityParams: pass:normal[xref:#BaseCustomAccounting-RemoveLiquidityParams[`++RemoveLiquidityParams++`]]
 :CallbackData: pass:normal[xref:#BaseCustomAccounting-CallbackData[`++CallbackData++`]]
-:poolKey: pass:normal[xref:#BaseCustomAccounting-poolKey-struct-PoolKey[`++poolKey++`]]
 :ensure: pass:normal[xref:#BaseCustomAccounting-ensure-uint256-[`++ensure++`]]
 :constructor: pass:normal[xref:#BaseCustomAccounting-constructor-contract-IPoolManager-[`++constructor++`]]
+:poolKey: pass:normal[xref:#BaseCustomAccounting-poolKey--[`++poolKey++`]]
 :addLiquidity: pass:normal[xref:#BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-[`++addLiquidity++`]]
 :removeLiquidity: pass:normal[xref:#BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-[`++removeLiquidity++`]]
 :_modifyLiquidity: pass:normal[xref:#BaseCustomAccounting-_modifyLiquidity-bytes-[`++_modifyLiquidity++`]]
@@ -247,6 +247,7 @@ _Available since v0.1.0_
 .Functions
 --
 * {xref-BaseCustomAccounting-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
+* {xref-BaseCustomAccounting-poolKey--}[`++poolKey()++`]
 * {xref-BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-}[`++addLiquidity(params)++`]
 * {xref-BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-}[`++removeLiquidity(params)++`]
 * {xref-BaseCustomAccounting-_modifyLiquidity-bytes-}[`++_modifyLiquidity(params)++`]
@@ -260,7 +261,6 @@ _Available since v0.1.0_
 * {xref-BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-}[`++_mint(params, callerDelta, feesAccrued, shares)++`]
 * {xref-BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-}[`++_burn(params, callerDelta, feesAccrued, shares)++`]
 * {xref-BaseCustomAccounting-getHookPermissions--}[`++getHookPermissions()++`]
-* {xref-BaseCustomAccounting-poolKey-struct-PoolKey}[`++poolKey()++`]
 
 [.contract-subindex-inherited]
 .IUnlockCallback
@@ -270,7 +270,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
 * {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
@@ -358,8 +358,12 @@ Ensure the deadline of a liquidity modification request is not expired.
 Set the pool `PoolManager` address.
 
 [.contract-item]
+[[BaseCustomAccounting-poolKey--]]
+==== `[.contract-item-name]#++poolKey++#++() → struct PoolKey++` [.item-kind]#public#
+
+[.contract-item]
 [[BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-]]
-==== `[.contract-item-name]#++addLiquidity++#++(struct BaseCustomAccounting.AddLiquidityParams params) → BalanceDelta delta++` [.item-kind]#external#
+==== `[.contract-item-name]#++addLiquidity++#++(struct BaseCustomAccounting.AddLiquidityParams params) → BalanceDelta delta++` [.item-kind]#public#
 
 To cover all possible scenarios, `msg.sender` should have already given the hook an allowance
 of at least amount0Desired/amount1Desired on token0/token1. Always adds assets at the ideal ratio,
@@ -370,7 +374,7 @@ fees accrued from the liquidity modification delta.
 
 [.contract-item]
 [[BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-]]
-==== `[.contract-item-name]#++removeLiquidity++#++(struct BaseCustomAccounting.RemoveLiquidityParams params) → BalanceDelta delta++` [.item-kind]#external#
+==== `[.contract-item-name]#++removeLiquidity++#++(struct BaseCustomAccounting.RemoveLiquidityParams params) → BalanceDelta delta++` [.item-kind]#public#
 
 [.contract-item]
 [[BaseCustomAccounting-_modifyLiquidity-bytes-]]
@@ -380,7 +384,7 @@ Calls the `PoolManager` to unlock and call back the hook's `unlockCallback` func
 
 [.contract-item]
 [[BaseCustomAccounting-unlockCallback-bytes-]]
-==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#external#
+==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#public#
 
 Callback from the `PoolManager` when liquidity is modified, either adding or removing.
 
@@ -442,10 +446,6 @@ Burn liquidity shares from the sender.
 ==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
 
 Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity` and `beforeRemoveLiquidity`.
-
-[.contract-item]
-[[BaseCustomAccounting-poolKey-struct-PoolKey]]
-==== `[.contract-item-name]#++poolKey++#++() → struct PoolKey++` [.item-kind]#public#
 
 [.contract-item]
 [[BaseCustomAccounting-ExpiredPastDeadline--]]
@@ -538,6 +538,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseCustomAccounting
+* {xref-BaseCustomAccounting-poolKey--}[`++poolKey()++`]
 * {xref-BaseCustomAccounting-addLiquidity-struct-BaseCustomAccounting-AddLiquidityParams-}[`++addLiquidity(params)++`]
 * {xref-BaseCustomAccounting-removeLiquidity-struct-BaseCustomAccounting-RemoveLiquidityParams-}[`++removeLiquidity(params)++`]
 * {xref-BaseCustomAccounting-_handleAccruedFees-struct-BaseCustomAccounting-CallbackData-BalanceDelta-BalanceDelta-}[`++_handleAccruedFees(data, callerDelta, feesAccrued)++`]
@@ -546,7 +547,6 @@ _Available since v0.1.0_
 * {xref-BaseCustomAccounting-_beforeRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-bytes-}[`++_beforeRemoveLiquidity(, , , )++`]
 * {xref-BaseCustomAccounting-_mint-struct-BaseCustomAccounting-AddLiquidityParams-BalanceDelta-BalanceDelta-uint256-}[`++_mint(params, callerDelta, feesAccrued, shares)++`]
 * {xref-BaseCustomAccounting-_burn-struct-BaseCustomAccounting-RemoveLiquidityParams-BalanceDelta-BalanceDelta-uint256-}[`++_burn(params, callerDelta, feesAccrued, shares)++`]
-* {xref-BaseCustomAccounting-poolKey-struct-PoolKey}[`++poolKey()++`]
 
 [.contract-subindex-inherited]
 .IUnlockCallback
@@ -556,7 +556,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
 * {xref-BaseHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, , , )++`]
@@ -674,7 +674,7 @@ Overrides the custom accounting logic to support the custom curve integer amount
 
 [.contract-item]
 [[BaseCustomCurve-unlockCallback-bytes-]]
-==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#external#
+==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#public#
 
 Decodes the callback data and applies the liquidity modifications, overriding the custom
 accounting logic to mint and burn ERC-6909 claim tokens which are used in swaps.
@@ -721,7 +721,7 @@ Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity`,
 :onlySelf: pass:normal[xref:#BaseHook-onlySelf--[`++onlySelf++`]]
 :onlyValidPools: pass:normal[xref:#BaseHook-onlyValidPools-contract-IHooks-[`++onlyValidPools++`]]
 :getHookPermissions: pass:normal[xref:#BaseHook-getHookPermissions--[`++getHookPermissions++`]]
-:validateHookAddress: pass:normal[xref:#BaseHook-validateHookAddress-contract-BaseHook-[`++validateHookAddress++`]]
+:_validateHookAddress: pass:normal[xref:#BaseHook-_validateHookAddress-contract-BaseHook-[`++_validateHookAddress++`]]
 :beforeInitialize: pass:normal[xref:#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-[`++beforeInitialize++`]]
 :_beforeInitialize: pass:normal[xref:#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-[`++_beforeInitialize++`]]
 :afterInitialize: pass:normal[xref:#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-[`++afterInitialize++`]]
@@ -779,7 +779,7 @@ _Available since v0.1.0_
 --
 * {xref-BaseHook-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-BaseHook-getHookPermissions--}[`++getHookPermissions()++`]
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
@@ -851,8 +851,8 @@ Get the hook permissions to signal which hook functions are to be implemented.
 Used at deployment to validate the address correctly represents the expected permissions.
 
 [.contract-item]
-[[BaseHook-validateHookAddress-contract-BaseHook-]]
-==== `[.contract-item-name]#++validateHookAddress++#++(contract BaseHook hook)++` [.item-kind]#internal#
+[[BaseHook-_validateHookAddress-contract-BaseHook-]]
+==== `[.contract-item-name]#++_validateHookAddress++#++(contract BaseHook hook)++` [.item-kind]#internal#
 
 Validate the hook address against the expected permissions.
 
@@ -1042,7 +1042,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]

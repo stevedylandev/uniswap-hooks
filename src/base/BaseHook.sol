@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseHook.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 // External imports
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";

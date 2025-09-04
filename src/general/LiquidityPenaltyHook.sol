@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v1.1.0) (src/general/LiquidityPenaltyHook.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 // External imports
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";

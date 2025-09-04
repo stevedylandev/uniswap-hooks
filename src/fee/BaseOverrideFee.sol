@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseOverrideFee.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 // External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";

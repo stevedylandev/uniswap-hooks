@@ -10,12 +10,12 @@
 :xref-LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-: xref:general.adoc#LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-
 :xref-LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-: xref:general.adoc#LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-
 :xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-uint48-: xref:general.adoc#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-uint48-
-:xref-LiquidityPenaltyHook-getBlockNumberOffset--: xref:general.adoc#LiquidityPenaltyHook-getBlockNumberOffset--
 :xref-LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-
 :xref-LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-: xref:general.adoc#LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-
 :xref-LiquidityPenaltyHook-getHookPermissions--: xref:general.adoc#LiquidityPenaltyHook-getHookPermissions--
 :xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-LiquidityPenaltyHook-blockNumberOffset-uint48: xref:general.adoc#LiquidityPenaltyHook-blockNumberOffset-uint48
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -52,7 +52,7 @@
 :xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientApplyTarget-bool-
 :xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -94,10 +94,12 @@
 :xref-LimitOrderHook-_getCrossedTicks-PoolId-int24-: xref:general.adoc#LimitOrderHook-_getCrossedTicks-PoolId-int24-
 :xref-LimitOrderHook-getTickLowerLast-PoolId-: xref:general.adoc#LimitOrderHook-getTickLowerLast-PoolId-
 :xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-
+:xref-LimitOrderHook-_getTickLower-int24-int24-: xref:general.adoc#LimitOrderHook-_getTickLower-int24-int24-
 :xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-: xref:general.adoc#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-
+:xref-LimitOrderHook-_getTick-PoolId-: xref:general.adoc#LimitOrderHook-_getTick-PoolId-
+:xref-LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-: xref:general.adoc#LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-
 :xref-LimitOrderHook-getHookPermissions--: xref:general.adoc#LimitOrderHook-getHookPermissions--
-:xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-: xref:general.adoc#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-
-:xref-BaseHook-validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-validateHookAddress-contract-BaseHook-
+:xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -131,6 +133,7 @@
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-LimitOrderHook-ZERO_BYTES-bytes: xref:general.adoc#LimitOrderHook-ZERO_BYTES-bytes
+:xref-LimitOrderHook-ORDER_ID_DEFAULT-OrderIdLibrary-OrderId: xref:general.adoc#LimitOrderHook-ORDER_ID_DEFAULT-OrderIdLibrary-OrderId
 = General
 
 [.readme-notice]
@@ -147,6 +150,7 @@ Ready-to-use hooks built on top of the base and fee abstract contracts
 :BlockNumberOffsetTooLow: pass:normal[xref:#LiquidityPenaltyHook-BlockNumberOffsetTooLow--[`++BlockNumberOffsetTooLow++`]]
 :NoLiquidityToReceiveDonation: pass:normal[xref:#LiquidityPenaltyHook-NoLiquidityToReceiveDonation--[`++NoLiquidityToReceiveDonation++`]]
 :MIN_BLOCK_NUMBER_OFFSET: pass:normal[xref:#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48[`++MIN_BLOCK_NUMBER_OFFSET++`]]
+:blockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-blockNumberOffset-uint48[`++blockNumberOffset++`]]
 :constructor: pass:normal[xref:#LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-[`++constructor++`]]
 :_afterAddLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterAddLiquidity++`]]
 :_afterRemoveLiquidity: pass:normal[xref:#LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-[`++_afterRemoveLiquidity++`]]
@@ -155,7 +159,6 @@ Ready-to-use hooks built on top of the base and fee abstract contracts
 :_takeFeesToHook: pass:normal[xref:#LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-[`++_takeFeesToHook++`]]
 :_settleFeesFromHook: pass:normal[xref:#LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-[`++_settleFeesFromHook++`]]
 :_calculateLiquidityPenalty: pass:normal[xref:#LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-uint48-[`++_calculateLiquidityPenalty++`]]
-:getBlockNumberOffset: pass:normal[xref:#LiquidityPenaltyHook-getBlockNumberOffset--[`++getBlockNumberOffset++`]]
 :getLastAddedLiquidityBlock: pass:normal[xref:#LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-[`++getLastAddedLiquidityBlock++`]]
 :getWithheldFees: pass:normal[xref:#LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-[`++getWithheldFees++`]]
 :getHookPermissions: pass:normal[xref:#LiquidityPenaltyHook-getHookPermissions--[`++getHookPermissions++`]]
@@ -199,7 +202,7 @@ _Available since v0.1.1_
 [.contract-index]
 .Functions
 --
-* {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-}[`++constructor(poolManager_, blockNumberOffset_)++`]
+* {xref-LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-}[`++constructor(_poolManager, _blockNumberOffset)++`]
 * {xref-LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterAddLiquidity(sender, key, params, , feeDelta, )++`]
 * {xref-LiquidityPenaltyHook-_afterRemoveLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-}[`++_afterRemoveLiquidity(sender, key, params, , feeDelta, )++`]
 * {xref-LiquidityPenaltyHook-_getBlockNumber--}[`++_getBlockNumber()++`]
@@ -207,15 +210,15 @@ _Available since v0.1.1_
 * {xref-LiquidityPenaltyHook-_takeFeesToHook-struct-PoolKey-bytes32-BalanceDelta-}[`++_takeFeesToHook(key, positionKey, feeDelta)++`]
 * {xref-LiquidityPenaltyHook-_settleFeesFromHook-struct-PoolKey-bytes32-}[`++_settleFeesFromHook(key, positionKey)++`]
 * {xref-LiquidityPenaltyHook-_calculateLiquidityPenalty-BalanceDelta-uint48-}[`++_calculateLiquidityPenalty(feeDelta, lastAddedLiquidityBlock)++`]
-* {xref-LiquidityPenaltyHook-getBlockNumberOffset--}[`++getBlockNumberOffset()++`]
 * {xref-LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-}[`++getLastAddedLiquidityBlock(poolId, positionKey)++`]
 * {xref-LiquidityPenaltyHook-getWithheldFees-PoolId-bytes32-}[`++getWithheldFees(poolId, positionKey)++`]
 * {xref-LiquidityPenaltyHook-getHookPermissions--}[`++getHookPermissions()++`]
 * {xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48}[`++MIN_BLOCK_NUMBER_OFFSET()++`]
+* {xref-LiquidityPenaltyHook-blockNumberOffset-uint48}[`++blockNumberOffset()++`]
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
@@ -261,7 +264,7 @@ _Available since v0.1.1_
 
 [.contract-item]
 [[LiquidityPenaltyHook-constructor-contract-IPoolManager-uint48-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager poolManager_, uint48 blockNumberOffset_)++` [.item-kind]#public#
+==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager, uint48 _blockNumberOffset)++` [.item-kind]#public#
 
 Sets the `PoolManager` address and the {getBlockNumberOffset}.
 
@@ -330,14 +333,6 @@ As a result, the penalty is 100% at the same block where liquidity was last adde
 NOTE: Won't overflow if `currentBlockNumber - lastAddedLiquidityBlock < blockNumberOffset` is verified prior to calling this function.
 
 [.contract-item]
-[[LiquidityPenaltyHook-getBlockNumberOffset--]]
-==== `[.contract-item-name]#++getBlockNumberOffset++#++() → uint48++` [.item-kind]#public#
-
-The minimum time window (in blocks) that must pass after adding liquidity before it can be
-removed without any penalty. During this period, JIT attacks are deterred through fee withholding
-and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
-
-[.contract-item]
 [[LiquidityPenaltyHook-getLastAddedLiquidityBlock-PoolId-bytes32-]]
 ==== `[.contract-item-name]#++getLastAddedLiquidityBlock++#++(PoolId poolId, bytes32 positionKey) → uint48++` [.item-kind]#public#
 
@@ -365,7 +360,15 @@ Set the hooks permissions, specifically `afterAddLiquidity`, `afterAddLiquidityR
 [[LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48]]
 ==== `[.contract-item-name]#++MIN_BLOCK_NUMBER_OFFSET++#++() → uint48++` [.item-kind]#public#
 
-The minimum block number offset.
+The minimum value for the {blockNumberOffset}.
+
+[.contract-item]
+[[LiquidityPenaltyHook-blockNumberOffset-uint48]]
+==== `[.contract-item-name]#++blockNumberOffset++#++() → uint48++` [.item-kind]#public#
+
+The minimum time window (in blocks) that must pass after adding liquidity before it can be
+removed without any penalty. During this period, JIT attacks are deterred through fee withholding
+and penalties. Higher values provide stronger JIT protection but may discourage legitimate LPs.
 
 [.contract-item]
 [[LiquidityPenaltyHook-BlockNumberOffsetTooLow--]]
@@ -448,7 +451,7 @@ _Available since v1.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
@@ -569,7 +572,7 @@ Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwap
 :WithdrawCallbackData: pass:normal[xref:#LimitOrderHook-WithdrawCallbackData[`++WithdrawCallbackData++`]]
 :CheckpointCurrencies: pass:normal[xref:#LimitOrderHook-CheckpointCurrencies[`++CheckpointCurrencies++`]]
 :ZERO_BYTES: pass:normal[xref:#LimitOrderHook-ZERO_BYTES-bytes[`++ZERO_BYTES++`]]
-:orderInfos: pass:normal[xref:#LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-[`++orderInfos++`]]
+:ORDER_ID_DEFAULT: pass:normal[xref:#LimitOrderHook-ORDER_ID_DEFAULT-OrderIdLibrary-OrderId[`++ORDER_ID_DEFAULT++`]]
 :ZeroLiquidity: pass:normal[xref:#LimitOrderHook-ZeroLiquidity--[`++ZeroLiquidity++`]]
 :InRange: pass:normal[xref:#LimitOrderHook-InRange--[`++InRange++`]]
 :CrossedRange: pass:normal[xref:#LimitOrderHook-CrossedRange--[`++CrossedRange++`]]
@@ -593,7 +596,10 @@ Set the hook permissions, specifically `beforeSwap`, `afterSwap`, and `afterSwap
 :_getCrossedTicks: pass:normal[xref:#LimitOrderHook-_getCrossedTicks-PoolId-int24-[`++_getCrossedTicks++`]]
 :getTickLowerLast: pass:normal[xref:#LimitOrderHook-getTickLowerLast-PoolId-[`++getTickLowerLast++`]]
 :getOrderId: pass:normal[xref:#LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-[`++getOrderId++`]]
+:_getTickLower: pass:normal[xref:#LimitOrderHook-_getTickLower-int24-int24-[`++_getTickLower++`]]
 :getOrderLiquidity: pass:normal[xref:#LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-[`++getOrderLiquidity++`]]
+:_getTick: pass:normal[xref:#LimitOrderHook-_getTick-PoolId-[`++_getTick++`]]
+:getOrderInfo: pass:normal[xref:#LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-[`++getOrderInfo++`]]
 :getHookPermissions: pass:normal[xref:#LimitOrderHook-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -643,16 +649,18 @@ _Available since v1.1.0_
 * {xref-LimitOrderHook-_getCrossedTicks-PoolId-int24-}[`++_getCrossedTicks(poolId, tickSpacing)++`]
 * {xref-LimitOrderHook-getTickLowerLast-PoolId-}[`++getTickLowerLast(poolId)++`]
 * {xref-LimitOrderHook-getOrderId-struct-PoolKey-int24-bool-}[`++getOrderId(key, tickLower, zeroForOne)++`]
+* {xref-LimitOrderHook-_getTickLower-int24-int24-}[`++_getTickLower(tick, tickSpacing)++`]
 * {xref-LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-}[`++getOrderLiquidity(orderId, owner)++`]
+* {xref-LimitOrderHook-_getTick-PoolId-}[`++_getTick(poolId)++`]
+* {xref-LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-}[`++getOrderInfo(orderId)++`]
 * {xref-LimitOrderHook-getHookPermissions--}[`++getHookPermissions()++`]
-* {xref-LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-}[`++orderInfos()++`]
 
 [.contract-subindex-inherited]
 .IUnlockCallback
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-validateHookAddress-contract-BaseHook-}[`++validateHookAddress(hook)++`]
+* {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
@@ -725,6 +733,7 @@ _Available since v1.1.0_
 .Internal Variables
 --
 * {xref-LimitOrderHook-ZERO_BYTES-bytes}[`++bytes constant ZERO_BYTES++`]
+* {xref-LimitOrderHook-ORDER_ID_DEFAULT-OrderIdLibrary-OrderId}[`++OrderIdLibrary.OrderId constant ORDER_ID_DEFAULT++`]
 
 [.contract-subindex-inherited]
 .IUnlockCallback
@@ -757,7 +766,7 @@ Hooks into the `afterSwap` hook to get the ticks crossed by the swap and fill th
 
 [.contract-item]
 [[LimitOrderHook-placeOrder-struct-PoolKey-int24-bool-uint128-]]
-==== `[.contract-item-name]#++placeOrder++#++(struct PoolKey key, int24 tick, bool zeroForOne, uint128 liquidity)++` [.item-kind]#external#
+==== `[.contract-item-name]#++placeOrder++#++(struct PoolKey key, int24 tick, bool zeroForOne, uint128 liquidity)++` [.item-kind]#public#
 
 Places a limit order by adding liquidity out of range at a specific tick. The order will be filled when the
 pool price crosses the specified `tick`. Takes a `PoolKey` `key`, target `tick`, direction `zeroForOne` indicating
@@ -766,7 +775,7 @@ via the `unlock` function, which will trigger the `{unlockCallback}` function.
 
 [.contract-item]
 [[LimitOrderHook-cancelOrder-struct-PoolKey-int24-bool-address-]]
-==== `[.contract-item-name]#++cancelOrder++#++(struct PoolKey key, int24 tickLower, bool zeroForOne, address to)++` [.item-kind]#external#
+==== `[.contract-item-name]#++cancelOrder++#++(struct PoolKey key, int24 tickLower, bool zeroForOne, address to)++` [.item-kind]#public#
 
 Cancels a limit order by removing liquidity from the pool. Takes a `PoolKey` `key`, `tickLower` of the order,
 direction `zeroForOne` indicating whether it was buying currency0 or currency1, and recipient address `to` for the
@@ -776,7 +785,7 @@ The interaction with the `poolManager` is done via the `unlock` function, which 
 
 [.contract-item]
 [[LimitOrderHook-withdraw-OrderIdLibrary-OrderId-address-]]
-==== `[.contract-item-name]#++withdraw++#++(OrderIdLibrary.OrderId orderId, address to) → uint256 amount0, uint256 amount1++` [.item-kind]#external#
+==== `[.contract-item-name]#++withdraw++#++(OrderIdLibrary.OrderId orderId, address to) → uint256 amount0, uint256 amount1++` [.item-kind]#public#
 
 Withdraws liquidity from a filled order, sending it to address `to`. Takes an `OrderId` `orderId` of the filled
 order to withdraw from. Returns the withdrawn amounts as `(amount0, amount1)`. Can only be called after the order is
@@ -785,7 +794,7 @@ filled - use `cancelOrder` to remove liquidity from unfilled orders. The interac
 
 [.contract-item]
 [[LimitOrderHook-unlockCallback-bytes-]]
-==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#external#
+==== `[.contract-item-name]#++unlockCallback++#++(bytes rawData) → bytes returnData++` [.item-kind]#public#
 
 Handles callbacks from the `PoolManager` for order operations. Takes encoded `rawData` containing the callback type
 and operation-specific data. Returns encoded data containing fees accrued for cancel operations, or empty bytes
@@ -846,6 +855,13 @@ Retrieves the order id for a given pool position. Takes a `PoolKey` `key`, targe
 position, or the default order id if no order exists.
 
 [.contract-item]
+[[LimitOrderHook-_getTickLower-int24-int24-]]
+==== `[.contract-item-name]#++_getTickLower++#++(int24 tick, int24 tickSpacing) → int24++` [.item-kind]#internal#
+
+Get the tick lower. Takes a `tick` and `tickSpacing` and returns the nearest valid tick boundary
+at or below the input tick, accounting for negative tick handling.
+
+[.contract-item]
 [[LimitOrderHook-getOrderLiquidity-OrderIdLibrary-OrderId-address-]]
 ==== `[.contract-item-name]#++getOrderLiquidity++#++(OrderIdLibrary.OrderId orderId, address owner) → uint256++` [.item-kind]#external#
 
@@ -853,17 +869,24 @@ Get the liquidity of an order for a given order id and owner. Takes an {OrderId}
 and returns the amount of liquidity the owner has contributed to the order.
 
 [.contract-item]
+[[LimitOrderHook-_getTick-PoolId-]]
+==== `[.contract-item-name]#++_getTick++#++(PoolId poolId) → int24 tick++` [.item-kind]#internal#
+
+Get the current tick for a given pool. Takes a `PoolId` `poolId` and returns the tick calculated
+from the pool's current sqrt price.
+
+[.contract-item]
+[[LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-]]
+==== `[.contract-item-name]#++getOrderInfo++#++(OrderIdLibrary.OrderId orderId) → bool filled, Currency currency0, Currency currency1, uint256 currency0Total, uint256 currency1Total, uint128 liquidityTotal++` [.item-kind]#external#
+
+Get the order info for a given order id. Takes an {OrderId} `orderId` and returns the order info.
+
+[.contract-item]
 [[LimitOrderHook-getHookPermissions--]]
 ==== `[.contract-item-name]#++getHookPermissions++#++() → struct Hooks.Permissions permissions++` [.item-kind]#public#
 
 Get the hook permissions for this contract. Returns a `Hooks.Permissions` struct configured to enable
 `afterInitialize` and `afterSwap` hooks while disabling all other hooks.
-
-[.contract-item]
-[[LimitOrderHook-orderInfos-mapping-OrderIdLibrary-OrderId----struct-LimitOrderHook-OrderInfo-]]
-==== `[.contract-item-name]#++orderInfos++#++() → mapping(OrderIdLibrary.OrderId &#x3D;&gt; struct LimitOrderHook.OrderInfo)++` [.item-kind]#public#
-
-Tracks the order info for each order id.
 
 [.contract-item]
 [[LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-]]
@@ -930,4 +953,10 @@ Limit order is not filled.
 ==== `bytes [.contract-item-name]#++ZERO_BYTES++#` [.item-kind]#internal constant#
 
 The zero bytes.
+
+[.contract-item]
+[[LimitOrderHook-ORDER_ID_DEFAULT-OrderIdLibrary-OrderId]]
+==== `OrderIdLibrary.OrderId [.contract-item-name]#++ORDER_ID_DEFAULT++#` [.item-kind]#internal constant#
+
+The default order id, used to indicate that an order is not yet initialized.
 
