@@ -4,9 +4,9 @@ pragma solidity ^0.8.26;
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {CurrencySettler} from "@openzeppelin/uniswap-hooks/utils/CurrencySettler.sol";
-import {BaseCustomAccountingMock} from "@openzeppelin/uniswap-hooks/mocks/BaseCustomAccountingMock.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {BaseCustomAccountingMock} from "../mocks/BaseCustomAccountingMock.sol";
 
 contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
     using CurrencySettler for Currency;

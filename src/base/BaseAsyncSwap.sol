@@ -3,7 +3,6 @@
 
 pragma solidity ^0.8.24;
 
-import {BaseHook} from "@openzeppelin/uniswap-hooks/base/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -12,10 +11,11 @@ import {
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
-import {CurrencySettler} from "@openzeppelin/uniswap-hooks/utils/CurrencySettler.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {IHookEvents} from "@openzeppelin/uniswap-hooks/interfaces/IHookEvents.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {IHookEvents} from "../interfaces/IHookEvents.sol";
+import {BaseHook} from "../base/BaseHook.sol";
 
 /**
  * @dev Base implementation for async swaps, which skip the v3-like swap implementation of the `PoolManager`
