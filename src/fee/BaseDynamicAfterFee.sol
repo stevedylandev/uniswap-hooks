@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8.24;
 
+// External imports
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
@@ -14,6 +15,7 @@ import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {TransientSlot} from "@openzeppelin/contracts/utils/TransientSlot.sol";
 import {SlotDerivation} from "@openzeppelin/contracts/utils/SlotDerivation.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+// Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 import {IHookEvents} from "../interfaces/IHookEvents.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";

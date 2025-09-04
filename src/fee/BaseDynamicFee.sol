@@ -3,10 +3,12 @@
 
 pragma solidity ^0.8.24;
 
+// External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+// Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 
 /**

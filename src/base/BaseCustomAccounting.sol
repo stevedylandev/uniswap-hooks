@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8.24;
 
+// External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -12,6 +13,7 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
 import {IHookEvents} from "../interfaces/IHookEvents.sol";
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";

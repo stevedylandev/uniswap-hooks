@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+// External imports
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+// Internal imports
 import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 

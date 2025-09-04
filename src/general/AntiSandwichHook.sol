@@ -3,10 +3,6 @@
 
 pragma solidity ^0.8.24;
 
-// Internal imports
-import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-
 // External imports
 import {Pool} from "@uniswap/v4-core/src/libraries/Pool.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
@@ -20,6 +16,9 @@ import {Slot0} from "@uniswap/v4-core/src/types/Slot0.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+// Internal imports
+import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev This hook implements the sandwich-resistant AMM design introduced

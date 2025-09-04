@@ -3,10 +3,6 @@
 
 pragma solidity ^0.8.24;
 
-// Internal imports
-import {BaseHook} from "../base/BaseHook.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-
 // External imports
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
@@ -19,6 +15,9 @@ import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+// Internal imports
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev Just-in-Time (JIT) liquidity provisioning resistant hook.

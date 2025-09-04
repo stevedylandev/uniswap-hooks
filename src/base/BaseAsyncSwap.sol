@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8.24;
 
+// External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -13,6 +14,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 import {IHookEvents} from "../interfaces/IHookEvents.sol";
 import {BaseHook} from "../base/BaseHook.sol";

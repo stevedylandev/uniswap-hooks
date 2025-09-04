@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8.24;
 
+// External imports
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";

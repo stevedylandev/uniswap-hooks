@@ -3,10 +3,6 @@
 
 pragma solidity ^0.8.24;
 
-// Internal imports
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {BaseHook} from "../base/BaseHook.sol";
-
 // External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
@@ -19,6 +15,9 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {IUnlockCallback} from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {BaseHook} from "../base/BaseHook.sol";
 
 /// @dev The order id library.
 library OrderIdLibrary {
