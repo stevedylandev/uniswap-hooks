@@ -8,12 +8,12 @@ import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
-import {Deploy} from "v4-periphery/test/shared/Deploy.sol";
+import {Deploy} from "@uniswap/v4-periphery/test/shared/Deploy.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {IV4Quoter} from "test/utils/interfaces/IV4Quoter.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // solhint-disable-next-line
-import {V4Quoter} from "v4-periphery/src/lens/V4Quoter.sol";
+import {V4Quoter} from "@uniswap/v4-periphery/src/lens/V4Quoter.sol";
 
 contract BaseDynamicAfterFeeTest is HookTest {
     using SafeCast for *;
